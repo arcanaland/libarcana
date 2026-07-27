@@ -1,0 +1,12 @@
+{
+    "version": "0.5",
+    "requires": [
+        "tomlplusplus/3.4.0#85dbfed71376fb8dc23cdcc0570e4727%1718732132.076",
+        "catch2/3.15.2#b16b3826eda0625d87c766722c6a43f4%1783695959.434"
+    ],
+    "build_requires": [
+        "cmake/4.4.0#a5dd5d73bd9fc56b0fc3163a04573dc8%1784051561.926"
+    ],
+    "python_requires": [],
+    "config_requires": []
+}

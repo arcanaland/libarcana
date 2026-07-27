@@ -1,0 +1,6 @@
+pre-commit:
+  commands:
+    clang-format:
+      glob: "*.{cpp,hpp}"
+      run: just format {staged_files}
+      stage_fixed: true

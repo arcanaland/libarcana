@@ -1,0 +1,6 @@
+/build/
+.cache/
+CMakeUserPresets.json
+
+# tracked in its own independent jj repo
+agents/
