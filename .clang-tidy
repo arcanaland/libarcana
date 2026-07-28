@@ -7,7 +7,7 @@ Checks: >
   readability-*,
   -modernize-use-trailing-return-type
 
-WarningsAsErrors: ''
+WarningsAsErrors: '*'
 HeaderFilterRegex: '^.*/include/arcana/.*'
 
 CheckOptions:
