@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# dependent binaries need tomlplusplus at configure time
+find_dependency(tomlplusplus)
+
+include("${CMAKE_CURRENT_LIST_DIR}/arcanaTargets.cmake")
+
+check_required_components(arcana)
