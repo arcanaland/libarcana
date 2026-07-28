@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Adam Fidel
+// SPDX-License-Identifier: MIT
+
 #include <arcana/version.hpp>
 
 #include <cstdio>

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 4.3)
 project(
     arcana

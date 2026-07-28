@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 configure_file(${PROJECT_SOURCE_DIR}/include/arcana/version.hpp.in
                ${PROJECT_BINARY_DIR}/generated/include/arcana/version.hpp @ONLY)
 

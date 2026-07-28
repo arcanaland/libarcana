@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 find_package(Catch2 3 REQUIRED)
 include(Catch)
 

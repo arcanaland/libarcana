@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 # Recipes marked [script] run inside a podman container
 set script-interpreter := ['./scripts/podman-shim.sh']
 

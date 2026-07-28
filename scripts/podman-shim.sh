@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 set -euo pipefail
 
 image="${LIBARCANA_IMAGE:-libarcana-builder}"

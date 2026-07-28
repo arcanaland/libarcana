@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 FROM fedora:44
 
 RUN dnf install -y --setopt=install_weak_deps=False \

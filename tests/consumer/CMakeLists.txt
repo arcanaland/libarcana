@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 # A standalone project that consumes an installed libarcana
 
 cmake_minimum_required(VERSION 4.3)
