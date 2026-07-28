@@ -247,15 +247,17 @@ std::vector<card_back_variant> parse_card_backs(
     return result;
 }
 
-std::map<std::string, std::string> parse_string_map(toml::node_view<toml::node const> const& node)
+std::unordered_map<std::string, std::string> parse_string_map(toml::node_view<toml::node const> const& node)
 {
-    std::map<std::string, std::string> result;
+    std::unordered_map<std::string, std::string> result;
+
     if (auto const* t = node.as_table())
     {
         for (auto const& [key, value] : *t)
             if (auto s = value.value<std::string>())
                 result.emplace(key.str(), *s);
     }
+
     return result;
 }
 

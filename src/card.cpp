@@ -15,11 +15,29 @@ namespace arcana
 namespace
 {
 
-constexpr std::array<std::string_view, 4> suit_names{"wands", "cups", "swords", "pentacles"};
+constexpr std::array<std::string_view, 4> suit_names{
+    "wands",
+    "cups",
+    "swords",
+    "pentacles"
+};
 
-constexpr std::array<std::string_view, 14> rank_names{"ace",  "two",    "three", "four", "five",
-                                                      "six",  "seven",  "eight", "nine", "ten",
-                                                      "page", "knight", "queen", "king"};
+constexpr std::array<std::string_view, 14> rank_names{
+    "ace",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "page",
+    "knight",
+    "queen",
+    "king"
+};
 
 }  // namespace
 
@@ -36,16 +54,20 @@ std::string_view to_string(rank r) noexcept
 std::optional<suit> suit_from_string(std::string_view text) noexcept
 {
     auto const* const it = std::ranges::find(suit_names, text);
+
     if (it == suit_names.end())
         return std::nullopt;
+
     return static_cast<suit>(std::distance(suit_names.begin(), it));
 }
 
 std::optional<rank> rank_from_string(std::string_view text) noexcept
 {
     auto const* const it = std::ranges::find(rank_names, text);
+
     if (it == rank_names.end())
         return std::nullopt;
+
     return static_cast<rank>(std::distance(rank_names.begin(), it));
 }
 

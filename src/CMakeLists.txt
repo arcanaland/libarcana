@@ -33,8 +33,6 @@ target_compile_features(arcana PUBLIC cxx_std_26)
 
 target_link_libraries(arcana PRIVATE tomlplusplus::tomlplusplus)
 
-# toml++ throws by default; we want a parse_result we can check instead, so no
-# std::exception can propagate out of a library whose public API promises none will.
 target_compile_definitions(arcana PRIVATE TOML_EXCEPTIONS=0)
 
 set_target_properties(arcana PROPERTIES POSITION_INDEPENDENT_CODE ON)

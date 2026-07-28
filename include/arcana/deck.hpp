@@ -12,6 +12,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace arcana
@@ -19,11 +20,7 @@ namespace arcana
 
 inline constexpr double default_aspect_ratio = 0.5789;
 
-// The `[deck]` section, plus its "additional optional metadata" fields. The spec has no
-// separate top-level `[metadata]` table in deck.toml — that name in this task's brief
-// refers to this collection of optional [deck] fields. names/<lang>.toml's own
-// `[metadata]` table (alt-text attribution) is not modeled: it's not cited by any
-// accessor this task's decisions call for.
+// The [deck] section
 struct deck_metadata
 {
     std::string id;
@@ -43,7 +40,7 @@ struct deck_metadata
     std::vector<std::string> tags;
 };
 
-// One entry of `[deck.companions].esoterica`.
+// One entry of [deck.companions].esoterica
 struct esoterica_companion
 {
     std::string id;
@@ -51,12 +48,9 @@ struct esoterica_companion
     std::string uri;
 };
 
-// Note that `image` here, and in custom_card_def below, is the raw string as written in
-// deck.toml — relative to the deck root and not resolved against it. Resolved, on-disk
-// paths are std::filesystem::path and appear only in image_variant.
 struct card_back_variant
 {
-    std::string id;  // the `[card_backs.variants.<id>]` key
+    std::string id;
     std::string name;
     std::string image;
     std::optional<std::string> description;
@@ -69,18 +63,19 @@ struct excluded_cards
     std::optional<std::string> reason;
 };
 
-// One entry under `[custom_cards.major_arcana.<key>]`, or one element of
-// `[custom_cards.minor_arcana.<key>].cards`.
+// One of
+//   [custom_cards.major_arcana.<foo>] or
+//   [custom_cards.minor_arcana.<foo>] or
 struct custom_card_def
 {
-    std::string id;  // e.g. "happy_squirrel", or "ace" within a custom suit
+    std::string id;
     std::string name;
     std::string image;
     std::optional<std::string> alt_text;
     std::optional<int> position;
 };
 
-// `[custom_cards.minor_arcana.<key>]` — an entire new suit.
+// An entire new suit.
 struct custom_suit_def
 {
     std::string key;  // e.g. "stars"
@@ -98,14 +93,7 @@ struct deck_variant
     std::optional<std::string> created_date;
 };
 
-// The full `deck.toml` model plus the enumerated card list it produces. This is the one
-// parser of the deck contract in libarcana — validators and consumers alike work from
-// this struct rather than re-parsing deck.toml themselves.
-//
-// A plain aggregate: copyable, no invariants to maintain, no owned resources. The member
-// functions are queries over the public data below and exist for call-site clarity and
-// for language bindings, which bind a method more directly than a free function taking
-// the deck as its first argument. See ADR-001 in this project's agents/ knowledge-base.
+// The full deck model
 struct deck
 {
     std::filesystem::path root_path;
@@ -115,8 +103,8 @@ struct deck
     std::optional<std::string> default_card_back;  // `[card_backs].default`
     std::vector<card_back_variant> card_backs;
 
-    std::map<std::string, std::string> suit_aliases;   // canonical suit -> display name
-    std::map<std::string, std::string> court_aliases;  // canonical rank -> display name
+    std::unordered_map<std::string, std::string> suit_aliases;   // canonical suit -> display name
+    std::unordered_map<std::string, std::string> court_aliases;  // canonical rank -> display name
 
     std::map<int, std::string> major_arcana_remap;  // position -> canonical major arcana name
 
@@ -154,12 +142,7 @@ struct deck
     [[nodiscard]] card const* find_card(std::string_view canonical_id) const;
 };
 
-// Loads and fully parses a deck directory. Permissive per the spec: a missing optional
-// file, unknown key, or unreadable image directory is recorded on the resulting `deck`
-// rather than failing the load. Only a missing or unparseable `deck.toml` is a hard error.
-// `language` selects `names/<language>.toml`; if absent or not found, falls back to
-// `names/en.toml`, then to the spec's built-in English names. The library never consults
-// LANG/LC_* itself — callers decide the locale.
+// Loads and fully parses a deck directory.
 std::expected<deck, error> load_deck(
     std::filesystem::path const& deck_directory,
     std::optional<std::string> const& language = std::nullopt

@@ -51,25 +51,16 @@ enum class rank : std::uint8_t
     king,
 };
 
-// Stable, lower_case, spec-form string (not display name). Display names come from a
-// deck's aliases and live in deck.hpp.
+// Stable, lower_case, spec-form string (not display name).
 std::string_view to_string(suit s) noexcept;
 std::string_view to_string(rank r) noexcept;
 
 std::optional<suit> suit_from_string(std::string_view text) noexcept;
 std::optional<rank> rank_from_string(std::string_view text) noexcept;
 
-// True for a non-empty `[a-z0-9_]+` string. The deck spec never states a grammar for the
-// identifiers used as custom card and custom suit keys, but every example it gives is
-// snake_case; libarcana requires that form so that a canonical id can be parsed without a
-// deck in hand. See parse_card_id.
+// True for a non-empty `[a-z0-9_]+` string.
 bool is_valid_identifier(std::string_view text) noexcept;
 
-// The identity of a card within a deck, covering all four shapes the deck spec allows:
-// a standard major (`major_arcana.07`), a standard minor (`minor_arcana.wands.ace`), a
-// custom major (`major_arcana.happy_squirrel`) and a card of a custom suit
-// (`minor_arcana.stars.ace`). Use the named constructors rather than filling the
-// optionals by hand; which ones are engaged is determined by kind and is_custom().
 struct card_id
 {
     arcana_kind kind = arcana_kind::major_arcana;
