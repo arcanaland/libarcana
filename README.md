@@ -4,7 +4,7 @@
 
 ## Building
 
-Builds and tests use a Fedora container via podman driven by `just` (requires >= 1.32).
+Builds use a Fedora container via podman invoked by `just` (>= 1.32).
 
 ```bash
 just build-image && just build && just test

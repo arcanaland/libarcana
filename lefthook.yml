@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2026 Adam Fidel
-# SPDX-License-Identifier: MIT
-
 pre-commit:
   commands:
     clang-format:
