@@ -26,7 +26,8 @@ jobs:
       - uses: extractions/setup-just@v2
 
       - name: Cache podman image layers
-        uses: actions/cache@v4
+        id: podman-cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PODMAN_STORAGE_PATH }}
           key: podman-image-${{ hashFiles('Containerfile') }}
@@ -60,6 +61,17 @@ jobs:
           name: ctest-output
           path: build/RelWithDebInfo/Testing/
 
+      - name: Fix podman cache permissions
+        if: always() && !cancelled()
+        run: sudo chown -R "$(id -u):$(id -g)" "${PODMAN_STORAGE_PATH}"
+
+      - name: Save podman image layers
+        if: always() && !cancelled()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.PODMAN_STORAGE_PATH }}
+          key: ${{ steps.podman-cache-restore.outputs.cache-primary-key }}
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -68,7 +80,8 @@ jobs:
       - uses: extractions/setup-just@v2
 
       - name: Cache podman image layers
-        uses: actions/cache@v4
+        id: podman-cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PODMAN_STORAGE_PATH }}
           key: podman-image-${{ hashFiles('Containerfile') }}
@@ -94,3 +107,14 @@ jobs:
 
       - name: Tidy
         run: just tidy
+
+      - name: Fix podman cache permissions
+        if: always() && !cancelled()
+        run: sudo chown -R "$(id -u):$(id -g)" "${PODMAN_STORAGE_PATH}"
+
+      - name: Save podman image layers
+        if: always() && !cancelled()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.PODMAN_STORAGE_PATH }}
+          key: ${{ steps.podman-cache-restore.outputs.cache-primary-key }}
