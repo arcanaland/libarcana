@@ -2,12 +2,7 @@
 
 include(CMakeFindDependencyMacro)
 
-# tomlplusplus is linked PRIVATE (RFC-001 Rule 1: its types never appear in a public header), but
-# `arcana` is a STATIC library, so CMake's own export mechanism still records it in arcana::arcana's
-# INTERFACE_LINK_LIBRARIES as $<LINK_ONLY:tomlplusplus::tomlplusplus> -- a static archive does not
-# embed its dependencies' object code, so whoever links the final binary must still resolve
-# tomlplusplus at configure time. This is standard CMake behaviour for STATIC libraries with PRIVATE
-# dependencies, not a Rule 1 violation: no toml++ symbol is reachable from include/arcana/.
+# dependent binaries need tomlplusplus at configure time
 find_dependency(tomlplusplus)
 
 include("${CMAKE_CURRENT_LIST_DIR}/arcanaTargets.cmake")
