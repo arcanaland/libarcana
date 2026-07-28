@@ -7,13 +7,15 @@ install(
     FILE_SET HEADERS
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  )
 
 install(
     EXPORT arcana-targets
     FILE arcanaTargets.cmake
     NAMESPACE arcana::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/arcana)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/arcana
+  )
 
 install(
     PACKAGE_INFO arcana
@@ -21,17 +23,25 @@ install(
     VERSION ${PROJECT_VERSION}
     DEFAULT_TARGETS arcana
     DESCRIPTION "Shared core for Arcana Land tarot-deck tooling"
-    HOMEPAGE_URL "https://github.com/arcanaland/libarcana")
+    HOMEPAGE_URL "https://github.com/arcanaland/libarcana"
+  )
 
 configure_package_config_file(
     ${PROJECT_SOURCE_DIR}/cmake/arcanaConfig.cmake.in
     ${PROJECT_BINARY_DIR}/arcanaConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/arcana)
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/arcana
+  )
 
 write_basic_package_version_file(
     ${PROJECT_BINARY_DIR}/arcanaConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion)
+    COMPATIBILITY SameMajorVersion
+  )
 
-install(FILES ${PROJECT_BINARY_DIR}/arcanaConfig.cmake ${PROJECT_BINARY_DIR}/arcanaConfigVersion.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/arcana)
+install(
+    FILES
+        ${PROJECT_BINARY_DIR}/arcanaConfig.cmake
+        ${PROJECT_BINARY_DIR}/arcanaConfigVersion.cmake
+    DESTINATION
+        ${CMAKE_INSTALL_LIBDIR}/cmake/arcana
+  )

@@ -4,9 +4,10 @@
 
 ## Building
 
-Builds and tests use a Fedora container driven by `just`.
+Builds and tests use a Fedora container via podman driven by `just` (requires >= 1.32).
 
 ```bash
 just build-image && just build && just test
 ```
+
 

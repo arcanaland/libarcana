@@ -1,65 +1,67 @@
+# Recipes marked [script] run inside a podman container
+set script-interpreter := ['./scripts/podman-shim.sh']
+
 image := "libarcana-builder"
 build_root := "build"
 build_type := "RelWithDebInfo"
 build_dir := build_root / build_type
 preset := "conan-" + lowercase(build_type)
 
-shebang_podman := "/usr/bin/env -S ./scripts/podman-shim.sh"
+prefix := "/usr/local"
+stage := build_dir / "stage"
+staged_prefix := stage + prefix
 
 export LIBARCANA_IMAGE := image
 
 default:
     @just --list
 
-# Build the container image
+# Build the container image.
 build-image:
     podman build -t {{image}} -f Containerfile .
 
-# conan install, then cmake configure via the Conan-generated preset.
+# Conan and cmake
+[script]
 configure:
-    #!{{shebang_podman}}
     conan install . --build=missing \
         -s build_type={{build_type}} \
         -s compiler.cppstd=26
-    cmake --preset {{preset}} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-# Full CMake build (configures first if there is no build dir yet).
-build:
-    #!{{shebang_podman}}
-    if [ ! -d {{build_dir}} ]; then
-        conan install . --build=missing \
-            -s build_type={{build_type}} \
-            -s compiler.cppstd=26
-        cmake --preset {{preset}} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-    fi
+    cmake --preset {{preset}} \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_INSTALL_PREFIX={{prefix}}
+
+# Full CMake build.
+[script]
+build: configure
     cmake --build --preset {{preset}}
 
-# Run the test suite
-test:
-    #!{{shebang_podman}}
+# Run the test suite.
+[script]
+test: build
     ctest --preset {{preset}} --output-on-failure
 
-# clang-format
+# Stage the install tree.
+[script]
+install: build
+    rm -rf {{stage}}
+    env DESTDIR=/src/{{stage}} cmake --install {{build_dir}}
+
+# clang-format in place.
+[script]
 format *files:
-    #!{{shebang_podman}}
-    files="{{files}}"
-    if [ -z "$files" ]; then
-        files=$(find src tests include -type f \
-            \( -name '*.cpp' -o -name '*.hpp' -o -name '*.hpp.in' \))
-    fi
-    clang-format -i $files
+    clang-format -i {{ if files == "" { "$(git ls-files '*.cpp' '*.hpp')" } else { files } }}
 
-# Check clang-format
+# Check the clang-format
+[script]
 check-format:
-    #!{{shebang_podman}}
-    clang-format --dry-run --Werror $(find src tests include -type f \
-        \( -name '*.cpp' -o -name '*.hpp' \))
+    clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp')
 
-# clang-tidy
-tidy: build
-    #!{{shebang_podman}}
-    clang-tidy -p {{build_dir}} $(find src include -type f \
-        \( -name '*.cpp' -o -name '*.hpp' \))
+# clang-tidy in place
+[script]
+tidy: configure
+    run-clang-tidy -quiet -p {{build_dir}} $(git ls-files 'src/*.cpp')
 
+# Trash build artifacts
 clean:
     rm -rf {{build_root}} CMakeUserPresets.json
