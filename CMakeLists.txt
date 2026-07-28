@@ -15,18 +15,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-option(LIBARCANA_BUILD_TESTS "Build the libarcana test suite" ${PROJECT_IS_TOP_LEVEL})
-option(LIBARCANA_INSTALL "Generate libarcana install rules" ${PROJECT_IS_TOP_LEVEL})
+option(ARCANA_BUILD_TESTS "Build the arcana test suite" ${PROJECT_IS_TOP_LEVEL})
+option(ARCANA_INSTALL "Generate arcana install rules" ${PROJECT_IS_TOP_LEVEL})
 
 find_package(tomlplusplus REQUIRED)
 
 add_subdirectory(src)
 
-if(LIBARCANA_BUILD_TESTS)
+if(ARCANA_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
 
-if(LIBARCANA_INSTALL)
+if(ARCANA_INSTALL)
     include(${PROJECT_SOURCE_DIR}/cmake/install-rules.cmake)
 endif()

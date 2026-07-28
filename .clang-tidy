@@ -1,11 +1,15 @@
 ---
+# readability-braces-around-statements is disabled below because .clang-format's
+# RemoveBracesLLVM strips single-statement braces; the two configs directly disagree
+# about brace style, so the check loses.
 Checks: >
   -*,
   bugprone-*,
   performance-*,
   modernize-*,
   readability-*,
-  -modernize-use-trailing-return-type
+  -modernize-use-trailing-return-type,
+  -readability-braces-around-statements
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: '^.*/include/arcana/.*'
@@ -57,3 +61,13 @@ CheckOptions:
     value: lower_case
   - key: readability-identifier-naming.TypedefCase
     value: lower_case
+  # Core Guidelines ES.7 endorses single-letter names for tight scopes (loop counters,
+  # short-lived locals); readability-identifier-length's default minimum of 3 disagrees
+  # with the style this repo has already chosen, so widen its allowlist to match rather
+  # than mangle every `s`/`r`/`id`/`it` into unreadable padding.
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: '^(id|ec|it|s|r|d|c|t|m)$'
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: '^(id|ec|it|s|r|d|c|t|m)$'
+  - key: readability-identifier-length.IgnoredLoopCounterNames
+    value: '^[ijk]$'

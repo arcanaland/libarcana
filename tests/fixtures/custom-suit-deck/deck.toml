@@ -1,0 +1,19 @@
+[deck]
+id = "custom-suit-deck"
+schema_version = "1.0"
+name = "Custom Suit Deck"
+version = "1.0"
+
+[custom_cards.major_arcana.happy_squirrel]
+id = "happy_squirrel"
+name = "The Happy Squirrel"
+image = "scalable/major_arcana/happy_squirrel.svg"
+alt_text = "A cheerful squirrel gathering acorns."
+position = 22
+
+[custom_cards.minor_arcana.stars]
+name = "Stars"
+cards = [
+  { id = "ace", name = "Ace of Stars", image = "scalable/minor_arcana/stars/ace.svg" },
+  { id = "two", name = "Two of Stars", image = "scalable/minor_arcana/stars/two.svg" },
+]

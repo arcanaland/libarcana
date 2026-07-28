@@ -16,12 +16,25 @@ target_sources(
             ${PROJECT_BINARY_DIR}/generated/include
         FILES
             ${PROJECT_BINARY_DIR}/generated/include/arcana/version.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/error.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/paths.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/card.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/deck.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/library.hpp
     PRIVATE
         version.cpp
+        paths.cpp
+        card.cpp
+        deck.cpp
+        library.cpp
 )
 
 target_compile_features(arcana PUBLIC cxx_std_26)
 
 target_link_libraries(arcana PRIVATE tomlplusplus::tomlplusplus)
+
+# toml++ throws by default; we want a parse_result we can check instead, so no
+# std::exception can propagate out of a library whose public API promises none will.
+target_compile_definitions(arcana PRIVATE TOML_EXCEPTIONS=0)
 
 set_target_properties(arcana PROPERTIES POSITION_INDEPENDENT_CODE ON)
