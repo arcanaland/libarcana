@@ -1,0 +1,96 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONAN_VOLUME_PATH: /home/runner/.local/share/containers/storage/volumes/libarcana-conan/_data
+  PODMAN_STORAGE_PATH: /home/runner/.local/share/containers/storage
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: extractions/setup-just@v2
+
+      - name: Cache podman image layers
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PODMAN_STORAGE_PATH }}
+          key: podman-image-${{ hashFiles('Containerfile') }}
+          restore-keys: |
+            podman-image-
+
+      - name: Create conan volume
+        run: podman volume create libarcana-conan
+
+      - name: Cache conan store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CONAN_VOLUME_PATH }}
+          key: conan-${{ hashFiles('conan.lock') }}
+          restore-keys: |
+            conan-
+
+      - name: Build image
+        run: just build-image
+
+      - name: Build
+        run: just build
+
+      - name: Test
+        run: just test
+
+      - name: Upload ctest output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-output
+          path: build/RelWithDebInfo/Testing/
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: extractions/setup-just@v2
+
+      - name: Cache podman image layers
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PODMAN_STORAGE_PATH }}
+          key: podman-image-${{ hashFiles('Containerfile') }}
+          restore-keys: |
+            podman-image-
+
+      - name: Create conan volume
+        run: podman volume create libarcana-conan
+
+      - name: Cache conan store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CONAN_VOLUME_PATH }}
+          key: conan-${{ hashFiles('conan.lock') }}
+          restore-keys: |
+            conan-
+
+      - name: Build image
+        run: just build-image
+
+      - name: Check format
+        run: just check-format
+
+      - name: Tidy
+        run: just tidy
