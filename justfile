@@ -26,6 +26,8 @@ build-image:
 # Conan and cmake
 [script]
 configure:
+    conan profile path default >/dev/null 2>&1 || conan profile detect
+
     conan install . --build=missing \
         -s build_type={{build_type}} \
         -s compiler.cppstd=26
