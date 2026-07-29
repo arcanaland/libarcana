@@ -11,9 +11,22 @@
 #include <charconv>
 #include <filesystem>
 #include <format>
+#include <random>
+#include <sstream>
 
 namespace arcana
 {
+
+namespace detail
+{
+
+// The retained deck.toml. Defined here so toml++ never reaches include/arcana.
+struct deck_document
+{
+    toml::table table;
+};
+
+}  // namespace detail
 
 namespace
 {
@@ -214,40 +227,85 @@ excluded_cards parse_excluded_cards(toml::table const& deck_table)
 }
 
 std::vector<card_back_variant> parse_card_backs(
-    toml::table const& root, std::optional<std::string>& default_back
+    fs::path const& deck_root, toml::table const& root, std::optional<std::string>& default_back
 )
 {
     std::vector<card_back_variant> result;
 
-    auto const* card_backs = root["card_backs"].as_table();
-    if (card_backs == nullptr)
-        return result;
-
-    default_back = get_string((*card_backs)["default"]);
-
-    if (auto const* variants = (*card_backs)["variants"].as_table())
+    if (auto const* card_backs = root["card_backs"].as_table())
     {
-        for (auto const& [key, value] : *variants)
+        default_back = get_string((*card_backs)["default"]);
+
+        if (auto const* variants = (*card_backs)["variants"].as_table())
         {
-            auto const* t = value.as_table();
-            if (t == nullptr)
+            for (auto const& [key, value] : *variants)
+            {
+                auto const* t = value.as_table();
+                if (t == nullptr)
+                    continue;
+                auto image_ref = get_string_or((*t)["image"]);
+                fs::path image;
+                if (!image_ref.empty())
+                    image = deck_root / image_ref;
+                result.push_back(
+                    card_back_variant{
+                        .id = std::string(key.str()),
+                        .name = get_string_or((*t)["name"]),
+                        .image_ref = std::move(image_ref),
+                        .image = std::move(image),
+                        .description = get_string((*t)["description"]),
+                        .alt_text = get_string((*t)["alt_text"]),
+                        .declared = true
+                    }
+                );
+            }
+        }
+    }
+
+    // Card backs present on disk but not declared. Deck spec v1.0 describes card_backs/ as
+    // a plain directory of images, and decks in the wild ship backs they never name in
+    // deck.toml, so a consumer that only reads [card_backs.variants] misses them.
+    std::error_code ec;
+    fs::path const backs_dir = deck_root / "card_backs";
+    if (fs::is_directory(backs_dir, ec))
+    {
+        std::vector<card_back_variant> discovered;
+        for (auto const& entry : fs::directory_iterator(backs_dir, ec))
+        {
+            if (!entry.is_regular_file())
                 continue;
-            result.push_back(
+
+            auto stem = entry.path().stem().string();
+            bool const already_declared = std::ranges::any_of(
+                result, [&stem](card_back_variant const& back) { return back.id == stem; }
+            );
+            if (already_declared)
+                continue;
+
+            discovered.push_back(
                 card_back_variant{
-                    .id = std::string(key.str()),
-                    .name = get_string_or((*t)["name"]),
-                    .image = get_string_or((*t)["image"]),
-                    .description = get_string((*t)["description"]),
-                    .alt_text = get_string((*t)["alt_text"])
+                    .id = stem,
+                    .name = stem,
+                    .image_ref = {},
+                    .image = entry.path(),
+                    .description = std::nullopt,
+                    .alt_text = std::nullopt,
+                    .declared = false
                 }
             );
         }
+
+        // directory_iterator has no ordering guarantee; sorting keeps a load reproducible.
+        std::ranges::sort(discovered, {}, &card_back_variant::id);
+        result.insert(result.end(), discovered.begin(), discovered.end());
     }
 
     return result;
 }
 
-std::unordered_map<std::string, std::string> parse_string_map(toml::node_view<toml::node const> const& node)
+std::unordered_map<std::string, std::string> parse_string_map(
+    toml::node_view<toml::node const> const& node
+)
 {
     std::unordered_map<std::string, std::string> result;
 
@@ -283,7 +341,19 @@ std::map<int, std::string> parse_major_arcana_remap(toml::table const& root)
     return result;
 }
 
-std::vector<custom_card_def> parse_minor_custom_cards(toml::array const& array)
+// A deck-relative image reference resolved against the deck root, with the raw text kept.
+// Empty in, empty out: an absent [custom_cards] image must stay distinguishable from one
+// that resolves to the deck root itself.
+void set_image(custom_card_def& def, fs::path const& deck_root, std::string image_ref)
+{
+    if (!image_ref.empty())
+        def.image = deck_root / image_ref;
+    def.image_ref = std::move(image_ref);
+}
+
+std::vector<custom_card_def> parse_minor_custom_cards(
+    fs::path const& deck_root, toml::array const& array
+)
 {
     std::vector<custom_card_def> result;
     for (auto const& element : array)
@@ -291,21 +361,22 @@ std::vector<custom_card_def> parse_minor_custom_cards(toml::array const& array)
         auto const* t = element.as_table();
         if (t == nullptr)
             continue;
-        result.push_back(
-            custom_card_def{
-                .id = get_string_or((*t)["id"]),
-                .name = get_string_or((*t)["name"]),
-                .image = get_string_or((*t)["image"]),
-                .alt_text = get_string((*t)["alt_text"]),
-                .position = (*t)["position"].value<int>()
-            }
-        );
+        custom_card_def def{
+            .id = get_string_or((*t)["id"]),
+            .name = get_string_or((*t)["name"]),
+            .image_ref = {},
+            .image = {},
+            .alt_text = get_string((*t)["alt_text"]),
+            .position = (*t)["position"].value<int>()
+        };
+        set_image(def, deck_root, get_string_or((*t)["image"]));
+        result.push_back(std::move(def));
     }
     return result;
 }
 
 void parse_custom_cards(
-    toml::table const& root, std::vector<custom_card_def>& majors,
+    fs::path const& deck_root, toml::table const& root, std::vector<custom_card_def>& majors,
     std::vector<custom_suit_def>& suits
 )
 {
@@ -323,10 +394,12 @@ void parse_custom_cards(
             custom_card_def def{
                 .id = get_string_or((*t)["id"], std::string(key.str())),
                 .name = get_string_or((*t)["name"]),
-                .image = get_string_or((*t)["image"]),
+                .image_ref = {},
+                .image = {},
                 .alt_text = get_string((*t)["alt_text"]),
                 .position = (*t)["position"].value<int>()
             };
+            set_image(def, deck_root, get_string_or((*t)["image"]));
             majors.push_back(std::move(def));
         }
     }
@@ -342,7 +415,7 @@ void parse_custom_cards(
             suit_def.key = std::string(key.str());
             suit_def.name = get_string_or((*t)["name"], suit_def.key);
             if (auto const* cards = (*t)["cards"].as_array())
-                suit_def.cards = parse_minor_custom_cards(*cards);
+                suit_def.cards = parse_minor_custom_cards(deck_root, *cards);
             suits.push_back(std::move(suit_def));
         }
     }
@@ -466,7 +539,12 @@ std::expected<deck, error> load_deck(
         );
     }
 
-    toml::table const document = std::move(parsed).table();
+    // Retained rather than dropped on return: keys and sections no parser below names --
+    // a field from a future spec version, say -- survive the load, so a writer built on
+    // this parser does not silently delete what it did not understand.
+    auto retained = std::make_shared<detail::deck_document>(std::move(parsed).table());
+    toml::table const& document = retained->table;
+
     auto const* deck_table = document["deck"].as_table();
     if (deck_table == nullptr)
     {
@@ -479,15 +557,16 @@ std::expected<deck, error> load_deck(
     }
 
     deck result;
+    result.document_ = std::move(retained);
     result.root_path = root;
     result.metadata = parse_metadata(*deck_table);
     result.companions = parse_companions(*deck_table);
     result.excluded = parse_excluded_cards(*deck_table);
-    result.card_backs = parse_card_backs(document, result.default_card_back);
+    result.card_backs = parse_card_backs(root, document, result.default_card_back);
     result.suit_aliases = parse_string_map(document["aliases"]["suits"]);
     result.court_aliases = parse_string_map(document["aliases"]["courts"]);
     result.major_arcana_remap = parse_major_arcana_remap(document);
-    parse_custom_cards(document, result.custom_major_cards, result.custom_suits);
+    parse_custom_cards(root, document, result.custom_major_cards, result.custom_suits);
     result.variants = parse_variants(document);
 
     auto const names = load_names_file(root, language);
@@ -511,6 +590,7 @@ std::expected<deck, error> load_deck(
         c.display_name =
             lookup_name(names, "major_arcana", std::format("{:02d}", i))
                 .value_or(std::string(default_major_arcana_names[static_cast<std::size_t>(i)]));
+        c.number = i;  // majors carry a number; display_suit and display_rank stay empty
         c.alt_text = lookup_name(names, "alt_text", std::format("{:02d}", i));
         c.images = scan_variants_for(root, variant_roots, "major_arcana", std::format("{:02d}", i));
         result.cards.push_back(std::move(c));
@@ -534,6 +614,8 @@ std::expected<deck, error> load_deck(
             c.id = std::move(id);
             c.display_name = lookup_minor_name(names, "minor_arcana", to_string(s), to_string(r))
                                  .value_or(default_minor_arcana_name(s, r));
+            c.display_suit = result.display_suit_name(s);
+            c.display_rank = result.display_rank_name(r);
             c.alt_text = lookup_minor_name(names, "alt_text", to_string(s), to_string(r));
             c.images = scan_variants_for(
                 root, variant_roots, fs::path("minor_arcana") / std::string(to_string(s)),
@@ -549,11 +631,12 @@ std::expected<deck, error> load_deck(
         card c;
         c.id = card_id::custom_major(def.id);
         c.display_name = lookup_name(names, "major_arcana", def.id).value_or(def.name);
+        c.number = def.position;  // nullopt unless the deck declared a position
         c.alt_text = lookup_name(names, "alt_text", def.id).value_or(def.alt_text.value_or(""));
         if (c.alt_text->empty())
             c.alt_text = std::nullopt;
-        if (!def.image.empty())
-            c.images.push_back(variant_from_relative_path(root, def.image));
+        if (!def.image_ref.empty())
+            c.images.push_back(variant_from_relative_path(root, def.image_ref));
         result.cards.push_back(std::move(c));
     }
 
@@ -566,12 +649,14 @@ std::expected<deck, error> load_deck(
             c.id = card_id::custom_minor(suit_def.key, def.id);
             c.display_name =
                 lookup_minor_name(names, "minor_arcana", suit_def.key, def.id).value_or(def.name);
+            c.display_suit = result.display_suit_name(suit_def.key);
+            c.display_rank = result.display_rank_name(def.id);
             c.alt_text = lookup_minor_name(names, "alt_text", suit_def.key, def.id)
                              .value_or(def.alt_text.value_or(""));
             if (c.alt_text->empty())
                 c.alt_text = std::nullopt;
-            if (!def.image.empty())
-                c.images.push_back(variant_from_relative_path(root, def.image));
+            if (!def.image_ref.empty())
+                c.images.push_back(variant_from_relative_path(root, def.image_ref));
             result.cards.push_back(std::move(c));
         }
     }
@@ -599,10 +684,14 @@ std::string deck::display_suit_name(std::string_view custom_suit_key) const
 
 std::string deck::display_rank_name(rank r) const
 {
-    auto canonical = std::string(to_string(r));
-    if (auto const it = court_aliases.find(canonical); it != court_aliases.end())
+    return display_rank_name(to_string(r));
+}
+
+std::string deck::display_rank_name(std::string_view custom_rank_key) const
+{
+    if (auto const it = court_aliases.find(std::string(custom_rank_key)); it != court_aliases.end())
         return it->second;
-    return canonical;
+    return std::string(custom_rank_key);
 }
 
 std::optional<std::string> deck::exclusion_reason(std::string_view canonical_id) const
@@ -612,20 +701,142 @@ std::optional<std::string> deck::exclusion_reason(std::string_view canonical_id)
     return excluded.reason.value_or(std::string{});
 }
 
-card const* deck::find_card(card_id const& id) const
+std::optional<card> deck::find_card(card_id const& id) const
 {
     auto const it = std::ranges::find(cards, id, &card::id);
     if (it == cards.end())
-        return nullptr;
-    return &*it;
+        return std::nullopt;
+    return *it;
 }
 
-card const* deck::find_card(std::string_view canonical_id) const
+std::optional<card> deck::find_card(std::string_view canonical_id) const
 {
     auto const parsed = parse_card_id(canonical_id);
     if (!parsed)
-        return nullptr;
+        return std::nullopt;
     return find_card(*parsed);
+}
+
+std::vector<suit_info> deck::suits() const
+{
+    // A suit's key: canonical suits by their spec name, custom suits by their table key.
+    // Keying both the same way is what lets a consumer iterate suits without branching.
+    auto const suit_of = [](card const& c) -> std::string_view
+    {
+        switch (c.id.cls)
+        {
+            case card_class::standard_minor:
+                return to_string(c.id.standard_suit);
+            case card_class::custom_minor:
+                return c.id.suit_key;
+            case card_class::standard_major:
+            case card_class::custom_major:
+                break;
+        }
+        return {};
+    };
+
+    auto const has_any_card = [this, &suit_of](std::string_view key)
+    {
+        return std::ranges::any_of(
+            cards, [key, &suit_of](card const& c) { return suit_of(c) == key; }
+        );
+    };
+
+    std::vector<suit_info> result;
+
+    constexpr std::array<suit, 4> canonical{suit::wands, suit::cups, suit::swords, suit::pentacles};
+    for (auto const s : canonical)
+    {
+        auto key = std::string(to_string(s));
+        result.push_back(
+            suit_info{
+                .key = key,
+                .display_name = display_suit_name(s),
+                .standard = true,
+                .excluded = !has_any_card(key)
+            }
+        );
+    }
+
+    // deck.toml order, not sorted: a deck author's ordering of their own suits is the
+    // only ordering information there is.
+    for (auto const& custom : custom_suits)
+    {
+        result.push_back(
+            suit_info{
+                .key = custom.key,
+                .display_name = display_suit_name(custom.key),
+                .standard = false,
+                .excluded = !has_any_card(custom.key)
+            }
+        );
+    }
+
+    return result;
+}
+
+std::vector<card> deck::cards_of_kind(arcana_kind kind) const
+{
+    std::vector<card> result;
+    for (auto const& c : cards)
+        if (c.id.kind() == kind)
+            result.push_back(c);
+    return result;
+}
+
+std::vector<card> deck::cards_in_suit(std::string_view key) const
+{
+    std::vector<card> result;
+
+    auto const canonical = suit_from_string(key);
+    for (auto const& c : cards)
+    {
+        bool const match =
+            canonical ? c.id.cls == card_class::standard_minor && c.id.standard_suit == *canonical
+                      : c.id.cls == card_class::custom_minor && c.id.suit_key == key;
+        if (match)
+            result.push_back(c);
+    }
+
+    return result;
+}
+
+std::optional<card> deck::random_card(std::uint64_t seed) const
+{
+    if (cards.empty())
+        return std::nullopt;
+
+    std::mt19937_64 engine{seed};
+    std::uniform_int_distribution<std::size_t> pick{0, cards.size() - 1};
+    return cards[pick(engine)];
+}
+
+std::optional<card_back_variant> deck::default_card_back_variant() const
+{
+    if (default_card_back)
+    {
+        auto const it = std::ranges::find(card_backs, *default_card_back, &card_back_variant::id);
+        if (it != card_backs.end())
+            return *it;
+        // Named but absent: a broken reference is TASK-005's to report, not ours to guess
+        // around, so fall through to the sole-variant rule rather than picking arbitrarily.
+    }
+
+    if (card_backs.size() == 1)
+        return card_backs.front();
+
+    return std::nullopt;
+}
+
+std::string deck::source_toml() const
+{
+    if (!document_)
+        return {};
+
+    std::ostringstream out;
+    out << document_->table;
+    return std::move(out).str();
 }
 
 }  // namespace arcana

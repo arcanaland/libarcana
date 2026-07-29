@@ -23,15 +23,22 @@ struct deck_summary
     std::filesystem::path path;
 };
 
-// Every directory under the deck library that contains a deck.toml
-std::vector<deck_summary> enumerate_decks(
-    std::optional<std::filesystem::path> const& root_override = std::nullopt
-);
+// Every directory containing a deck.toml, across a search path of deck library
+// directories. `roots` is searched in order and an empty `roots` means
+// deck_library_path()'s XDG answer; when a directory name appears under more than one
+// root, the first wins and the shadowed deck is listed once.
+//
+// A single root is not enough for every consumer: a Flatpak application may hold both a
+// sandbox path and a host path, and a bundled reference deck may sit somewhere XDG never
+// names. Such a consumer passes its own roots rather than being silently pointed at an
+// empty XDG directory.
+std::vector<deck_summary> enumerate_decks(std::vector<std::filesystem::path> const& roots = {});
 
-// Loads a deck by its directory name within the deck library
+// Loads a deck by its directory name, searching `roots` in the same order and with the
+// same shadowing rule as enumerate_decks. `directory_name` is the key -- not the deck's
+// display name, which is not unique across decks.
 std::expected<deck, error> load_deck_by_name(
-    std::string const& directory_name,
-    std::optional<std::filesystem::path> const& root_override = std::nullopt,
+    std::string const& directory_name, std::vector<std::filesystem::path> const& roots = {},
     std::optional<std::string> const& language = std::nullopt
 );
 

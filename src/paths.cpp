@@ -3,6 +3,7 @@
 
 #include <arcana/paths.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 
 namespace arcana
@@ -53,25 +54,58 @@ std::filesystem::path deck_library_path(std::optional<std::filesystem::path> con
     return xdg_data_home(root_override) / "tarot" / "decks";
 }
 
-std::vector<std::filesystem::path> enumerate_deck_directories(
-    std::optional<std::filesystem::path> const& root_override
+namespace
+{
+
+void collect_deck_directories(
+    std::filesystem::path const& library, std::vector<std::filesystem::path>& out
 )
 {
-    std::vector<std::filesystem::path> result;
-
-    auto const library = deck_library_path(root_override);
-
     std::error_code ec;
     if (!std::filesystem::is_directory(library, ec))
-        return result;
+        return;
 
     for (auto const& entry : std::filesystem::directory_iterator(library, ec))
     {
         if (!entry.is_directory())
             continue;
-        if (std::filesystem::is_regular_file(entry.path() / "deck.toml"))
-            result.push_back(entry.path());
+        if (!std::filesystem::is_regular_file(entry.path() / "deck.toml"))
+            continue;
+
+        // Earlier roots shadow later ones, by directory name.
+        auto const name = entry.path().filename();
+        bool const shadowed = std::ranges::any_of(
+            out, [&name](std::filesystem::path const& seen) { return seen.filename() == name; }
+        );
+        if (!shadowed)
+            out.push_back(entry.path());
     }
+}
+
+}  // namespace
+
+std::vector<std::filesystem::path> enumerate_deck_directories(
+    std::optional<std::filesystem::path> const& root_override
+)
+{
+    std::vector<std::filesystem::path> result;
+    collect_deck_directories(deck_library_path(root_override), result);
+    return result;
+}
+
+std::vector<std::filesystem::path> enumerate_deck_directories(
+    std::vector<std::filesystem::path> const& roots
+)
+{
+    std::vector<std::filesystem::path> result;
+
+    if (roots.empty())
+    {
+        collect_deck_directories(deck_library_path(), result);
+        return result;
+    }
+
+    for (auto const& root : roots) collect_deck_directories(root, result);
 
     return result;
 }

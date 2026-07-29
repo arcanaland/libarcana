@@ -18,8 +18,10 @@ TEST_CASE("all 22 major arcana canonical ids round-trip", "[card]")
         auto const text = std::format("major_arcana.{:02d}", i);
         auto const parsed = parse_card_id(text);
         REQUIRE(parsed.has_value());
-        CHECK(parsed->kind == arcana_kind::major_arcana);
-        CHECK(parsed->major_number == i);
+        CHECK(parsed->cls == card_class::standard_major);
+        CHECK(parsed->kind() == arcana_kind::major_arcana);
+        CHECK(parsed->is_major());
+        CHECK(parsed->number == i);
         CHECK_FALSE(parsed->is_custom());
         CHECK(parsed->to_canonical() == text);
     }
@@ -42,7 +44,9 @@ TEST_CASE("all 56 minor arcana canonical ids round-trip", "[card]")
             auto const text = std::format("minor_arcana.{}.{}", to_string(s), to_string(r));
             auto const parsed = parse_card_id(text);
             REQUIRE(parsed.has_value());
-            CHECK(parsed->kind == arcana_kind::minor_arcana);
+            CHECK(parsed->cls == card_class::standard_minor);
+            CHECK(parsed->kind() == arcana_kind::minor_arcana);
+            CHECK_FALSE(parsed->is_major());
             CHECK(parsed->standard_suit == s);
             CHECK(parsed->standard_rank == r);
             CHECK_FALSE(parsed->is_custom());
@@ -56,20 +60,37 @@ TEST_CASE("custom card ids round-trip and are marked custom", "[card]")
 {
     auto const squirrel = parse_card_id("major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());
-    CHECK(squirrel->kind == arcana_kind::major_arcana);
+    CHECK(squirrel->cls == card_class::custom_major);
+    CHECK(squirrel->kind() == arcana_kind::major_arcana);
+    CHECK(squirrel->is_major());
     CHECK(squirrel->is_custom());
-    CHECK(squirrel->custom_id.value_or("") == "happy_squirrel");
-    CHECK_FALSE(squirrel->major_number.has_value());
+    CHECK(squirrel->custom_id == "happy_squirrel");
+    CHECK(squirrel->number == -1);
     CHECK(squirrel->to_canonical() == "major_arcana.happy_squirrel");
 
     auto const stars_ace = parse_card_id("minor_arcana.stars.ace");
     REQUIRE(stars_ace.has_value());
-    CHECK(stars_ace->kind == arcana_kind::minor_arcana);
+    CHECK(stars_ace->cls == card_class::custom_minor);
+    CHECK(stars_ace->kind() == arcana_kind::minor_arcana);
     CHECK(stars_ace->is_custom());
-    CHECK(stars_ace->suit_key.value_or("") == "stars");
-    CHECK(stars_ace->custom_id.value_or("") == "ace");
-    CHECK_FALSE(stars_ace->standard_suit.has_value());
+    CHECK(stars_ace->suit_key == "stars");
+    CHECK(stars_ace->custom_id == "ace");
     CHECK(stars_ace->to_canonical() == "minor_arcana.stars.ace");
+}
+
+TEST_CASE("card_class is the single discriminant the named constructors set", "[card]")
+{
+    // The whole point of the discriminant: four legal states, each named once, instead of
+    // five optionals with 32 representable combinations and the invariant in comments.
+    CHECK(card_id::standard_major(0).cls == card_class::standard_major);
+    CHECK(card_id::custom_major("happy_squirrel").cls == card_class::custom_major);
+    CHECK(card_id::standard_minor(suit::wands, rank::ace).cls == card_class::standard_minor);
+    CHECK(card_id::custom_minor("stars", "ace").cls == card_class::custom_minor);
+
+    // A consumer switches on cls and reads exactly the fields it names -- no probing.
+    auto const custom = card_id::custom_minor("stars", "ace");
+    CHECK(custom.number == -1);
+    CHECK(custom.suit_key == "stars");
 }
 
 TEST_CASE("named constructors and equality agree with parsing", "[card]")

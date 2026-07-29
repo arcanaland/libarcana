@@ -15,29 +15,11 @@ namespace arcana
 namespace
 {
 
-constexpr std::array<std::string_view, 4> suit_names{
-    "wands",
-    "cups",
-    "swords",
-    "pentacles"
-};
+constexpr std::array<std::string_view, 4> suit_names{"wands", "cups", "swords", "pentacles"};
 
-constexpr std::array<std::string_view, 14> rank_names{
-    "ace",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-    "ten",
-    "page",
-    "knight",
-    "queen",
-    "king"
-};
+constexpr std::array<std::string_view, 14> rank_names{"ace",  "two",    "three", "four", "five",
+                                                      "six",  "seven",  "eight", "nine", "ten",
+                                                      "page", "knight", "queen", "king"};
 
 }  // namespace
 
@@ -124,49 +106,58 @@ std::expected<int, error> parse_major_number(std::string_view text)
 
 card_id card_id::standard_major(int number)
 {
-    return card_id{.kind = arcana_kind::major_arcana, .major_number = number};
+    return card_id{.cls = card_class::standard_major, .number = number};
 }
 
 card_id card_id::standard_minor(suit s, rank r)
 {
-    return card_id{.kind = arcana_kind::minor_arcana, .standard_suit = s, .standard_rank = r};
+    return card_id{.cls = card_class::standard_minor, .standard_suit = s, .standard_rank = r};
 }
 
 card_id card_id::custom_major(std::string id)
 {
-    return card_id{.kind = arcana_kind::major_arcana, .custom_id = std::move(id)};
+    return card_id{.cls = card_class::custom_major, .custom_id = std::move(id)};
 }
 
 card_id card_id::custom_minor(std::string suit_key, std::string id)
 {
     return card_id{
-        .kind = arcana_kind::minor_arcana,
-        .suit_key = std::move(suit_key),
-        .custom_id = std::move(id)
+        .cls = card_class::custom_minor, .suit_key = std::move(suit_key), .custom_id = std::move(id)
     };
+}
+
+bool card_id::is_major() const noexcept
+{
+    return cls == card_class::standard_major || cls == card_class::custom_major;
+}
+
+arcana_kind card_id::kind() const noexcept
+{
+    return is_major() ? arcana_kind::major_arcana : arcana_kind::minor_arcana;
 }
 
 bool card_id::is_custom() const noexcept
 {
-    return custom_id.has_value();
+    return cls == card_class::custom_major || cls == card_class::custom_minor;
 }
 
 std::string card_id::to_canonical() const
 {
-    if (kind == arcana_kind::major_arcana)
+    switch (cls)
     {
-        if (custom_id)
-            return std::format("major_arcana.{}", *custom_id);
-        return std::format("major_arcana.{:02d}", major_number.value_or(0));
+        case card_class::standard_major:
+            return std::format("major_arcana.{:02d}", number);
+        case card_class::custom_major:
+            return std::format("major_arcana.{}", custom_id);
+        case card_class::standard_minor:
+            return std::format(
+                "minor_arcana.{}.{}", to_string(standard_suit), to_string(standard_rank)
+            );
+        case card_class::custom_minor:
+            return std::format("minor_arcana.{}.{}", suit_key, custom_id);
     }
 
-    if (custom_id)
-        return std::format("minor_arcana.{}.{}", suit_key.value_or(""), *custom_id);
-
-    return std::format(
-        "minor_arcana.{}.{}", to_string(standard_suit.value_or(suit::wands)),
-        to_string(standard_rank.value_or(rank::ace))
-    );
+    return {};
 }
 
 bool is_valid_identifier(std::string_view text) noexcept

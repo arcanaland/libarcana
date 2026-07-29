@@ -9,11 +9,11 @@
 namespace arcana
 {
 
-std::vector<deck_summary> enumerate_decks(std::optional<std::filesystem::path> const& root_override)
+std::vector<deck_summary> enumerate_decks(std::vector<std::filesystem::path> const& roots)
 {
     std::vector<deck_summary> result;
 
-    for (auto const& dir : enumerate_deck_directories(root_override))
+    for (auto const& dir : enumerate_deck_directories(roots))
     {
         auto parsed = toml::parse_file((dir / "deck.toml").string());
         if (!parsed)
@@ -37,12 +37,21 @@ std::vector<deck_summary> enumerate_decks(std::optional<std::filesystem::path> c
 }
 
 std::expected<deck, error> load_deck_by_name(
-    std::string const& directory_name, std::optional<std::filesystem::path> const& root_override,
+    std::string const& directory_name, std::vector<std::filesystem::path> const& roots,
     std::optional<std::string> const& language
 )
 {
-    auto const path = deck_library_path(root_override) / directory_name;
-    return load_deck(path, language);
+    for (auto const& dir : enumerate_deck_directories(roots))
+        if (dir.filename() == directory_name)
+            return load_deck(dir, language);
+
+    return std::unexpected(
+        error{
+            .code = error_code::not_found,
+            .message =
+                std::format("no deck directory named '{}' in the deck library", directory_name)
+        }
+    );
 }
 
 }  // namespace arcana
