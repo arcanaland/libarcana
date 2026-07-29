@@ -13,7 +13,7 @@ std::vector<deck_summary> enumerate_decks(std::vector<std::filesystem::path> con
 {
     std::vector<deck_summary> result;
 
-    for (auto const& dir : enumerate_deck_directories(roots))
+    for (auto const& dir : paths::enumerate_deck_directories(roots))
     {
         auto parsed = toml::parse_file((dir / "deck.toml").string());
         if (!parsed)
@@ -41,7 +41,7 @@ std::expected<deck, error> load_deck_by_name(
     std::optional<std::string> const& language
 )
 {
-    for (auto const& dir : enumerate_deck_directories(roots))
+    for (auto const& dir : paths::enumerate_deck_directories(roots))
         if (dir.filename() == directory_name)
             return load_deck(dir, language);
 

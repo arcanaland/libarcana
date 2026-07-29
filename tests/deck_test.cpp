@@ -25,15 +25,13 @@ bool has_card(deck const& d, std::string const& canonical_id)
     return d.find_card(canonical_id).has_value();
 }
 
-// CMake fetches the reference decks by default, so this is empty only when someone
-// configured with -DARCANA_FETCH_REFERENCE_DECKS=OFF. That's deliberate, so skipping
-// rather than failing is right -- and because it takes an explicit opt-out, a skip here
-// can't quietly retire this coverage on a normal build.
 std::string reference_deck(std::string const& name)
 {
     std::string const dir = REFERENCE_DECKS_DIR;
+
     if (dir.empty())
         SKIP("configured with ARCANA_FETCH_REFERENCE_DECKS=OFF");
+
     return dir + "/" + name;
 }
 
@@ -90,8 +88,7 @@ TEST_CASE("custom cards and custom suits are enumerated alongside the standard 7
 
     CHECK(d.find_card("minor_arcana.stars.two").has_value());
 
-    // The bug this shape was meant to remove: every enumerated card's canonical id now
-    // round-trips through parse_card_id, custom cards included.
+    // round-trip through parse_card_id
     for (auto const& c : d.cards)
     {
         auto const parsed = parse_card_id(c.canonical_id());
@@ -108,11 +105,14 @@ TEST_CASE("aliases, remapping, card backs and variants parse", "[deck]")
 
     CHECK(d.display_suit_name(suit::wands) == "Staves");
     CHECK(d.display_suit_name(suit::pentacles) == "Disks");
-    CHECK(d.display_suit_name(suit::cups) == "cups");  // no alias defined: canonical form
+    CHECK(d.display_suit_name(suit::cups) == "Cups");  // no alias defined: canonical form
 
     CHECK(d.display_rank_name(rank::page) == "Princess");
     CHECK(d.display_rank_name(rank::knight) == "Prince");
-    CHECK(d.display_rank_name(rank::king) == "king");  // no alias defined: canonical form
+    CHECK(d.display_rank_name(rank::king) == "King");  // no alias defined: canonical form
+
+    // A key this deck does not define at all still renders: underscores are word breaks.
+    CHECK(d.display_suit_name("shooting_stars") == "Shooting Stars");
 
     REQUIRE(d.major_arcana_remap.contains(8));
     CHECK(d.major_arcana_remap.at(8) == "justice");
@@ -154,26 +154,54 @@ TEST_CASE("cards carry display-ready suit and rank, resolved through aliases", "
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    // The point of F2: a display consumer reads a field. No branch on the card's class,
-    // no second call back into the deck, no per-draw alias lookup.
     auto const page_of_wands = d.find_card("minor_arcana.wands.page");
     REQUIRE(page_of_wands.has_value());
-    CHECK(page_of_wands->display_suit == "Staves");
     CHECK(page_of_wands->display_rank == "Princess");
+    CHECK(page_of_wands->display_suit == "Staves");
 
-    // A rank with no alias falls back to its canonical form, not to empty.
+    // A rank with no alias falls back to its canonical form
     auto const king_of_cups = d.find_card("minor_arcana.cups.king");
     REQUIRE(king_of_cups.has_value());
-    CHECK(king_of_cups->display_suit == "cups");
-    CHECK(king_of_cups->display_rank == "king");
+    CHECK(king_of_cups->display_rank == "King");
+    CHECK(king_of_cups->display_suit == "Cups");
 
-    // Majors have no suit or rank, and carry their number instead.
+    // Majors have no suit or rank
     auto const fool = d.find_card("major_arcana.00");
     REQUIRE(fool.has_value());
     CHECK(fool->display_suit.empty());
     CHECK(fool->display_rank.empty());
     REQUIRE(fool->number.has_value());
     CHECK(*fool->number == 0);
+}
+
+TEST_CASE("[remap_major_arcana] moves display positions, not canonical ids", "[deck]")
+{
+    auto const result = load_deck(fixture("aliased-deck"));
+    REQUIRE(result.has_value());
+    auto const& d = *result;
+
+    // The fixture puts justice at 8 and strength at 11, swapping the canonical pair.
+    auto const strength = d.find_card("major_arcana.08");
+    REQUIRE(strength.has_value());
+    CHECK(strength->display_name == "Strength");
+    REQUIRE(strength->number.has_value());
+    CHECK(*strength->number == 11);
+
+    auto const justice = d.find_card("major_arcana.11");
+    REQUIRE(justice.has_value());
+    CHECK(justice->display_name == "Justice");
+    REQUIRE(justice->number.has_value());
+    CHECK(*justice->number == 8);
+
+    // Cards the remap does not name keep their canonical position.
+    auto const tower = d.find_card("major_arcana.16");
+    REQUIRE(tower.has_value());
+    CHECK(*tower->number == 16);
+
+    // A deck with no [remap_major_arcana] is the identity case.
+    auto const plain = load_deck(fixture("custom-suit-deck"));
+    REQUIRE(plain.has_value());
+    CHECK(*plain->find_card("major_arcana.08")->number == 8);
 }
 
 TEST_CASE("custom cards get display strings and a declared position", "[deck]")
@@ -185,7 +213,7 @@ TEST_CASE("custom cards get display strings and a declared position", "[deck]")
     auto const stars_ace = d.find_card("minor_arcana.stars.ace");
     REQUIRE(stars_ace.has_value());
     CHECK(stars_ace->display_suit == "Stars");  // from [custom_cards.minor_arcana.stars].name
-    CHECK(stars_ace->display_rank == "ace");
+    CHECK(stars_ace->display_rank == "Ace");
 
     auto const squirrel = d.find_card("major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());

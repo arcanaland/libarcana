@@ -61,16 +61,12 @@ std::optional<rank> rank_from_string(std::string_view text) noexcept;
 // True for a non-empty `[a-z0-9_]+` string.
 bool is_valid_identifier(std::string_view text) noexcept;
 
-// The four shapes a card id can take. This is a discriminant, not a hint: it names
-// exactly which of card_id's fields carry meaning, so a consumer switches once instead of
-// probing optionals. The four legal states were previously spelled as five optionals with
-// 32 representable combinations and the invariant in comments.
 enum class card_class : std::uint8_t
 {
-    standard_major,  // read `number`
-    custom_major,    // read `custom_id`
-    standard_minor,  // read `standard_suit` and `standard_rank`
-    custom_minor,    // read `suit_key` and `custom_id`
+    standard_major,
+    custom_major,
+    standard_minor,
+    custom_minor,
 };
 
 struct card_id
@@ -88,17 +84,15 @@ struct card_id
     static card_id custom_major(std::string id);
     static card_id custom_minor(std::string suit_key, std::string id);
 
-    // True for the two major classes. `kind()` is the same fact as an arcana_kind, for
-    // callers that only need major-vs-minor.
+    // True for the two major classes.
     [[nodiscard]] bool is_major() const noexcept;
+
     [[nodiscard]] arcana_kind kind() const noexcept;
 
-    // True when this card is defined by a deck's [custom_cards] rather than by the spec's
-    // standard 78.
+    // True when this card is defined by [custom_cards]
     [[nodiscard]] bool is_custom() const noexcept;
 
-    // The canonical id string, e.g. "major_arcana.00" or "minor_arcana.stars.ace". Round
-    // trips through parse_card_id.
+    // e.g. "major_arcana.00" or "minor_arcana.stars.ace"
     [[nodiscard]] std::string to_canonical() const;
 
     friend bool operator==(card_id const&, card_id const&) = default;
@@ -115,8 +109,7 @@ struct card_id
 //   - `minor_arcana.<key>.<id>` with a non-canonical suit is a custom suit's card if both
 //     components are valid identifiers.
 //
-// A parse therefore proves the id is well-formed, never that the deck defines it. Use
-// deck::find_card for that.
+//  To find the actual card in a deck instead of parseing, use deck::find_card
 std::expected<card_id, error> parse_card_id(std::string_view canonical_id);
 
 // One resolved image on disk for a card
@@ -127,36 +120,47 @@ struct image_variant
     std::optional<int> height;  // set only for the h<N> raster variants
 };
 
-// Among the raster (height-bearing) entries of `variants`, returns the one closest to
-// `target_height`, preferring the smallest available height that is >= target_height;
-// if none is that large, returns the largest available. Returns nullopt if `variants`
-// has no raster entries. card::best_image_for_height is the usual way to call this.
+// Among the height-bearing variants, returns the one closest to a target height.
+//
+// Prefers the smallest available height that is greater than or equal to the target
+//
+// Returns nullopt if there are no height-bearing entries
 std::optional<image_variant> best_variant_for_height(
     std::vector<image_variant> const& variants, int target_height
 );
 
 // The main card model.
-//
-// The display_* fields are resolved once, at load, through the deck's [aliases.suits] and
-// [aliases.courts]. They exist so a display consumer reads a field instead of calling back
-// into the deck per draw and branching on the card's class first; deck::display_suit_name
-// and deck::display_rank_name remain for callers that have a suit but no card in hand.
 struct card
 {
     card_id id;
     std::string display_name;
-    std::string display_suit;   // resolved; empty for majors, which have no suit
-    std::string display_rank;   // resolved; empty for majors, which have no rank
-    std::optional<int> number;  // majors only: the standard number, or a custom major's
-                                // declared `position`. nullopt for minors and for a custom
-                                // major that declares no position.
+
+    // Minor arcana only, display-ready: a deck alias if one exists, else the title-cased
+    // canonical name. Empty for majors -- the id's class already says there is no suit or
+    // rank, so an optional would only add a second way to ask the same question.
+    std::string display_suit;
+
+    // Minor arcana only
+    std::string display_rank;
+
+    // Major arcana only. The *display* position, which is not always id.number: a deck's
+    // `[remap_major_arcana]` is already applied, so Justice reads 8 in a deck that swaps
+    // it with Strength while keeping the canonical id `major_arcana.11`.
+    //
+    // nullopt for all minors, and for a custom major that declares no position -- unlike
+    // display_suit, this one is genuinely tri-state, which is why it is an optional.
+    std::optional<int> number;
     std::optional<std::string> alt_text;
     std::vector<image_variant> images;
 
     // Shorthand for id.to_canonical().
     [[nodiscard]] std::string canonical_id() const;
 
-    // best_variant_for_height over this card's images.
+    // Among the height-bearing variants, returns the one closest to a target height.
+    //
+    // Prefers the smallest available height that is greater than or equal to the target
+    //
+    // Returns nullopt if there are no height-bearing entries
     [[nodiscard]] std::optional<image_variant> best_image_for_height(int target_height) const;
 };
 

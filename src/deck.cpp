@@ -49,9 +49,56 @@ std::string capitalize(std::string_view word)
     return result;
 }
 
+// The display fallback for a spec-form key with no alias behind it: "cups" -> "Cups",
+// "shooting_star" -> "Shooting Star". A key is `[a-z0-9_]+` by construction, so word
+// breaks are underscores and nothing else.
+std::string titlecase_key(std::string_view key)
+{
+    std::string result;
+    result.reserve(key.size());
+
+    bool at_word_start = true;
+    for (char const c : key)
+    {
+        if (c == '_')
+        {
+            result.push_back(' ');
+            at_word_start = true;
+            continue;
+        }
+        result.push_back(
+            at_word_start ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : c
+        );
+        at_word_start = false;
+    }
+
+    return result;
+}
+
 std::string default_minor_arcana_name(suit s, rank r)
 {
     return std::format("{} of {}", capitalize(to_string(r)), capitalize(to_string(s)));
+}
+
+// Folds a major arcana name to a comparable key: lower_case, underscores for spaces, and
+// no leading "the_", so `[remap_major_arcana]` matches whether the deck writes "star",
+// "The Star" or "the_star".
+std::string fold_major_arcana_name(std::string_view name)
+{
+    std::string result;
+    result.reserve(name.size());
+    for (char const c : name)
+    {
+        result.push_back(
+            c == ' ' ? '_' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)))
+        );
+    }
+
+    constexpr std::string_view article = "the_";
+    if (result.starts_with(article))
+        result.erase(0, article.size());
+
+    return result;
 }
 
 // --- toml++ accessor helpers, confined to this file -------------------------------
@@ -578,6 +625,13 @@ std::expected<deck, error> load_deck(
                result.excluded.cards.end();
     };
 
+    // `[remap_major_arcana]` reads position -> which card sits there, so inverting it gives
+    // the display position of each remapped card. Its keys never change a card's canonical
+    // id: `major_arcana.08` stays Strength's id even in a deck that shows Justice at 8.
+    std::unordered_map<std::string, int> remapped_positions;
+    for (auto const& [position, name] : result.major_arcana_remap)
+        remapped_positions.emplace(fold_major_arcana_name(name), position);
+
     // The 78 standard cards.
     for (int i = 0; i <= max_major_arcana_number; ++i)
     {
@@ -585,12 +639,16 @@ std::expected<deck, error> load_deck(
         if (is_excluded(id.to_canonical()))
             continue;
 
+        auto const& canonical_name = default_major_arcana_names[static_cast<std::size_t>(i)];
+
         card c;
         c.id = std::move(id);
-        c.display_name =
-            lookup_name(names, "major_arcana", std::format("{:02d}", i))
-                .value_or(std::string(default_major_arcana_names[static_cast<std::size_t>(i)]));
-        c.number = i;  // majors carry a number; display_suit and display_rank stay empty
+        c.display_name = lookup_name(names, "major_arcana", std::format("{:02d}", i))
+                             .value_or(std::string(canonical_name));
+
+        // majors carry a number; display_suit and display_rank stay empty
+        auto const remapped = remapped_positions.find(fold_major_arcana_name(canonical_name));
+        c.number = remapped == remapped_positions.end() ? i : remapped->second;
         c.alt_text = lookup_name(names, "alt_text", std::format("{:02d}", i));
         c.images = scan_variants_for(root, variant_roots, "major_arcana", std::format("{:02d}", i));
         result.cards.push_back(std::move(c));
@@ -669,7 +727,7 @@ std::string deck::display_suit_name(suit s) const
     auto canonical = std::string(to_string(s));
     if (auto const it = suit_aliases.find(canonical); it != suit_aliases.end())
         return it->second;
-    return canonical;
+    return titlecase_key(canonical);
 }
 
 std::string deck::display_suit_name(std::string_view custom_suit_key) const
@@ -679,7 +737,7 @@ std::string deck::display_suit_name(std::string_view custom_suit_key) const
     for (auto const& suit_def : custom_suits)
         if (suit_def.key == custom_suit_key)
             return suit_def.name;
-    return std::string(custom_suit_key);
+    return titlecase_key(custom_suit_key);
 }
 
 std::string deck::display_rank_name(rank r) const
@@ -691,7 +749,7 @@ std::string deck::display_rank_name(std::string_view custom_rank_key) const
 {
     if (auto const it = court_aliases.find(std::string(custom_rank_key)); it != court_aliases.end())
         return it->second;
-    return std::string(custom_rank_key);
+    return titlecase_key(custom_rank_key);
 }
 
 std::optional<std::string> deck::exclusion_reason(std::string_view canonical_id) const

@@ -8,6 +8,8 @@
 #include <charconv>
 #include <cstdlib>
 #include <format>
+#include <ranges>
+#include <tuple>
 
 namespace arcana
 {
@@ -226,49 +228,22 @@ std::optional<image_variant> best_variant_for_height(
     std::vector<image_variant> const& variants, int target_height
 )
 {
-    image_variant const* best = nullptr;
-    int best_height = 0;
+    auto sized = variants | std::views::filter([](image_variant const& variant)
+                                               { return variant.height.has_value(); });
 
-    for (auto const& variant : variants)
+    // Prefer a variant that meets the target, then the one closest to it.
+    // Among equally-close candidates the smaller one.
+    auto const rank_of = [target_height](image_variant const& variant)
     {
-        if (!variant.height)
-            continue;
-        int const candidate_height = *variant.height;
+        int const height = *variant.height;
+        return std::tuple{height < target_height, std::abs(height - target_height), height};
+    };
 
-        if (best == nullptr)
-        {
-            best = &variant;
-            best_height = candidate_height;
-            continue;
-        }
+    auto const best = std::ranges::min_element(sized, {}, rank_of);
 
-        bool const best_is_large_enough = best_height >= target_height;
-        bool const candidate_is_large_enough = candidate_height >= target_height;
-
-        bool replace = false;
-        if (candidate_is_large_enough && !best_is_large_enough)
-        {
-            replace = true;
-        }
-        else if (candidate_is_large_enough == best_is_large_enough)
-        {
-            // Both (or neither) meet the target: prefer the one closer to it, and
-            // among equally-close candidates the smaller (cheaper) one.
-            int const candidate_diff = std::abs(candidate_height - target_height);
-            int const best_diff = std::abs(best_height - target_height);
-            replace = candidate_diff < best_diff ||
-                      (candidate_diff == best_diff && candidate_height < best_height);
-        }
-
-        if (replace)
-        {
-            best = &variant;
-            best_height = candidate_height;
-        }
-    }
-
-    if (best == nullptr)
+    if (best == std::ranges::end(sized))
         return std::nullopt;
+
     return *best;
 }
 

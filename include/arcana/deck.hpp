@@ -22,9 +22,10 @@ namespace arcana
 
 namespace detail
 {
-// The parsed deck.toml, kept alive behind an incomplete type so no toml++ name reaches a
-// public header. See deck::source_toml.
+
+// The parsed deck.toml
 struct deck_document;
+
 }  // namespace detail
 
 inline constexpr double default_aspect_ratio = 0.5789;
@@ -62,22 +63,16 @@ struct card_back_variant
     std::string id;
     std::string name;
 
-    // The deck-relative reference exactly as written in deck.toml, e.g.
-    // "card_backs/classic.png". Empty for a discovered variant. A validator needs the
-    // author's unresolved text; a display consumer wants `image`.
+    // The deck-relative reference exactly as written in deck.toml
     std::string image_ref;
 
-    // `image_ref` resolved against the deck root, so it can go straight to a QPixmap.
     // For a discovered variant this is the file that was found.
     std::filesystem::path image;
 
     std::optional<std::string> description;
     std::optional<std::string> alt_text;
 
-    // False when this variant was discovered by scanning card_backs/ rather than declared
-    // in [card_backs.variants]. Deck spec v1.0 puts card backs in a flat card_backs/
-    // directory, not under the h<N>/ variant roots, so there is no per-height variant list
-    // here and no height selection.
+    // If this back was declared in [card_backs.variants].
     bool declared = true;
 };
 
@@ -95,9 +90,10 @@ struct custom_card_def
     std::string id;
     std::string name;
 
-    // As written in deck.toml, and that reference resolved against the deck root. Same
-    // split, and the same reason, as card_back_variant.
+    // The deck-relative reference exactly as written in deck.toml
     std::string image_ref;
+
+    // For a discovered variant this is the file that was found.
     std::filesystem::path image;
 
     std::optional<std::string> alt_text;
@@ -122,16 +118,14 @@ struct deck_variant
     std::optional<std::string> created_date;
 };
 
-// One suit of a loaded deck, standard or custom, keyed uniformly so a consumer iterating
-// suits never branches on which kind it has.
+// One suit of a loaded deck, standard or custom
 struct suit_info
 {
     std::string key;  // "wands" for a canonical suit, or the custom suit's key
     std::string display_name;
     bool standard = true;
 
-    // True when no card of this suit survives into deck::cards, whether it was excluded
-    // wholesale or card by card.
+    // True when every card of this suit is excluded
     bool excluded = false;
 };
 
@@ -148,7 +142,12 @@ struct deck
     std::unordered_map<std::string, std::string> suit_aliases;   // canonical suit -> display name
     std::unordered_map<std::string, std::string> court_aliases;  // canonical rank -> display name
 
-    std::map<int, std::string> major_arcana_remap;  // position -> canonical major arcana name
+    // Position -> the canonical major arcana name shown at that position, e.g. `8 ->
+    // "justice"` for a deck that swaps Justice and Strength. Names are matched loosely:
+    // lower_cased, spaces or underscores either way, with or without a leading "the".
+    // Already applied to `card::number`; a consumer wanting the deck's ordering should
+    // read that rather than re-deriving it here.
+    std::map<int, std::string> major_arcana_remap;
 
     excluded_cards excluded;
 
@@ -157,19 +156,24 @@ struct deck
 
     std::vector<deck_variant> variants;
 
-    // The 78 standard cards minus exclusions, plus custom cards, names and alt text
-    // resolved, image variants attached. Populated by load_deck; never partially filled.
+    // The 78 standard cards minus exclusions, plus custom cards
     std::vector<card> cards;
 
-    // `s`'s display name under this deck's `[aliases.suits]`, or its canonical name if
-    // the deck defines no alias for it. The string_view overload takes a custom suit key
-    // and falls back to that suit's `[custom_cards.minor_arcana.<key>].name`.
+    // `s`'s display name under this deck's `[aliases.suits]`, or its title-cased canonical
+    // name if the deck defines no alias for it. The string_view overload takes a custom
+    // suit key and falls back to that suit's `[custom_cards.minor_arcana.<key>].name`,
+    // then to the title-cased key.
     [[nodiscard]] std::string display_suit_name(suit s) const;
     [[nodiscard]] std::string display_suit_name(std::string_view custom_suit_key) const;
 
-    // `r`'s display name under this deck's `[aliases.courts]` (page/knight/queen/king
-    // only; numeric ranks have no alias concept), or its canonical name otherwise. The
-    // string_view overload takes a custom card's own id and falls back to that id.
+    // `r`'s display name under this deck's `[aliases.courts]`, or its title-cased
+    // canonical name otherwise. The string_view overload takes a custom card's own id and
+    // falls back to the title-cased id.
+    //
+    // The alias map is consulted for any rank key, not just the four courts: a custom
+    // suit's cards are looked up here by their own ids, which need not be ranks at all.
+    // Decks conventionally only alias courts, but nothing enforces that, and a custom id
+    // that collides with a canonical rank picks up that rank's alias.
     //
     // Every card already carries its resolved display_suit and display_rank, so these two
     // families are for callers holding a suit or rank with no card in hand — validation,
@@ -230,8 +234,7 @@ struct deck
         std::filesystem::path const& deck_directory, std::optional<std::string> const& language
     );
 
-    // shared_ptr to an incomplete type: deck stays copyable with no out-of-line special
-    // members, and toml++ stays out of this header.
+    // toml++ stays out of this header
     std::shared_ptr<detail::deck_document const> document_;
 };
 

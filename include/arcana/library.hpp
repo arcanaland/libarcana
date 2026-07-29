@@ -24,14 +24,14 @@ struct deck_summary
 };
 
 // Every directory containing a deck.toml, across a search path of deck library
-// directories. `roots` is searched in order and an empty `roots` means
+// root directories.
+//
+// If no root is passed, the
+//
+// `roots` is searched in order and an empty `roots` means
 // deck_library_path()'s XDG answer; when a directory name appears under more than one
 // root, the first wins and the shadowed deck is listed once.
 //
-// A single root is not enough for every consumer: a Flatpak application may hold both a
-// sandbox path and a host path, and a bundled reference deck may sit somewhere XDG never
-// names. Such a consumer passes its own roots rather than being silently pointed at an
-// empty XDG directory.
 std::vector<deck_summary> enumerate_decks(std::vector<std::filesystem::path> const& roots = {});
 
 // Loads a deck by its directory name, searching `roots` in the same order and with the

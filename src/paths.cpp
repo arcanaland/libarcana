@@ -25,7 +25,35 @@ std::optional<std::filesystem::path> home_directory()
     return getenv_path("HOME");
 }
 
+void collect_deck_directories(
+    std::filesystem::path const& library, std::vector<std::filesystem::path>& out
+)
+{
+    std::error_code ec;
+    if (!std::filesystem::is_directory(library, ec))
+        return;
+
+    for (auto const& entry : std::filesystem::directory_iterator(library, ec))
+    {
+        if (!entry.is_directory())
+            continue;
+        if (!std::filesystem::is_regular_file(entry.path() / "deck.toml"))
+            continue;
+
+        // Earlier roots shadow later ones, by directory name.
+        auto const name = entry.path().filename();
+        bool const shadowed = std::ranges::any_of(
+            out, [&name](std::filesystem::path const& seen) { return seen.filename() == name; }
+        );
+        if (!shadowed)
+            out.push_back(entry.path());
+    }
+}
+
 }  // namespace
+
+namespace paths
+{
 
 std::filesystem::path xdg_data_home(std::optional<std::filesystem::path> const& root_override)
 {
@@ -54,42 +82,13 @@ std::filesystem::path deck_library_path(std::optional<std::filesystem::path> con
     return xdg_data_home(root_override) / "tarot" / "decks";
 }
 
-namespace
-{
-
-void collect_deck_directories(
-    std::filesystem::path const& library, std::vector<std::filesystem::path>& out
-)
-{
-    std::error_code ec;
-    if (!std::filesystem::is_directory(library, ec))
-        return;
-
-    for (auto const& entry : std::filesystem::directory_iterator(library, ec))
-    {
-        if (!entry.is_directory())
-            continue;
-        if (!std::filesystem::is_regular_file(entry.path() / "deck.toml"))
-            continue;
-
-        // Earlier roots shadow later ones, by directory name.
-        auto const name = entry.path().filename();
-        bool const shadowed = std::ranges::any_of(
-            out, [&name](std::filesystem::path const& seen) { return seen.filename() == name; }
-        );
-        if (!shadowed)
-            out.push_back(entry.path());
-    }
-}
-
-}  // namespace
 
 std::vector<std::filesystem::path> enumerate_deck_directories(
     std::optional<std::filesystem::path> const& root_override
 )
 {
     std::vector<std::filesystem::path> result;
-    collect_deck_directories(deck_library_path(root_override), result);
+    collect_deck_directories(paths::deck_library_path(root_override), result);
     return result;
 }
 
@@ -101,7 +100,7 @@ std::vector<std::filesystem::path> enumerate_deck_directories(
 
     if (roots.empty())
     {
-        collect_deck_directories(deck_library_path(), result);
+        collect_deck_directories(paths::deck_library_path(), result);
         return result;
     }
 
@@ -109,5 +108,7 @@ std::vector<std::filesystem::path> enumerate_deck_directories(
 
     return result;
 }
+
+}  // namespace paths
 
 }  // namespace arcana
