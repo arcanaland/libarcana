@@ -81,9 +81,10 @@ struct card_id
     static card_id custom_major(std::string id);
     static card_id custom_minor(std::string suit_key, std::string id);
 
-    // True for the two major classes.
+    // True for the standard + custom majors
     [[nodiscard]] bool is_major() const noexcept;
 
+    // Major vs minor
     [[nodiscard]] arcana_kind kind() const noexcept;
 
     // True when this card is defined by [custom_cards]
@@ -95,22 +96,26 @@ struct card_id
     friend bool operator==(card_id const&, card_id const&) = default;
 };
 
+enum class image_kind : std::uint8_t
+{
+    scalable,
+    raster,
+    ansi,
+};
+
 // One resolved image on disk for a card
 struct image_variant
 {
-    std::string variant_name;  // "scalable", "ansi32", "h750", "h1200" or "h2400"
-    std::filesystem::path path;
-    std::optional<int> height;  // set only for the h<N> raster variants
-};
+    // The directory (e.g., h1200, ansi32)
+    std::string variant_name;
 
-// Among the height-bearing variants, returns the one closest to a target height.
-//
-// Prefers the smallest available height that is greater than or equal to the target
-//
-// Returns nullopt if there are no height-bearing entries
-std::optional<image_variant> best_variant_for_height(
-    std::vector<image_variant> const& variants, int target_height
-);
+    std::filesystem::path path;
+
+    image_kind kind = image_kind::scalable;
+
+    std::optional<int> height;  // raster only
+    std::optional<int> lines;   // ansi only
+};
 
 // The main card model.
 struct card
@@ -118,33 +123,34 @@ struct card
     card_id id;
     std::string display_name;
 
-    // Minor arcana only, display-ready: a deck alias if one exists, else the title-cased
-    // canonical name. Empty for majors -- the id's class already says there is no suit or
-    // rank, so an optional would only add a second way to ask the same question.
-    std::string display_suit;
-
     // Minor arcana only
+    std::string display_suit;
     std::string display_rank;
 
-    // Major arcana only. The *display* position, which is not always id.number: a deck's
-    // `[remap_major_arcana]` is already applied, so Justice reads 8 in a deck that swaps
-    // it with Strength while keeping the canonical id `major_arcana.11`.
+    // Major arcana only
     //
-    // nullopt for all minors, and for a custom major that declares no position -- unlike
-    // display_suit, this one is genuinely tri-state, which is why it is an optional.
+    // The display position, might differ from id.number due to remappings
+    //
+    // nullopt for minors and position-less custom majors
     std::optional<int> number;
     std::optional<std::string> alt_text;
     std::vector<image_variant> images;
 
-    // Shorthand for id.to_canonical().
+    // Shorthand for id.to_canonical()
     [[nodiscard]] std::string canonical_id() const;
 
-    // Among the height-bearing variants, returns the one closest to a target height.
+    // The raster variant closest to target_height in pixels.
     //
-    // Prefers the smallest available height that is greater than or equal to the target
+    // Prefers the smallest variant at or above the target
+    [[nodiscard]] std::optional<image_variant> best_raster_for_height(int target_height) const;
+
+    // The ANSI variant closest to target_lines in terminal lines.
     //
-    // Returns nullopt if there are no height-bearing entries
-    [[nodiscard]] std::optional<image_variant> best_image_for_height(int target_height) const;
+    // Prefers the largest variant at or below the target
+    [[nodiscard]] std::optional<image_variant> best_ansi_for_lines(int target_lines) const;
+
+    // The scalable image variant, if it exists
+    [[nodiscard]] std::optional<image_variant> scalable_image() const;
 };
 
 }  // namespace arcana

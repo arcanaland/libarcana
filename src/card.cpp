@@ -227,37 +227,67 @@ std::expected<card_id, error> detail::parse_card_id(std::string_view canonical_i
     return parse_error_for("not a canonical card id");
 }
 
-std::optional<image_variant> best_variant_for_height(
-    std::vector<image_variant> const& variants, int target_height
+namespace
+{
+
+// Ranking shared by the two sized families. Which field carries the size and which side of
+// the target wins are both functions of the kind, so they are derived here rather than
+// passed in -- there is exactly one right answer per family and no caller gets to choose it.
+std::optional<image_variant> best_of_kind(
+    std::vector<image_variant> const& variants, image_kind kind, int target
 )
 {
-    auto sized = variants | std::views::filter([](image_variant const& variant)
-                                               { return variant.height.has_value(); });
+    auto const size_field =
+        (kind == image_kind::ansi) ? &image_variant::lines : &image_variant::height;
 
-    // Prefer a variant that meets the target, then the one closest to it.
-    // Among equally-close candidates the smaller one.
-    auto const rank_of = [target_height](image_variant const& variant)
+    // Raster prefers the smallest variant at or above the target; ANSI the largest at or
+    // below it. See the header for why the two rules point in opposite directions.
+    bool const prefer_at_least = (kind != image_kind::ansi);
+
+    auto candidates =
+        variants | std::views::filter([kind, size_field](image_variant const& variant)
+                                      { return variant.kind == kind && (variant.*size_field); });
+
+    // Right side of the target first, then closest, then break ties toward the preferred
+    // side so the choice is deterministic when two variants straddle it equally.
+    auto const rank_of = [target, size_field, prefer_at_least](image_variant const& variant)
     {
-        int const height = *variant.height;
-        return std::tuple{height < target_height, std::abs(height - target_height), height};
+        int const size = *(variant.*size_field);
+        bool const wrong_side = prefer_at_least ? (size < target) : (size > target);
+        return std::tuple{wrong_side, std::abs(size - target), prefer_at_least ? size : -size};
     };
 
-    auto const best = std::ranges::min_element(sized, {}, rank_of);
+    auto const best = std::ranges::min_element(candidates, {}, rank_of);
 
-    if (best == std::ranges::end(sized))
+    if (best == std::ranges::end(candidates))
         return std::nullopt;
 
     return *best;
 }
+
+}  // namespace
 
 std::string card::canonical_id() const
 {
     return id.to_canonical();
 }
 
-std::optional<image_variant> card::best_image_for_height(int target_height) const
+std::optional<image_variant> card::scalable_image() const
 {
-    return best_variant_for_height(images, target_height);
+    auto const found = std::ranges::find(images, image_kind::scalable, &image_variant::kind);
+    if (found == images.end())
+        return std::nullopt;
+    return *found;
+}
+
+std::optional<image_variant> card::best_raster_for_height(int target_height) const
+{
+    return best_of_kind(images, image_kind::raster, target_height);
+}
+
+std::optional<image_variant> card::best_ansi_for_lines(int target_lines) const
+{
+    return best_of_kind(images, image_kind::ansi, target_lines);
 }
 
 }  // namespace arcana

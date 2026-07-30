@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <format>
 #include <random>
+#include <ranges>
 #include <sstream>
 
 namespace arcana
@@ -129,27 +130,6 @@ std::vector<std::string> get_string_array(toml::node_view<toml::node const> cons
     return result;
 }
 
-// Infers a variant name ("scalable", "ansi32", "h750", ...) and, for the h<N> raster
-// variants, a height, from a deck-relative path such as "scalable/major_arcana/00.svg".
-image_variant variant_from_relative_path(fs::path const& root, std::string_view relative_path)
-{
-    image_variant result;
-    result.path = root / relative_path;
-
-    auto const slash = relative_path.find('/');
-    result.variant_name = std::string(relative_path.substr(0, slash));
-
-    if (result.variant_name.size() > 1 && result.variant_name.front() == 'h' &&
-        std::ranges::all_of(
-            result.variant_name.substr(1), [](unsigned char c) { return std::isdigit(c) != 0; }
-        ))
-    {
-        result.height = std::stoi(result.variant_name.substr(1));
-    }
-
-    return result;
-}
-
 // h750/h1200/h2400 are the spec's recommended resolutions, not an exhaustive list --
 // "Raster folders are named h<height>/" permits any height. ansi<lines>/ is similarly
 // parameterised ("32 lines recommended"), though ansi32 is the only one seen in practice
@@ -169,6 +149,37 @@ bool looks_like_ansi_root(std::string_view name)
            std::ranges::all_of(
                name.substr(4), [](unsigned char c) { return std::isdigit(c) != 0; }
            );
+}
+
+// Infers the variant name ("scalable", "ansi32", "h750", ...), its family, and that
+// family's size parameter from a deck-relative path such as "scalable/major_arcana/00.svg".
+// The same predicates that discovered the root decide the family, so a directory can never
+// be scanned as one kind and then recorded as another.
+image_variant variant_from_relative_path(fs::path const& root, std::string_view relative_path)
+{
+    image_variant result;
+    result.path = root / relative_path;
+
+    auto const slash = relative_path.find('/');
+    result.variant_name = std::string(relative_path.substr(0, slash));
+
+    if (looks_like_raster_root(result.variant_name))
+    {
+        result.kind = image_kind::raster;
+        result.height = std::stoi(result.variant_name.substr(1));
+    }
+    else if (looks_like_ansi_root(result.variant_name))
+    {
+        result.kind = image_kind::ansi;
+        result.lines = std::stoi(result.variant_name.substr(4));
+    }
+    else
+    {
+        // discover_variant_roots only ever offers the three families, so this is `scalable`.
+        result.kind = image_kind::scalable;
+    }
+
+    return result;
 }
 
 std::vector<std::string> discover_variant_roots(fs::path const& deck_root)
@@ -758,6 +769,7 @@ std::optional<std::string> deck::exclusion_reason(std::string_view canonical_id)
 {
     if (std::ranges::find(excluded.cards, canonical_id) == excluded.cards.end())
         return std::nullopt;
+
     return excluded.reason.value_or(std::string{});
 }
 
@@ -766,6 +778,7 @@ std::optional<card> deck::find_card(card_id const& id) const
     auto const it = std::ranges::find(cards, id, &card::id);
     if (it == cards.end())
         return std::nullopt;
+
     return *it;
 }
 
@@ -783,13 +796,12 @@ std::expected<card, error> deck::find_card(std::string_view canonical_id) const
                 .message = std::format("deck defines no card '{}'", canonical_id)
             }
         );
+
     return *std::move(found);
 }
 
 std::vector<suit_info> deck::suits() const
 {
-    // A suit's key: canonical suits by their spec name, custom suits by their table key.
-    // Keying both the same way is what lets a consumer iterate suits without branching.
     auto const suit_of = [](card const& c) -> std::string_view
     {
         switch (c.id.cls)
@@ -847,11 +859,8 @@ std::vector<suit_info> deck::suits() const
 
 std::vector<card> deck::cards_of_kind(arcana_kind kind) const
 {
-    std::vector<card> result;
-    for (auto const& c : cards)
-        if (c.id.kind() == kind)
-            result.push_back(c);
-    return result;
+    return cards | std::views::filter([kind](card const& c) { return c.id.kind() == kind; }) |
+           std::ranges::to<std::vector>();
 }
 
 std::vector<card> deck::cards_in_suit(std::string_view key) const
@@ -888,8 +897,6 @@ std::optional<card_back_variant> deck::default_card_back_variant() const
         auto const it = std::ranges::find(card_backs, *default_card_back, &card_back_variant::id);
         if (it != card_backs.end())
             return *it;
-        // Named but absent: a broken reference is TASK-005's to report, not ours to guess
-        // around, so fall through to the sole-variant rule rather than picking arbitrarily.
     }
 
     if (card_backs.size() == 1)

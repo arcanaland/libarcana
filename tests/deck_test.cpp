@@ -170,6 +170,8 @@ TEST_CASE("file-location-based defaults: images map to cards with no deck.toml e
     REQUIRE_FALSE(fool->images.empty());
     CHECK(fool->images.front().variant_name == "h1200");
     CHECK(fool->images.front().height == 1200);
+    CHECK(fool->images.front().kind == image_kind::raster);
+    CHECK_FALSE(fool->images.front().lines.has_value());
 
     auto const ace_of_wands = d.find_card("minor_arcana.wands.ace");
     REQUIRE(ace_of_wands.has_value());
@@ -425,6 +427,38 @@ TEST_CASE("ascii-tarot resolves ansi32 image variants", "[deck][reference-decks]
     auto const ansi =
         std::ranges::find(fool->images, std::string("ansi32"), &image_variant::variant_name);
     REQUIRE(ansi != fool->images.end());
+    CHECK(ansi->kind == image_kind::ansi);
+    CHECK(ansi->lines == 32);  // terminal lines, not pixels and not a colour depth
+
+    // An ANSI-only deck: the CLI's query answers, and neither image query invents anything.
+    REQUIRE(fool->best_ansi_for_lines(40).has_value());
+    CHECK(fool->best_ansi_for_lines(40)->lines == 32);
+    CHECK_FALSE(fool->best_raster_for_height(1200).has_value());
+    CHECK_FALSE(fool->scalable_image().has_value());
+}
+
+TEST_CASE("rider-waite-smith serves both a raster and an ANSI query", "[deck][reference-decks]")
+{
+    // The one reference deck shipping two families, so the only one that proves a card can
+    // answer both queries without the families bleeding into each other.
+    auto const result = load_deck(reference_deck("rider-waite-smith"));
+    REQUIRE(result.has_value());
+
+    auto const fool = result->find_card("major_arcana.00");
+    REQUIRE(fool.has_value());
+
+    auto const raster = fool->best_raster_for_height(1000);
+    REQUIRE(raster.has_value());
+    CHECK(raster->kind == image_kind::raster);
+    CHECK(raster->height == 1200);
+
+    auto const art = fool->best_ansi_for_lines(32);
+    REQUIRE(art.has_value());
+    CHECK(art->kind == image_kind::ansi);
+    CHECK(art->lines == 32);
+
+    // No `scalable/` in this deck, so the GUI's prefer-SVG one-liner falls through to raster.
+    CHECK_FALSE(fool->scalable_image().has_value());
 }
 
 TEST_CASE("aquatic-tarot resolves raster heights", "[deck][reference-decks]")
@@ -435,4 +469,11 @@ TEST_CASE("aquatic-tarot resolves raster heights", "[deck][reference-decks]")
     auto const fool = result->find_card("major_arcana.00");
     REQUIRE(fool.has_value());
     CHECK_FALSE(fool->images.empty());
+
+    // h800 alone: an off-spec height the loader must still read, since the spec's
+    // 750/1200/2400 are recommendations rather than the permitted set.
+    auto const raster = fool->best_raster_for_height(1200);
+    REQUIRE(raster.has_value());
+    CHECK(raster->height == 800);
+    CHECK(raster->variant_name == "h800");
 }

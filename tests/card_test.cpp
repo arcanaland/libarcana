@@ -136,53 +136,129 @@ TEST_CASE("malformed canonical ids are errors, not garbage", "[card]")
     CHECK(one->is_custom());
 }
 
-TEST_CASE("best_variant_for_height picks the smallest that meets the target", "[card]")
+namespace
 {
-    std::vector<image_variant> const variants{
-        {.variant_name = "h750", .path = "a", .height = 750},
-        {.variant_name = "h1200", .path = "b", .height = 1200},
-        {.variant_name = "h2400", .path = "c", .height = 2400},
-    };
 
-    auto const best = best_variant_for_height(variants, 1000);
-    REQUIRE(best.has_value());
-    CHECK(best->height == 1200);
+image_variant raster(int height)
+{
+    return {
+        .variant_name = std::format("h{}", height),
+        .path = std::format("h{}/major_arcana/00.png", height),
+        .kind = image_kind::raster,
+        .height = height,
+    };
 }
 
-TEST_CASE("best_variant_for_height falls back to the largest available", "[card]")
+image_variant ansi(int lines)
 {
-    std::vector<image_variant> const variants{
-        {.variant_name = "h750", .path = "a", .height = 750},
-        {.variant_name = "h1200", .path = "b", .height = 1200},
+    return {
+        .variant_name = std::format("ansi{}", lines),
+        .path = std::format("ansi{}/major_arcana/00.ansi", lines),
+        .kind = image_kind::ansi,
+        .lines = lines,
     };
-
-    auto const best = best_variant_for_height(variants, 3000);
-    REQUIRE(best.has_value());
-    CHECK(best->height == 1200);
 }
 
-TEST_CASE("best_variant_for_height is nullopt with no raster entries", "[card]")
+image_variant scalable()
 {
-    std::vector<image_variant> const variants{
-        {.variant_name = "scalable", .path = "a", .height = std::nullopt},
+    return {
+        .variant_name = "scalable",
+        .path = "scalable/major_arcana/00.svg",
+        .kind = image_kind::scalable,
     };
-    CHECK_FALSE(best_variant_for_height(variants, 1200).has_value());
 }
 
-TEST_CASE("card::best_image_for_height delegates to best_variant_for_height", "[card]")
+card card_with(std::vector<image_variant> images)
 {
     card c;
     c.id = card_id::standard_major(0);
-    c.images = {
-        {.variant_name = "scalable", .path = "a", .height = std::nullopt},
-        {.variant_name = "h750", .path = "b", .height = 750},
-        {.variant_name = "h2400", .path = "c", .height = 2400},
-    };
+    c.images = std::move(images);
+    return c;
+}
 
-    auto const best = c.best_image_for_height(1000);
+}  // namespace
+
+TEST_CASE("best_raster_for_height picks the smallest that meets the target", "[card]")
+{
+    auto const c = card_with({raster(750), raster(1200), raster(2400)});
+
+    auto const best = c.best_raster_for_height(1000);
     REQUIRE(best.has_value());
-    CHECK(best->height == 2400);
-    CHECK(c.canonical_id() == "major_arcana.00");
+    CHECK(best->height == 1200);
+    CHECK(best->variant_name == "h1200");
 
-    CHECK_FALSE(card{}.best_image_for_height(1000).has_value());
+    // Exact matches win outright, and a target below everything takes the smallest.
+    CHECK(c.best_raster_for_height(2400)->height == 2400);
+    CHECK(c.best_raster_for_height(10)->height == 750);
+}
+
+TEST_CASE("best_raster_for_height falls back to the largest available", "[card]")
+{
+    auto const c = card_with({raster(750), raster(1200)});
+
+    // Nothing meets a 3000px target, so the closest below it is the least-bad upscale.
+    auto const best = c.best_raster_for_height(3000);
+    REQUIRE(best.has_value());
+    CHECK(best->height == 1200);
+}
+
+TEST_CASE("best_ansi_for_lines prefers the largest that fits", "[card]")
+{
+    auto const c = card_with({ansi(16), ansi(32), ansi(64)});
+
+    // The mirror of the raster rule: art taller than the terminal is unusable, so 32 beats
+    // 64 for a 40-line terminal even though 64 is no further away.
+    auto const best = c.best_ansi_for_lines(40);
+    REQUIRE(best.has_value());
+    CHECK(best->lines == 32);
+    CHECK(best->variant_name == "ansi32");
+
+    CHECK(c.best_ansi_for_lines(64)->lines == 64);
+
+    // Nothing fits a 10-line terminal, so the closest overflow is all there is.
+    CHECK(c.best_ansi_for_lines(10)->lines == 16);
+}
+
+TEST_CASE("the three families never answer for each other", "[card]")
+{
+    // The bug the kind discriminant exists to prevent: ansi32's "32" is terminal lines, so
+    // it must not surface as a 32-pixel raster, and h1200 must not surface as ANSI art.
+    auto const ansi_only = card_with({ansi(32)});
+    CHECK_FALSE(ansi_only.best_raster_for_height(32).has_value());
+    CHECK_FALSE(ansi_only.scalable_image().has_value());
+    CHECK(ansi_only.best_ansi_for_lines(32).has_value());
+
+    auto const raster_only = card_with({raster(1200)});
+    CHECK_FALSE(raster_only.best_ansi_for_lines(1200).has_value());
+    CHECK_FALSE(raster_only.scalable_image().has_value());
+
+    auto const scalable_only = card_with({scalable()});
+    CHECK_FALSE(scalable_only.best_raster_for_height(1200).has_value());
+    CHECK_FALSE(scalable_only.best_ansi_for_lines(32).has_value());
+    REQUIRE(scalable_only.scalable_image().has_value());
+    CHECK(scalable_only.scalable_image()->variant_name == "scalable");
+
+    // A card with no images at all answers nullopt three times rather than misreporting.
+    CHECK_FALSE(card{}.best_raster_for_height(1200).has_value());
+    CHECK_FALSE(card{}.best_ansi_for_lines(32).has_value());
+    CHECK_FALSE(card{}.scalable_image().has_value());
+}
+
+TEST_CASE("the library ranks families but does not choose between them", "[card]")
+{
+    // The composition the header documents in place of a "just give me something" call.
+    auto const both = card_with({scalable(), raster(1200)});
+    auto const prefer_svg =
+        both.scalable_image().or_else([&] { return both.best_raster_for_height(400); });
+    REQUIRE(prefer_svg.has_value());
+    CHECK(prefer_svg->kind == image_kind::scalable);
+
+    // Same one-liner on a deck with no SVG falls through to the raster.
+    auto const no_svg = card_with({raster(1200)});
+    auto const fell_through =
+        no_svg.scalable_image().or_else([&] { return no_svg.best_raster_for_height(400); });
+    REQUIRE(fell_through.has_value());
+    CHECK(fell_through->kind == image_kind::raster);
+
+    CHECK(card_with({raster(1200)}).canonical_id() == "major_arcana.00");
 }
