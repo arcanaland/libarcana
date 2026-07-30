@@ -3,8 +3,6 @@
 
 #include <arcana/card.hpp>
 
-#include "card_internal.hpp"
-
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -175,7 +173,7 @@ bool is_valid_identifier(std::string_view text) noexcept
     );
 }
 
-std::expected<card_id, error> detail::parse_card_id(std::string_view canonical_id)
+std::expected<card_id, error> card_id::parse(std::string_view canonical_id)
 {
     auto const parts = split(canonical_id, '.');
 

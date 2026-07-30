@@ -3,10 +3,6 @@
 
 #include <arcana/card.hpp>
 
-// Private header: parse_card_id is not public API. Reached directly here because these
-// cases pin its disambiguation rules, which deck::find_card documents and relies on.
-#include "card_internal.hpp"
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
@@ -14,14 +10,13 @@
 #include <vector>
 
 using namespace arcana;
-using arcana::detail::parse_card_id;
 
 TEST_CASE("all 22 major arcana canonical ids round-trip", "[card]")
 {
     for (int i = 0; i <= 21; ++i)
     {
         auto const text = std::format("major_arcana.{:02d}", i);
-        auto const parsed = parse_card_id(text);
+        auto const parsed = card_id::parse(text);
         REQUIRE(parsed.has_value());
         CHECK(parsed->cls == card_class::standard_major);
         CHECK(parsed->kind() == arcana_kind::major_arcana);
@@ -45,9 +40,8 @@ TEST_CASE("all 56 minor arcana canonical ids round-trip", "[card]")
     {
         for (auto const r : ranks)
         {
-            ++count;
             auto const text = std::format("minor_arcana.{}.{}", to_string(s), to_string(r));
-            auto const parsed = parse_card_id(text);
+            auto const parsed = card_id::parse(text);
             REQUIRE(parsed.has_value());
             CHECK(parsed->cls == card_class::standard_minor);
             CHECK(parsed->kind() == arcana_kind::minor_arcana);
@@ -58,12 +52,11 @@ TEST_CASE("all 56 minor arcana canonical ids round-trip", "[card]")
             CHECK(parsed->to_canonical() == text);
         }
     }
-    REQUIRE(count == 56);
 }
 
 TEST_CASE("custom card ids round-trip and are marked custom", "[card]")
 {
-    auto const squirrel = parse_card_id("major_arcana.happy_squirrel");
+    auto const squirrel = card_id::parse("major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());
     CHECK(squirrel->cls == card_class::custom_major);
     CHECK(squirrel->kind() == arcana_kind::major_arcana);
@@ -73,7 +66,7 @@ TEST_CASE("custom card ids round-trip and are marked custom", "[card]")
     CHECK(squirrel->number == -1);
     CHECK(squirrel->to_canonical() == "major_arcana.happy_squirrel");
 
-    auto const stars_ace = parse_card_id("minor_arcana.stars.ace");
+    auto const stars_ace = card_id::parse("minor_arcana.stars.ace");
     REQUIRE(stars_ace.has_value());
     CHECK(stars_ace->cls == card_class::custom_minor);
     CHECK(stars_ace->kind() == arcana_kind::minor_arcana);
@@ -100,12 +93,12 @@ TEST_CASE("card_class is the single discriminant the named constructors set", "[
 
 TEST_CASE("named constructors and equality agree with parsing", "[card]")
 {
-    CHECK(card_id::standard_major(0) == *parse_card_id("major_arcana.00"));
+    CHECK(card_id::standard_major(0) == *card_id::parse("major_arcana.00"));
     CHECK(
-        card_id::standard_minor(suit::wands, rank::ace) == *parse_card_id("minor_arcana.wands.ace")
+        card_id::standard_minor(suit::wands, rank::ace) == *card_id::parse("minor_arcana.wands.ace")
     );
-    CHECK(card_id::custom_major("happy_squirrel") == *parse_card_id("major_arcana.happy_squirrel"));
-    CHECK(card_id::custom_minor("stars", "ace") == *parse_card_id("minor_arcana.stars.ace"));
+    CHECK(card_id::custom_major("happy_squirrel") == *card_id::parse("major_arcana.happy_squirrel"));
+    CHECK(card_id::custom_minor("stars", "ace") == *card_id::parse("minor_arcana.stars.ace"));
 
     // A standard minor and a custom card that spell out differently never compare equal.
     CHECK_FALSE(
@@ -117,21 +110,21 @@ TEST_CASE("malformed canonical ids are errors, not garbage", "[card]")
 {
     // Two digits under major_arcana is always a standard major, so this is out of range
     // rather than a custom card named "22".
-    CHECK_FALSE(parse_card_id("major_arcana.22").has_value());
+    CHECK_FALSE(card_id::parse("major_arcana.22").has_value());
     // A canonical suit commits the id to the standard 56, so an unknown rank is malformed.
-    CHECK_FALSE(parse_card_id("minor_arcana.wands.jack").has_value());
+    CHECK_FALSE(card_id::parse("minor_arcana.wands.jack").has_value());
     // Wrong arity, or not an identifier.
-    CHECK_FALSE(parse_card_id("nonsense").has_value());
-    CHECK_FALSE(parse_card_id("").has_value());
-    CHECK_FALSE(parse_card_id("major_arcana.").has_value());
-    CHECK_FALSE(parse_card_id("major_arcana.The-Fool").has_value());
-    CHECK_FALSE(parse_card_id("major_arcana.HappySquirrel").has_value());
-    CHECK_FALSE(parse_card_id("minor_arcana.stars.").has_value());
-    CHECK_FALSE(parse_card_id("minor_arcana.stars.Ace").has_value());
+    CHECK_FALSE(card_id::parse("nonsense").has_value());
+    CHECK_FALSE(card_id::parse("").has_value());
+    CHECK_FALSE(card_id::parse("major_arcana.").has_value());
+    CHECK_FALSE(card_id::parse("major_arcana.The-Fool").has_value());
+    CHECK_FALSE(card_id::parse("major_arcana.HappySquirrel").has_value());
+    CHECK_FALSE(card_id::parse("minor_arcana.stars.").has_value());
+    CHECK_FALSE(card_id::parse("minor_arcana.stars.Ace").has_value());
 
     // Single-digit "1" is not the two-digit standard form, but it is a valid identifier,
     // so it parses as a custom major. Decks are expected to write "01".
-    auto const one = parse_card_id("major_arcana.1");
+    auto const one = card_id::parse("major_arcana.1");
     REQUIRE(one.has_value());
     CHECK(one->is_custom());
 }

@@ -7,9 +7,7 @@ set -euo pipefail
 image="${LIBARCANA_IMAGE:-libarcana-builder}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# this is a file that `just` creates from the recipe body and passes to us. It lands under
-# $XDG_RUNTIME_DIR labelled user_tmp_t, which container_t may not open, so it is mounted
-# `z` below -- without that every [script] recipe dies on an SELinux denial under Enforcing.
+# this is a file that `just` creates from the recipe body and passes to us.
 script="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 
 # forward a tty when there is one so we get color and stuff

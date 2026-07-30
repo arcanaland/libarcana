@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
+#include <string_view>
 
 using namespace arcana;
 
@@ -20,9 +22,20 @@ std::string fixture(std::string const& name)
     return std::string(FIXTURES_DIR) + "/" + name;
 }
 
+// The two-step lookup a consumer holding a string makes: parse, then ask the deck. Most
+// cases below only care whether the deck has the card, so this collapses both failures
+// into nullopt. The case that pins them apart spells both steps out.
+std::optional<card> find(deck const& d, std::string_view canonical_id)
+{
+    auto const id = card_id::parse(canonical_id);
+    if (!id)
+        return std::nullopt;
+    return d.find_card(*id);
+}
+
 bool has_card(deck const& d, std::string const& canonical_id)
 {
-    return d.find_card(canonical_id).has_value();
+    return find(d, canonical_id).has_value();
 }
 
 std::string reference_deck(std::string const& name)
@@ -65,31 +78,32 @@ TEST_CASE("excluded cards are omitted from enumeration but reason is queryable",
     CHECK_FALSE(d.exclusion_reason("major_arcana.00").has_value());
 }
 
-TEST_CASE("find_card tells a malformed id apart from one the deck lacks", "[deck]")
+TEST_CASE("parse and find_card split a bad id from one the deck lacks", "[deck]")
 {
     auto const result = load_deck(fixture("excluded-deck"));
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    // What the expected<> on this overload buys: a CLI reporting a bad argument needs
-    // "that is not a card id" and "this deck has not got it" to read differently, and
-    // exclusion_reason refines the second into "the deck dropped it on purpose".
-    auto const malformed = d.find_card("minor_arcana.wands.jack");
+    // What the split buys: a CLI reporting a bad argument needs "that is not a card id"
+    // and "this deck has not got it" to read differently, and exclusion_reason refines the
+    // second into "the deck dropped it on purpose". The first failure is the parse's, the
+    // second the deck's, so neither call has to report both.
+    auto const malformed = card_id::parse("minor_arcana.wands.jack");
     REQUIRE_FALSE(malformed.has_value());
     CHECK(malformed.error().code == error_code::parse_error);
 
-    auto const excluded = d.find_card("minor_arcana.pentacles.page");
-    REQUIRE_FALSE(excluded.has_value());
-    CHECK(excluded.error().code == error_code::not_found);
+    auto const excluded = card_id::parse("minor_arcana.pentacles.page");
+    REQUIRE(excluded.has_value());
+    CHECK_FALSE(d.find_card(*excluded).has_value());
     CHECK(d.exclusion_reason("minor_arcana.pentacles.page").has_value());
 
     // Well-formed, absent, and not excluded: a custom card this deck never declared.
-    auto const absent = d.find_card("major_arcana.happy_squirrel");
-    REQUIRE_FALSE(absent.has_value());
-    CHECK(absent.error().code == error_code::not_found);
+    auto const absent = card_id::parse("major_arcana.happy_squirrel");
+    REQUIRE(absent.has_value());
+    CHECK_FALSE(d.find_card(*absent).has_value());
     CHECK_FALSE(d.exclusion_reason("major_arcana.happy_squirrel").has_value());
 
-    // A card_id in hand cannot be malformed, which is why that overload stays an optional.
+    // A card_id in hand cannot be malformed, which is why find_card is a plain optional.
     CHECK_FALSE(d.find_card(card_id::standard_minor(suit::pentacles, rank::page)).has_value());
 }
 
@@ -101,26 +115,27 @@ TEST_CASE("custom cards and custom suits are enumerated alongside the standard 7
 
     CHECK(d.cards.size() == 78 + 3);
 
-    auto const squirrel = d.find_card("major_arcana.happy_squirrel");
+    auto const squirrel = find(d, "major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());
     CHECK(squirrel->display_name == "The Happy Squirrel");
     CHECK(squirrel->alt_text.value_or("") == "A cheerful squirrel gathering acorns.");
     CHECK(squirrel->id.is_custom());
     CHECK(squirrel->id.custom_id == "happy_squirrel");
 
-    auto const stars_ace = d.find_card("minor_arcana.stars.ace");
+    auto const stars_ace = find(d, "minor_arcana.stars.ace");
     REQUIRE(stars_ace.has_value());
     CHECK(stars_ace->display_name == "Ace of Stars");
     CHECK(stars_ace->id.suit_key == "stars");
     CHECK(stars_ace->id.custom_id == "ace");
 
-    CHECK(d.find_card("minor_arcana.stars.two").has_value());
+    CHECK(find(d, "minor_arcana.stars.two").has_value());
 
-    // Every card's canonical_id finds that same card again. Goes through the public lookup
-    // rather than the private parser, which is the only thing find_card(str) adds to it.
+    // Every card's canonical_id parses back to that same card: to_canonical and
+    // card_id::parse are inverses over everything a real deck enumerates, custom cards
+    // and custom suits included.
     for (auto const& c : d.cards)
     {
-        auto const found = d.find_card(c.canonical_id());
+        auto const found = find(d, c.canonical_id());
         REQUIRE(found.has_value());
         CHECK(found->id == c.id);
     }
@@ -165,7 +180,7 @@ TEST_CASE("file-location-based defaults: images map to cards with no deck.toml e
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    auto const fool = d.find_card("major_arcana.00");
+    auto const fool = find(d, "major_arcana.00");
     REQUIRE(fool.has_value());
     REQUIRE_FALSE(fool->images.empty());
     CHECK(fool->images.front().variant_name == "h1200");
@@ -173,7 +188,7 @@ TEST_CASE("file-location-based defaults: images map to cards with no deck.toml e
     CHECK(fool->images.front().kind == image_kind::raster);
     CHECK_FALSE(fool->images.front().lines.has_value());
 
-    auto const ace_of_wands = d.find_card("minor_arcana.wands.ace");
+    auto const ace_of_wands = find(d, "minor_arcana.wands.ace");
     REQUIRE(ace_of_wands.has_value());
     REQUIRE_FALSE(ace_of_wands->images.empty());
     CHECK(ace_of_wands->images.front().variant_name == "h1200");
@@ -185,19 +200,19 @@ TEST_CASE("cards carry display-ready suit and rank, resolved through aliases", "
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    auto const page_of_wands = d.find_card("minor_arcana.wands.page");
+    auto const page_of_wands = find(d, "minor_arcana.wands.page");
     REQUIRE(page_of_wands.has_value());
     CHECK(page_of_wands->display_rank == "Princess");
     CHECK(page_of_wands->display_suit == "Staves");
 
     // A rank with no alias falls back to its canonical form
-    auto const king_of_cups = d.find_card("minor_arcana.cups.king");
+    auto const king_of_cups = find(d, "minor_arcana.cups.king");
     REQUIRE(king_of_cups.has_value());
     CHECK(king_of_cups->display_rank == "King");
     CHECK(king_of_cups->display_suit == "Cups");
 
     // Majors have no suit or rank
-    auto const fool = d.find_card("major_arcana.00");
+    auto const fool = find(d, "major_arcana.00");
     REQUIRE(fool.has_value());
     CHECK(fool->display_suit.empty());
     CHECK(fool->display_rank.empty());
@@ -212,27 +227,27 @@ TEST_CASE("[remap_major_arcana] moves display positions, not canonical ids", "[d
     auto const& d = *result;
 
     // The fixture puts justice at 8 and strength at 11, swapping the canonical pair.
-    auto const strength = d.find_card("major_arcana.08");
+    auto const strength = find(d, "major_arcana.08");
     REQUIRE(strength.has_value());
     CHECK(strength->display_name == "Strength");
     REQUIRE(strength->number.has_value());
     CHECK(*strength->number == 11);
 
-    auto const justice = d.find_card("major_arcana.11");
+    auto const justice = find(d, "major_arcana.11");
     REQUIRE(justice.has_value());
     CHECK(justice->display_name == "Justice");
     REQUIRE(justice->number.has_value());
     CHECK(*justice->number == 8);
 
     // Cards the remap does not name keep their canonical position.
-    auto const tower = d.find_card("major_arcana.16");
+    auto const tower = find(d, "major_arcana.16");
     REQUIRE(tower.has_value());
     CHECK(*tower->number == 16);
 
     // A deck with no [remap_major_arcana] is the identity case.
     auto const plain = load_deck(fixture("custom-suit-deck"));
     REQUIRE(plain.has_value());
-    CHECK(*plain->find_card("major_arcana.08")->number == 8);
+    CHECK(*find(*plain, "major_arcana.08")->number == 8);
 }
 
 TEST_CASE("custom cards get display strings and a declared position", "[deck]")
@@ -241,12 +256,12 @@ TEST_CASE("custom cards get display strings and a declared position", "[deck]")
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    auto const stars_ace = d.find_card("minor_arcana.stars.ace");
+    auto const stars_ace = find(d, "minor_arcana.stars.ace");
     REQUIRE(stars_ace.has_value());
     CHECK(stars_ace->display_suit == "Stars");  // from [custom_cards.minor_arcana.stars].name
     CHECK(stars_ace->display_rank == "Ace");
 
-    auto const squirrel = d.find_card("major_arcana.happy_squirrel");
+    auto const squirrel = find(d, "major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());
     REQUIRE(squirrel->number.has_value());
     CHECK(*squirrel->number == 22);  // the declared `position`
@@ -422,7 +437,7 @@ TEST_CASE("ascii-tarot resolves ansi32 image variants", "[deck][reference-decks]
     auto const result = load_deck(reference_deck("ascii-tarot"));
     REQUIRE(result.has_value());
 
-    auto const fool = result->find_card("major_arcana.00");
+    auto const fool = find(*result, "major_arcana.00");
     REQUIRE(fool.has_value());
     auto const ansi =
         std::ranges::find(fool->images, std::string("ansi32"), &image_variant::variant_name);
@@ -444,7 +459,7 @@ TEST_CASE("rider-waite-smith serves both a raster and an ANSI query", "[deck][re
     auto const result = load_deck(reference_deck("rider-waite-smith"));
     REQUIRE(result.has_value());
 
-    auto const fool = result->find_card("major_arcana.00");
+    auto const fool = find(*result, "major_arcana.00");
     REQUIRE(fool.has_value());
 
     auto const raster = fool->best_raster_for_height(1000);
@@ -466,7 +481,7 @@ TEST_CASE("aquatic-tarot resolves raster heights", "[deck][reference-decks]")
     auto const result = load_deck(reference_deck("aquatic-tarot"));
     REQUIRE(result.has_value());
 
-    auto const fool = result->find_card("major_arcana.00");
+    auto const fool = find(*result, "major_arcana.00");
     REQUIRE(fool.has_value());
     CHECK_FALSE(fool->images.empty());
 

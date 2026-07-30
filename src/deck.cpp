@@ -3,8 +3,6 @@
 
 #include <arcana/deck.hpp>
 
-#include "card_internal.hpp"
-
 #include <toml++/toml.hpp>
 
 #include <algorithm>
@@ -780,24 +778,6 @@ std::optional<card> deck::find_card(card_id const& id) const
         return std::nullopt;
 
     return *it;
-}
-
-std::expected<card, error> deck::find_card(std::string_view canonical_id) const
-{
-    auto const parsed = detail::parse_card_id(canonical_id);
-    if (!parsed)
-        return std::unexpected(parsed.error());
-
-    auto found = find_card(*parsed);
-    if (!found)
-        return std::unexpected(
-            error{
-                .code = error_code::not_found,
-                .message = std::format("deck defines no card '{}'", canonical_id)
-            }
-        );
-
-    return *std::move(found);
 }
 
 std::vector<suit_info> deck::suits() const

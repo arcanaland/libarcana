@@ -3,7 +3,10 @@
 
 #pragma once
 
+#include <arcana/error.hpp>
+
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -93,6 +96,11 @@ struct card_id
     // e.g. "major_arcana.00" or "minor_arcana.stars.ace"
     [[nodiscard]] std::string to_canonical() const;
 
+    // The inverse of to_canonical()
+    //
+    // Returns parse_error when the string is not a canonical card id
+    static std::expected<card_id, error> parse(std::string_view canonical_id);
+
     friend bool operator==(card_id const&, card_id const&) = default;
 };
 
@@ -128,11 +136,10 @@ struct card
     std::string display_rank;
 
     // Major arcana only
-    //
     // The display position, might differ from id.number due to remappings
-    //
     // nullopt for minors and position-less custom majors
     std::optional<int> number;
+
     std::optional<std::string> alt_text;
     std::vector<image_variant> images;
 
@@ -140,12 +147,10 @@ struct card
     [[nodiscard]] std::string canonical_id() const;
 
     // The raster variant closest to target_height in pixels.
-    //
     // Prefers the smallest variant at or above the target
     [[nodiscard]] std::optional<image_variant> best_raster_for_height(int target_height) const;
 
     // The ANSI variant closest to target_lines in terminal lines.
-    //
     // Prefers the largest variant at or below the target
     [[nodiscard]] std::optional<image_variant> best_ansi_for_lines(int target_lines) const;
 
