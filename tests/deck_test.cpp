@@ -183,7 +183,7 @@ TEST_CASE("file-location-based defaults: images map to cards with no deck.toml e
     auto const fool = find(d, "major_arcana.00");
     REQUIRE(fool.has_value());
     REQUIRE_FALSE(fool->images.empty());
-    CHECK(fool->images.front().variant_name == "h1200");
+    CHECK(fool->images.front().source_dir == "h1200");
     CHECK(fool->images.front().height == 1200);
     CHECK(fool->images.front().kind == image_kind::raster);
     CHECK_FALSE(fool->images.front().lines.has_value());
@@ -191,7 +191,7 @@ TEST_CASE("file-location-based defaults: images map to cards with no deck.toml e
     auto const ace_of_wands = find(d, "minor_arcana.wands.ace");
     REQUIRE(ace_of_wands.has_value());
     REQUIRE_FALSE(ace_of_wands->images.empty());
-    CHECK(ace_of_wands->images.front().variant_name == "h1200");
+    CHECK(ace_of_wands->images.front().source_dir == "h1200");
 }
 
 TEST_CASE("cards carry display-ready suit and rank, resolved through aliases", "[deck]")
@@ -432,7 +432,7 @@ TEST_CASE("rider-waite-smith enumerates all 78 standard cards", "[deck][referenc
     CHECK(result->cards.size() == 78);
 }
 
-TEST_CASE("ascii-tarot resolves ansi32 image variants", "[deck][reference-decks]")
+TEST_CASE("ascii-tarot resolves ansi32 card images", "[deck][reference-decks]")
 {
     auto const result = load_deck(reference_deck("ascii-tarot"));
     REQUIRE(result.has_value());
@@ -440,7 +440,7 @@ TEST_CASE("ascii-tarot resolves ansi32 image variants", "[deck][reference-decks]
     auto const fool = find(*result, "major_arcana.00");
     REQUIRE(fool.has_value());
     auto const ansi =
-        std::ranges::find(fool->images, std::string("ansi32"), &image_variant::variant_name);
+        std::ranges::find(fool->images, std::string("ansi32"), &card_image::source_dir);
     REQUIRE(ansi != fool->images.end());
     CHECK(ansi->kind == image_kind::ansi);
     CHECK(ansi->lines == 32);  // terminal lines, not pixels and not a colour depth
@@ -490,5 +490,5 @@ TEST_CASE("aquatic-tarot resolves raster heights", "[deck][reference-decks]")
     auto const raster = fool->best_raster_for_height(1200);
     REQUIRE(raster.has_value());
     CHECK(raster->height == 800);
-    CHECK(raster->variant_name == "h800");
+    CHECK(raster->source_dir == "h800");
 }

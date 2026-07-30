@@ -132,36 +132,36 @@ TEST_CASE("malformed canonical ids are errors, not garbage", "[card]")
 namespace
 {
 
-image_variant raster(int height)
+card_image raster(int height)
 {
     return {
-        .variant_name = std::format("h{}", height),
+        .source_dir = std::format("h{}", height),
         .path = std::format("h{}/major_arcana/00.png", height),
         .kind = image_kind::raster,
         .height = height,
     };
 }
 
-image_variant ansi(int lines)
+card_image ansi(int lines)
 {
     return {
-        .variant_name = std::format("ansi{}", lines),
+        .source_dir = std::format("ansi{}", lines),
         .path = std::format("ansi{}/major_arcana/00.ansi", lines),
         .kind = image_kind::ansi,
         .lines = lines,
     };
 }
 
-image_variant scalable()
+card_image scalable()
 {
     return {
-        .variant_name = "scalable",
+        .source_dir = "scalable",
         .path = "scalable/major_arcana/00.svg",
         .kind = image_kind::scalable,
     };
 }
 
-card card_with(std::vector<image_variant> images)
+card card_with(std::vector<card_image> images)
 {
     card c;
     c.id = card_id::standard_major(0);
@@ -178,7 +178,7 @@ TEST_CASE("best_raster_for_height picks the smallest that meets the target", "[c
     auto const best = c.best_raster_for_height(1000);
     REQUIRE(best.has_value());
     CHECK(best->height == 1200);
-    CHECK(best->variant_name == "h1200");
+    CHECK(best->source_dir == "h1200");
 
     // Exact matches win outright, and a target below everything takes the smallest.
     CHECK(c.best_raster_for_height(2400)->height == 2400);
@@ -204,7 +204,7 @@ TEST_CASE("best_ansi_for_lines prefers the largest that fits", "[card]")
     auto const best = c.best_ansi_for_lines(40);
     REQUIRE(best.has_value());
     CHECK(best->lines == 32);
-    CHECK(best->variant_name == "ansi32");
+    CHECK(best->source_dir == "ansi32");
 
     CHECK(c.best_ansi_for_lines(64)->lines == 64);
 
@@ -229,7 +229,7 @@ TEST_CASE("the three families never answer for each other", "[card]")
     CHECK_FALSE(scalable_only.best_raster_for_height(1200).has_value());
     CHECK_FALSE(scalable_only.best_ansi_for_lines(32).has_value());
     REQUIRE(scalable_only.scalable_image().has_value());
-    CHECK(scalable_only.scalable_image()->variant_name == "scalable");
+    CHECK(scalable_only.scalable_image()->source_dir == "scalable");
 
     // A card with no images at all answers nullopt three times rather than misreporting.
     CHECK_FALSE(card{}.best_raster_for_height(1200).has_value());

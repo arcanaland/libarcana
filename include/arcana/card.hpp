@@ -112,10 +112,10 @@ enum class image_kind : std::uint8_t
 };
 
 // One resolved image on disk for a card
-struct image_variant
+struct card_image
 {
     // The directory (e.g., h1200, ansi32)
-    std::string variant_name;
+    std::string source_dir;
 
     std::filesystem::path path;
 
@@ -141,21 +141,21 @@ struct card
     std::optional<int> number;
 
     std::optional<std::string> alt_text;
-    std::vector<image_variant> images;
+    std::vector<card_image> images;
 
     // Shorthand for id.to_canonical()
     [[nodiscard]] std::string canonical_id() const;
 
-    // The raster variant closest to target_height in pixels.
-    // Prefers the smallest variant at or above the target
-    [[nodiscard]] std::optional<image_variant> best_raster_for_height(int target_height) const;
+    // The raster image closest to target_height in pixels.
+    // Prefers the smallest image at or above the target
+    [[nodiscard]] std::optional<card_image> best_raster_for_height(int target_height) const;
 
-    // The ANSI variant closest to target_lines in terminal lines.
-    // Prefers the largest variant at or below the target
-    [[nodiscard]] std::optional<image_variant> best_ansi_for_lines(int target_lines) const;
+    // The ANSI image closest to target_lines in terminal lines.
+    // Prefers the largest image at or below the target
+    [[nodiscard]] std::optional<card_image> best_ansi_for_lines(int target_lines) const;
 
-    // The scalable image variant, if it exists
-    [[nodiscard]] std::optional<image_variant> scalable_image() const;
+    // The scalable image, if it exists
+    [[nodiscard]] std::optional<card_image> scalable_image() const;
 };
 
 }  // namespace arcana

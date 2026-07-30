@@ -182,9 +182,7 @@ struct deck
 
     // Find a card given an id
     //
-    // nullopt when this deck does not define it; follow up with exclusion_reason to say
-    // whether the deck excluded it on purpose. Parse a string id with card_id::parse,
-    // which reports a malformed id separately from one this deck simply lacks.
+    // nullopt when this deck does not define it
     [[nodiscard]] std::optional<card> find_card(card_id const& id) const;
 
     // nullopt for an empty deck

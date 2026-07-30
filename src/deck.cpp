@@ -21,7 +21,6 @@ namespace arcana
 namespace detail
 {
 
-// The retained deck.toml. Defined here so toml++ never reaches include/arcana.
 struct deck_document
 {
     toml::table table;
@@ -45,14 +44,13 @@ constexpr std::array<std::string_view, 22> default_major_arcana_names{
 std::string capitalize(std::string_view word)
 {
     std::string result{word};
+
     if (!result.empty())
         result[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(result[0])));
+
     return result;
 }
 
-// The display fallback for a spec-form key with no alias behind it: "cups" -> "Cups",
-// "shooting_star" -> "Shooting Star". A key is `[a-z0-9_]+` by construction, so word
-// breaks are underscores and nothing else.
 std::string titlecase_key(std::string_view key)
 {
     std::string result;
@@ -81,9 +79,8 @@ std::string default_minor_arcana_name(suit s, rank r)
     return std::format("{} of {}", capitalize(to_string(r)), capitalize(to_string(s)));
 }
 
-// Folds a major arcana name to a comparable key: lower_case, underscores for spaces, and
-// no leading "the_", so `[remap_major_arcana]` matches whether the deck writes "star",
-// "The Star" or "the_star".
+// Scrub a major arcana string
+// "The Star" => star
 std::string fold_major_arcana_name(std::string_view name)
 {
     std::string result;
@@ -102,12 +99,11 @@ std::string fold_major_arcana_name(std::string_view name)
     return result;
 }
 
-// --- toml++ accessor helpers, confined to this file -------------------------------
-
 std::optional<std::string> get_string(toml::node_view<toml::node const> const& node)
 {
     if (auto value = node.value<std::string>())
         return value;
+
     return std::nullopt;
 }
 
@@ -128,11 +124,7 @@ std::vector<std::string> get_string_array(toml::node_view<toml::node const> cons
     return result;
 }
 
-// h750/h1200/h2400 are the spec's recommended resolutions, not an exhaustive list --
-// "Raster folders are named h<height>/" permits any height. ansi<lines>/ is similarly
-// parameterised ("32 lines recommended"), though ansi32 is the only one seen in practice
-// so far. Discovering roots from the deck directory itself keeps this open-ended rather
-// than hardcoding the spec's examples as if they were the whole set.
+// "Raster folders are named h<height>/"
 bool looks_like_raster_root(std::string_view name)
 {
     return name.size() > 1 && name.front() == 'h' &&
@@ -141,6 +133,7 @@ bool looks_like_raster_root(std::string_view name)
            );
 }
 
+// "Files should be stored in the `ansi<lines>/` directory"
 bool looks_like_ansi_root(std::string_view name)
 {
     return name.starts_with("ansi") && name.size() > 4 &&
@@ -149,38 +142,35 @@ bool looks_like_ansi_root(std::string_view name)
            );
 }
 
-// Infers the variant name ("scalable", "ansi32", "h750", ...), its family, and that
-// family's size parameter from a deck-relative path such as "scalable/major_arcana/00.svg".
-// The same predicates that discovered the root decide the family, so a directory can never
-// be scanned as one kind and then recorded as another.
-image_variant variant_from_relative_path(fs::path const& root, std::string_view relative_path)
+// Infers a card image from a path
+card_image card_image_from_relative_path(fs::path const& root, std::string_view relative_path)
 {
-    image_variant result;
+    card_image result;
     result.path = root / relative_path;
 
     auto const slash = relative_path.find('/');
-    result.variant_name = std::string(relative_path.substr(0, slash));
+    result.source_dir = std::string(relative_path.substr(0, slash));
 
-    if (looks_like_raster_root(result.variant_name))
+    if (looks_like_raster_root(result.source_dir))
     {
         result.kind = image_kind::raster;
-        result.height = std::stoi(result.variant_name.substr(1));
+        result.height = std::stoi(result.source_dir.substr(1));
     }
-    else if (looks_like_ansi_root(result.variant_name))
+    else if (looks_like_ansi_root(result.source_dir))
     {
         result.kind = image_kind::ansi;
-        result.lines = std::stoi(result.variant_name.substr(4));
+        result.lines = std::stoi(result.source_dir.substr(4));
     }
     else
     {
-        // discover_variant_roots only ever offers the three families, so this is `scalable`.
+        // TODO: should this be the fallback?
         result.kind = image_kind::scalable;
     }
 
     return result;
 }
 
-std::vector<std::string> discover_variant_roots(fs::path const& deck_root)
+std::vector<std::string> discover_image_roots(fs::path const& deck_root)
 {
     std::vector<std::string> result;
     std::error_code ec;
@@ -192,6 +182,7 @@ std::vector<std::string> discover_variant_roots(fs::path const& deck_root)
     {
         if (!entry.is_directory())
             continue;
+
         auto const name = entry.path().filename().string();
         if (looks_like_raster_root(name) || looks_like_ansi_root(name))
             result.push_back(name);
@@ -200,17 +191,17 @@ std::vector<std::string> discover_variant_roots(fs::path const& deck_root)
     return result;
 }
 
-std::vector<image_variant> scan_variants_for(
-    fs::path const& deck_root, std::vector<std::string> const& variant_roots,
+std::vector<card_image> scan_images_for(
+    fs::path const& deck_root, std::vector<std::string> const& image_roots,
     fs::path const& relative_stem_dir, std::string_view stem
 )
 {
-    std::vector<image_variant> result;
+    std::vector<card_image> result;
     std::error_code ec;
 
-    for (auto const& variant_root : variant_roots)
+    for (auto const& image_root : image_roots)
     {
-        fs::path const dir = deck_root / variant_root / relative_stem_dir;
+        fs::path const dir = deck_root / image_root / relative_stem_dir;
         if (!fs::is_directory(dir, ec))
             continue;
 
@@ -221,8 +212,9 @@ std::vector<image_variant> scan_variants_for(
             if (entry.path().stem().string() == stem)
             {
                 auto const relative =
-                    fs::path(variant_root) / relative_stem_dir / entry.path().filename();
-                result.push_back(variant_from_relative_path(deck_root, relative.generic_string()));
+                    fs::path(image_root) / relative_stem_dir / entry.path().filename();
+                result.push_back(card_image_from_relative_path(deck_root, relative.generic_string())
+                );
                 break;
             }
         }
@@ -301,10 +293,13 @@ std::vector<card_back_variant> parse_card_backs(
                 auto const* t = value.as_table();
                 if (t == nullptr)
                     continue;
+
                 auto image_ref = get_string_or((*t)["image"]);
                 fs::path image;
+
                 if (!image_ref.empty())
                     image = deck_root / image_ref;
+
                 result.push_back(
                     card_back_variant{
                         .id = std::string(key.str()),
@@ -320,9 +315,7 @@ std::vector<card_back_variant> parse_card_backs(
         }
     }
 
-    // Card backs present on disk but not declared. Deck spec v1.0 describes card_backs/ as
-    // a plain directory of images, and decks in the wild ship backs they never name in
-    // deck.toml, so a consumer that only reads [card_backs.variants] misses them.
+    // Card backs present on disk but not declared
     std::error_code ec;
     fs::path const backs_dir = deck_root / "card_backs";
     if (fs::is_directory(backs_dir, ec))
@@ -353,7 +346,6 @@ std::vector<card_back_variant> parse_card_backs(
             );
         }
 
-        // directory_iterator has no ordering guarantee; sorting keeps a load reproducible.
         std::ranges::sort(discovered, {}, &card_back_variant::id);
         result.insert(result.end(), discovered.begin(), discovered.end());
     }
@@ -391,21 +383,21 @@ std::map<int, std::string> parse_major_arcana_remap(toml::table const& root)
             int position = 0;
             auto const [ptr, ec] =
                 std::from_chars(key_text.data(), key_text.data() + key_text.size(), position);
+
             if (ec == std::errc{} && ptr == key_text.data() + key_text.size())
                 result.emplace(position, *s);
+            // TODO: this should emit a warning
             // else: unparseable key, skipped permissively.
         }
     }
     return result;
 }
 
-// A deck-relative image reference resolved against the deck root, with the raw text kept.
-// Empty in, empty out: an absent [custom_cards] image must stay distinguishable from one
-// that resolves to the deck root itself.
 void set_image(custom_card_def& def, fs::path const& deck_root, std::string image_ref)
 {
     if (!image_ref.empty())
         def.image = deck_root / image_ref;
+
     def.image_ref = std::move(image_ref);
 }
 
@@ -628,7 +620,7 @@ std::expected<deck, error> load_deck(
     result.variants = parse_variants(document);
 
     auto const names = load_names_file(root, language);
-    auto const variant_roots = discover_variant_roots(root);
+    auto const image_roots = discover_image_roots(root);
 
     auto const is_excluded = [&result](std::string const& canonical_id)
     {
@@ -661,7 +653,7 @@ std::expected<deck, error> load_deck(
         auto const remapped = remapped_positions.find(fold_major_arcana_name(canonical_name));
         c.number = remapped == remapped_positions.end() ? i : remapped->second;
         c.alt_text = lookup_name(names, "alt_text", std::format("{:02d}", i));
-        c.images = scan_variants_for(root, variant_roots, "major_arcana", std::format("{:02d}", i));
+        c.images = scan_images_for(root, image_roots, "major_arcana", std::format("{:02d}", i));
         result.cards.push_back(std::move(c));
     }
 
@@ -686,8 +678,8 @@ std::expected<deck, error> load_deck(
             c.display_suit = result.display_suit_name(s);
             c.display_rank = result.display_rank_name(r);
             c.alt_text = lookup_minor_name(names, "alt_text", to_string(s), to_string(r));
-            c.images = scan_variants_for(
-                root, variant_roots, fs::path("minor_arcana") / std::string(to_string(s)),
+            c.images = scan_images_for(
+                root, image_roots, fs::path("minor_arcana") / std::string(to_string(s)),
                 to_string(r)
             );
             result.cards.push_back(std::move(c));
@@ -705,7 +697,7 @@ std::expected<deck, error> load_deck(
         if (c.alt_text->empty())
             c.alt_text = std::nullopt;
         if (!def.image_ref.empty())
-            c.images.push_back(variant_from_relative_path(root, def.image_ref));
+            c.images.push_back(card_image_from_relative_path(root, def.image_ref));
         result.cards.push_back(std::move(c));
     }
 
@@ -725,7 +717,7 @@ std::expected<deck, error> load_deck(
             if (c.alt_text->empty())
                 c.alt_text = std::nullopt;
             if (!def.image_ref.empty())
-                c.images.push_back(variant_from_relative_path(root, def.image_ref));
+                c.images.push_back(card_image_from_relative_path(root, def.image_ref));
             result.cards.push_back(std::move(c));
         }
     }
