@@ -4,60 +4,56 @@
 find_package(Catch2 3 REQUIRED)
 include(Catch)
 
-function(arcana_add_test name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS" ${ARGN})
-
-    add_executable(${name} ${ARG_SOURCES})
-    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS})
-
-    catch_discover_tests(${name})
-endfunction()
-
-arcana_add_test(version_test SOURCES version_test.cpp LIBS arcana::arcana)
-arcana_add_test(paths_test SOURCES paths_test.cpp LIBS arcana::arcana)
-arcana_add_test(card_test SOURCES card_test.cpp LIBS arcana::arcana)
-arcana_add_test(deck_test SOURCES deck_test.cpp LIBS arcana::arcana)
-arcana_add_test(library_test SOURCES library_test.cpp LIBS arcana::arcana)
-
-target_compile_definitions(deck_test PRIVATE
-    FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
-target_compile_definitions(library_test PRIVATE
-    FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
-
-# Real decks to parse, as opposed to the hand-written fixtures above. They're a separate
-# repo -- too large to vendor, and aquatic-tarot is CC BY-NC-SA 3.0, so it must never end
-# up in an install or a package. FetchContent keeps them in the build tree, which
-# satisfies both, and pins the commit so a deck-side change can't turn this repo red on
-# its own. Bump ARCANA_REFERENCE_DECKS_TAG deliberately.
 option(ARCANA_FETCH_REFERENCE_DECKS "Download the reference decks used by deck_test" ON)
-set(ARCANA_REFERENCE_DECKS_TAG 6ee23f5ddb7cec005bf7d741a1929adcdd9c1477 CACHE STRING
+
+set(ARCANA_REFERENCE_DECKS_TAG 
+    6ee23f5ddb7cec005bf7d741a1929adcdd9c1477 CACHE STRING
     "Commit of arcanaland/reference-decks to test against")
+
 set(ARCANA_REFERENCE_DECKS_DIR "" CACHE PATH
-    "Use an existing reference-decks checkout instead of downloading one")
+    "Use an local reference-decks checkout instead of downloading one")
 
 if(ARCANA_REFERENCE_DECKS_DIR)
     set(arcana_reference_decks_dir ${ARCANA_REFERENCE_DECKS_DIR})
 elseif(ARCANA_FETCH_REFERENCE_DECKS)
     include(FetchContent)
+
     FetchContent_Declare(reference_decks
         GIT_REPOSITORY https://github.com/arcanaland/reference-decks.git
-        # A full SHA rather than a tarball URL_HASH: git objects are content-addressed,
-        # so this pins just as tightly without depending on GitHub's archive bytes
-        # staying stable. Shallow is incompatible with fetching an arbitrary commit.
         GIT_TAG ${ARCANA_REFERENCE_DECKS_TAG}
+        # shallow is needed for a commit?
         GIT_SHALLOW FALSE
-        # Decks are data, not a project -- point SOURCE_SUBDIR at a directory with no
-        # CMakeLists.txt so MakeAvailable populates without trying add_subdirectory.
         SOURCE_SUBDIR no-cmake-here)
     FetchContent_MakeAvailable(reference_decks)
     set(arcana_reference_decks_dir ${reference_decks_SOURCE_DIR})
 else()
-    # Explicitly opted out, so deck_test's reference-deck cases SKIP.
     set(arcana_reference_decks_dir "")
 endif()
 
-target_compile_definitions(deck_test PRIVATE
+function(arcana_add_test name)
+    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;DEFINES;INCLUDES" ${ARGN})
+
+    if(NOT ARG_SOURCES)
+        set(ARG_SOURCES ${name}.cpp)
+    endif()
+
+    add_executable(${name} ${ARG_SOURCES})
+    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain arcana::arcana ${ARG_LIBS})
+    target_compile_definitions(${name} PRIVATE ${ARG_DEFINES})
+    target_include_directories(${name} PRIVATE ${ARG_INCLUDES})
+
+    catch_discover_tests(${name})
+endfunction()
+
+set(arcana_fixtures_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
+
+arcana_add_test(version_test)
+arcana_add_test(paths_test)
+arcana_add_test(card_test INCLUDES ${PROJECT_SOURCE_DIR}/src)
+arcana_add_test(deck_test DEFINES
+    FIXTURES_DIR="${arcana_fixtures_dir}"
     REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}")
+arcana_add_test(library_test DEFINES FIXTURES_DIR="${arcana_fixtures_dir}")
 
 # Consumer tests: build against an installed libarcana
 if(ARCANA_INSTALL)

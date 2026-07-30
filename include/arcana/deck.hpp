@@ -196,11 +196,31 @@ struct deck
 
     // Returned by value: nothing aliases deck-owned storage, so a binding needs no
     // lifetime coupling and a consumer can wrap the result in its own placement type
-    // (reversed, position in a spread) without touching the deck's copy. The string_view
-    // overload returns nullopt both for an id that does not parse and for one this deck
-    // does not define; use parse_card_id first if you need to tell them apart.
+    // (reversed, position in a spread) without touching the deck's copy.
+    //
+    // The two overloads differ in return type because they differ in failure modes. A
+    // card_id in hand cannot be malformed, so that overload can only miss. A string can
+    // fail either way, and a CLI reporting a bad argument wants them distinct:
+    //
+    //   - error_code::parse_error -- not a canonical card id at all
+    //   - error_code::not_found   -- well-formed, but this deck does not define it.
+    //     Follow up with exclusion_reason to say whether the deck excluded it on purpose.
+    //
+    // The string overload has no deck to consult when deciding whether an unrecognised
+    // component is a custom card or a typo -- `[custom_cards]` names cards, not the shape
+    // of ids -- so it resolves that structurally:
+    //
+    //   - `major_arcana.<NN>`, exactly two digits, is always a standard major and must be
+    //     00..21 -- `major_arcana.22` is a parse_error, not a custom card named "22".
+    //   - `major_arcana.<id>` otherwise is a custom major if <id> is a valid identifier.
+    //     Note this makes single-digit `major_arcana.1` a *custom* major; decks write "01".
+    //   - `minor_arcana.<suit>.<rank>` with a canonical suit requires a canonical rank --
+    //     a deck cannot add a card to an existing suit, so `minor_arcana.wands.jack` is a
+    //     parse_error rather than a custom card.
+    //   - `minor_arcana.<key>.<id>` with a non-canonical suit is a custom suit's card if
+    //     both components are valid identifiers.
     [[nodiscard]] std::optional<card> find_card(card_id const& id) const;
-    [[nodiscard]] std::optional<card> find_card(std::string_view canonical_id) const;
+    [[nodiscard]] std::expected<card, error> find_card(std::string_view canonical_id) const;
 
     // Deterministic in `seed`: the library owns no RNG state and never reaches for
     // std::random_device, so a caller can reproduce a draw. nullopt for an empty deck.
@@ -226,8 +246,10 @@ struct deck
     // Binding policy, recorded for whenever nanobind bindings are built (RFC-007 §1e):
     // load_deck's failure becomes a Python exception carrying error_code as an attribute,
     // so a caller loading a directory of decks can log-and-skip with a plain `except`.
-    // Lookups that can legitimately miss -- find_card, default_card_back_variant,
-    // random_card -- return Optional and never raise.
+    // Lookups that can legitimately miss -- find_card(card_id),
+    // default_card_back_variant, random_card -- return Optional and never raise.
+    // find_card(str) is the exception: a malformed id is a caller bug, not a miss, so it
+    // raises for parse_error and returns None for not_found.
 
   private:
     friend std::expected<deck, error> load_deck(

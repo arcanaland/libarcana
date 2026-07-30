@@ -3,10 +3,7 @@
 
 #pragma once
 
-#include <arcana/error.hpp>
-
 #include <cstdint>
-#include <expected>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -51,7 +48,7 @@ enum class rank : std::uint8_t
     king,
 };
 
-// Stable, lower_case, spec-form string (not display name).
+// Stable, snake_case, spec-form string (not display name).
 std::string_view to_string(suit s) noexcept;
 std::string_view to_string(rank r) noexcept;
 
@@ -97,20 +94,6 @@ struct card_id
 
     friend bool operator==(card_id const&, card_id const&) = default;
 };
-
-// Parses a canonical id with no deck in hand, so it cannot consult a deck's [custom_cards]
-// to tell a custom id from a typo. It resolves that structurally:
-//
-//   - `major_arcana.<NN>`, exactly two digits, is always a standard major and must be
-//     00..21 — `major_arcana.22` is an error, not a custom card named "22".
-//   - `major_arcana.<id>` otherwise is a custom major if <id> is a valid identifier.
-//   - `minor_arcana.<suit>.<rank>` with a canonical suit requires a canonical rank —
-//     `minor_arcana.wands.jack` is an error, not a custom card.
-//   - `minor_arcana.<key>.<id>` with a non-canonical suit is a custom suit's card if both
-//     components are valid identifiers.
-//
-//  To find the actual card in a deck instead of parseing, use deck::find_card
-std::expected<card_id, error> parse_card_id(std::string_view canonical_id);
 
 // One resolved image on disk for a card
 struct image_variant

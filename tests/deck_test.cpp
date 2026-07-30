@@ -65,6 +65,34 @@ TEST_CASE("excluded cards are omitted from enumeration but reason is queryable",
     CHECK_FALSE(d.exclusion_reason("major_arcana.00").has_value());
 }
 
+TEST_CASE("find_card tells a malformed id apart from one the deck lacks", "[deck]")
+{
+    auto const result = load_deck(fixture("excluded-deck"));
+    REQUIRE(result.has_value());
+    auto const& d = *result;
+
+    // What the expected<> on this overload buys: a CLI reporting a bad argument needs
+    // "that is not a card id" and "this deck has not got it" to read differently, and
+    // exclusion_reason refines the second into "the deck dropped it on purpose".
+    auto const malformed = d.find_card("minor_arcana.wands.jack");
+    REQUIRE_FALSE(malformed.has_value());
+    CHECK(malformed.error().code == error_code::parse_error);
+
+    auto const excluded = d.find_card("minor_arcana.pentacles.page");
+    REQUIRE_FALSE(excluded.has_value());
+    CHECK(excluded.error().code == error_code::not_found);
+    CHECK(d.exclusion_reason("minor_arcana.pentacles.page").has_value());
+
+    // Well-formed, absent, and not excluded: a custom card this deck never declared.
+    auto const absent = d.find_card("major_arcana.happy_squirrel");
+    REQUIRE_FALSE(absent.has_value());
+    CHECK(absent.error().code == error_code::not_found);
+    CHECK_FALSE(d.exclusion_reason("major_arcana.happy_squirrel").has_value());
+
+    // A card_id in hand cannot be malformed, which is why that overload stays an optional.
+    CHECK_FALSE(d.find_card(card_id::standard_minor(suit::pentacles, rank::page)).has_value());
+}
+
 TEST_CASE("custom cards and custom suits are enumerated alongside the standard 78", "[deck]")
 {
     auto const result = load_deck(fixture("custom-suit-deck"));
@@ -88,12 +116,13 @@ TEST_CASE("custom cards and custom suits are enumerated alongside the standard 7
 
     CHECK(d.find_card("minor_arcana.stars.two").has_value());
 
-    // round-trip through parse_card_id
+    // Every card's canonical_id finds that same card again. Goes through the public lookup
+    // rather than the private parser, which is the only thing find_card(str) adds to it.
     for (auto const& c : d.cards)
     {
-        auto const parsed = parse_card_id(c.canonical_id());
-        REQUIRE(parsed.has_value());
-        CHECK(*parsed == c.id);
+        auto const found = d.find_card(c.canonical_id());
+        REQUIRE(found.has_value());
+        CHECK(found->id == c.id);
     }
 }
 

@@ -3,6 +3,10 @@
 
 #include <arcana/card.hpp>
 
+// Private header: parse_card_id is not public API. Reached directly here because these
+// cases pin its disambiguation rules, which deck::find_card documents and relies on.
+#include "card_internal.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
@@ -10,6 +14,7 @@
 #include <vector>
 
 using namespace arcana;
+using arcana::detail::parse_card_id;
 
 TEST_CASE("all 22 major arcana canonical ids round-trip", "[card]")
 {
