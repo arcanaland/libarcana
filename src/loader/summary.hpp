@@ -12,15 +12,8 @@
 namespace arcana::detail
 {
 
-// The id and name of the deck in a directory, without building any of its cards
-//
-// deck_library scans every deck on the system, so it cannot afford a full load per
-// entry: deck_loader materializes 78 cards and stats every image root along the way.
-// This reads the manifest, takes two fields, and drops it.
-//
-// The error is read_deck_document's, forwarded unchanged -- deck_library reports it as
-// a broken_deck rather than dropping the directory on the floor.
-[[nodiscard]] std::expected<deck_summary, error> read_deck_summary(
+// Load a summary of a deck computed from its manifest without walking the directory tree
+[[nodiscard]] std::expected<deck_summary, error> load_deck_summary(
     std::filesystem::path const& deck_directory
 );
 

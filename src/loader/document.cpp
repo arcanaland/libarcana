@@ -18,7 +18,7 @@ namespace arcana
 namespace detail
 {
 
-std::expected<std::shared_ptr<deck_document const>, error> read_deck_document(
+std::expected<std::shared_ptr<deck_document const>, error> load_deck_document(
     std::filesystem::path const& deck_directory
 )
 {

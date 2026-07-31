@@ -3,3 +3,13 @@ id = "deck-one-id"
 schema_version = "1.0"
 name = "Deck One"
 version = "1.0"
+author = "Pamela Colman Smith"
+icon = "icon.png"
+
+[deck.excluded_cards]
+cards = ["major_arcana.00", "minor_arcana.cups.ace"]
+reason = "not in this printing"
+
+[custom_cards.major_arcana.the_void]
+name = "The Void"
+image = "scalable/major_arcana/the_void.svg"

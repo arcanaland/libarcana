@@ -14,6 +14,7 @@ target_sources(
             loader.hpp
             manifest.hpp
             names.hpp
+            standard_cards.hpp
             summary.hpp
             toml_read.hpp
     PRIVATE

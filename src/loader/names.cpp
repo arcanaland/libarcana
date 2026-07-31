@@ -16,16 +16,45 @@ namespace
 
 namespace fs = std::filesystem;
 
-fs::path choose_names_file(fs::path const& names_dir, std::optional<std::string> const& language)
+// "pt_BR" and "pt-BR" both reduce to "pt". Empty when the tag carries no region.
+std::string_view base_language(std::string_view tag)
 {
+    auto const separator = tag.find_first_of("_-");
+    if (separator == std::string_view::npos)
+        return {};
+
+    return tag.substr(0, separator);
+}
+
+fs::path names_file_for(fs::path const& names_dir, std::string_view language)
+{
+    if (language.empty())
+        return {};
+
     std::error_code ec;
+    fs::path candidate = names_dir / (std::string(language) + ".toml");
 
-    if (language && fs::is_regular_file(names_dir / (*language + ".toml"), ec))
-        return names_dir / (*language + ".toml");
+    if (fs::is_regular_file(candidate, ec))
+        return candidate;
 
-    if (fs::is_regular_file(names_dir / "en.toml", ec))
-        return names_dir / "en.toml";
+    return {};
+}
 
+fs::path choose_names_file(fs::path const& names_dir, std::vector<std::string> const& languages)
+{
+    for (auto const& language : languages)
+    {
+        if (auto exact = names_file_for(names_dir, language); !exact.empty())
+            return exact;
+
+        if (auto base = names_file_for(names_dir, base_language(language)); !base.empty())
+            return base;
+    }
+
+    if (auto english = names_file_for(names_dir, "en"); !english.empty())
+        return english;
+
+    std::error_code ec;
     for (auto const& entry : fs::directory_iterator(names_dir, ec))
         if (entry.is_regular_file() && entry.path().extension() == ".toml")
             return entry.path();
@@ -36,7 +65,7 @@ fs::path choose_names_file(fs::path const& names_dir, std::optional<std::string>
 }  // namespace
 
 name_catalog name_catalog::load(
-    fs::path const& deck_root, std::optional<std::string> const& language
+    fs::path const& deck_root, std::vector<std::string> const& languages
 )
 {
     name_catalog result;
@@ -46,7 +75,7 @@ name_catalog name_catalog::load(
     if (!fs::is_directory(names_dir, ec))
         return result;
 
-    auto const chosen = choose_names_file(names_dir, language);
+    auto const chosen = choose_names_file(names_dir, languages);
     if (chosen.empty())
         return result;
 

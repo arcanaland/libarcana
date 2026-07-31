@@ -13,6 +13,7 @@
 #include <string_view>
 
 using namespace arcana;
+using namespace std::string_literals;
 
 namespace
 {
@@ -110,7 +111,10 @@ TEST_CASE("custom cards and custom suits are enumerated alongside the standard 7
     auto const squirrel = find(d, "major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());
     CHECK(squirrel->display_name == "The Happy Squirrel");
-    CHECK(squirrel->alt_text.value_or("") == "A cheerful squirrel standing on a branch proudly holding an acorn.");
+    CHECK(
+        squirrel->alt_text.value_or("") ==
+        "A cheerful squirrel standing on a branch proudly holding an acorn."
+    );
     CHECK(squirrel->id.is_custom());
     CHECK(squirrel->id.custom_id == "happy_squirrel");
 
@@ -297,7 +301,7 @@ TEST_CASE("partly-excluded suit", "[deck]")
     REQUIRE(result.has_value());
 
     auto const suits = result->suits();
-    auto const pentacles = std::ranges::find(suits, std::string("pentacles"), &suit_info::key);
+    auto const pentacles = std::ranges::find(suits, "pentacles"s, &suit_info::key);
     REQUIRE(pentacles != suits.end());
     CHECK_FALSE(pentacles->excluded);
     CHECK(result->cards_in_suit("pentacles").size() == 12);
@@ -348,8 +352,7 @@ TEST_CASE("undeclared card backs ones are discovered", "[deck]")
     // alternative.png has no deck.toml entry
     REQUIRE(d.card_backs.size() == 2);
 
-    auto const classic =
-        std::ranges::find(d.card_backs, std::string("classic"), &card_back_variant::id);
+    auto const classic = std::ranges::find(d.card_backs, "classic"s, &card_back_variant::id);
 
     REQUIRE(classic != d.card_backs.end());
     CHECK(classic->declared);
@@ -359,7 +362,7 @@ TEST_CASE("undeclared card backs ones are discovered", "[deck]")
     CHECK(std::filesystem::exists(classic->image));
 
     auto const alternative =
-        std::ranges::find(d.card_backs, std::string("alternative"), &card_back_variant::id);
+        std::ranges::find(d.card_backs, "alternative"s, &card_back_variant::id);
 
     REQUIRE(alternative != d.card_backs.end());
     CHECK_FALSE(alternative->declared);
@@ -422,8 +425,7 @@ TEST_CASE("ascii-tarot resolves ansi32 card images", "[deck][reference-decks]")
 
     auto const fool = find(*result, "major_arcana.00");
     REQUIRE(fool.has_value());
-    auto const ansi =
-        std::ranges::find(fool->images, std::string("ansi32"), &card_image::source_dir);
+    auto const ansi = std::ranges::find(fool->images, "ansi32"s, &card_image::source_dir);
     REQUIRE(ansi != fool->images.end());
     CHECK(ansi->kind == image_kind::ansi);
     CHECK(ansi->lines == 32);

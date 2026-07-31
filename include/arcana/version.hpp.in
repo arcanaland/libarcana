@@ -3,6 +3,10 @@
 
 #pragma once
 
+#define ARCANA_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define ARCANA_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define ARCANA_VERSION_PATCH @PROJECT_VERSION_PATCH@
+
 #include <string_view>
 
 namespace arcana

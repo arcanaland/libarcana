@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using arcana::detail::deck_document;
 using arcana::detail::deck_loader;
@@ -24,7 +25,7 @@ std::filesystem::path const no_deck_dir{"/nonexistent/tarot-deck"};
 
 arcana::deck build_from(
     std::string_view toml_text, std::filesystem::path const& root = no_deck_dir,
-    std::optional<std::string> const& language = std::nullopt
+    std::vector<std::string> const& languages = {}
 )
 {
     auto parsed = toml::parse(toml_text);
@@ -33,7 +34,7 @@ arcana::deck build_from(
     auto document = std::make_shared<deck_document>(std::move(parsed).table());
     REQUIRE(document->table["deck"].as_table() != nullptr);
 
-    return deck_loader{root, std::move(document), language}.build();
+    return deck_loader{root, std::move(document), languages}.build();
 }
 
 arcana::card const& card_named(arcana::deck const& d, std::string_view canonical_id)
