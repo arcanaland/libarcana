@@ -22,7 +22,7 @@ install(
     EXPORT arcana-targets
     VERSION ${PROJECT_VERSION}
     DEFAULT_TARGETS arcana
-    DESCRIPTION "Shared core for Arcana Land tarot-deck tooling"
+    DESCRIPTION "Shared core for Arcana Land's Tarot tooling"
     HOMEPAGE_URL "https://github.com/arcanaland/libarcana"
   )
 

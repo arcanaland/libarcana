@@ -5,7 +5,8 @@ Checks: >
   performance-*,
   modernize-*,
   readability-*,
-  -modernize-use-trailing-return-type
+  -modernize-use-trailing-return-type,
+  -readability-braces-around-statements
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: '^.*/include/arcana/.*'
@@ -57,3 +58,9 @@ CheckOptions:
     value: lower_case
   - key: readability-identifier-naming.TypedefCase
     value: lower_case
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: '^(id|ec|it|s|r|d|c|t|m)$'
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: '^(id|ec|it|s|r|d|c|t|m)$'
+  - key: readability-identifier-length.IgnoredLoopCounterNames
+    value: '^[ijk]$'

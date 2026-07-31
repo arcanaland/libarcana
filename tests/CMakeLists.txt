@@ -4,19 +4,23 @@
 find_package(Catch2 3 REQUIRED)
 include(Catch)
 
-function(libarcana_add_test name)
+function(arcana_add_test name)
     cmake_parse_arguments(ARG "" "" "SOURCES;LIBS" ${ARGN})
 
+    if(NOT ARG_SOURCES)
+        set(ARG_SOURCES ${name}.cpp)
+    endif()
+
     add_executable(${name} ${ARG_SOURCES})
-    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS})
+    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS} arcana::arcana)
 
     catch_discover_tests(${name})
 endfunction()
 
-libarcana_add_test(version_test SOURCES version_test.cpp LIBS arcana::arcana)
+arcana_add_test(version_test)
 
 # Consumer tests: build against an installed libarcana
-if(LIBARCANA_INSTALL)
+if(ARCANA_INSTALL)
     set(arcana_stage_dir ${PROJECT_BINARY_DIR}/stage)
     set(arcana_staged_prefix ${arcana_stage_dir}${CMAKE_INSTALL_PREFIX})
 
