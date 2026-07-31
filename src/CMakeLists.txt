@@ -19,10 +19,12 @@ target_sources(
             ${PROJECT_SOURCE_DIR}/include/arcana/error.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/paths.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/card.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/deck.hpp
     PRIVATE
         version.cpp
         paths.cpp
         card.cpp
+        deck.cpp
 )
 
 target_compile_features(arcana PUBLIC cxx_std_26)
