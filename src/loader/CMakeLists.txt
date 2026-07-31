@@ -11,11 +11,13 @@ target_sources(
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
             document.hpp
+            loader.hpp
             manifest.hpp
             names.hpp
             toml_read.hpp
     PRIVATE
         document.cpp
+        loader.cpp
         names.cpp
 )
 
