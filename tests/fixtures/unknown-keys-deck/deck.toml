@@ -1,0 +1,9 @@
+[deck]
+id = "unknown-keys-deck"
+schema_version = "1.0"
+name = "Unknown Keys Deck"
+version = "1.0"
+future_v11_field = "kept"
+
+[future_v11_section]
+nested_key = 42

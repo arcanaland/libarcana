@@ -4,8 +4,34 @@
 find_package(Catch2 3 REQUIRED)
 include(Catch)
 
+option(ARCANA_FETCH_REFERENCE_DECKS "Download the reference decks used by deck_test" ON)
+
+set(ARCANA_REFERENCE_DECKS_TAG
+    6ee23f5ddb7cec005bf7d741a1929adcdd9c1477 CACHE STRING
+    "Commit of arcanaland/reference-decks to test against")
+
+set(ARCANA_REFERENCE_DECKS_DIR "" CACHE PATH
+    "Use an local reference-decks checkout instead of downloading one")
+
+if(ARCANA_REFERENCE_DECKS_DIR)
+    set(arcana_reference_decks_dir ${ARCANA_REFERENCE_DECKS_DIR})
+elseif(ARCANA_FETCH_REFERENCE_DECKS)
+    include(FetchContent)
+
+    FetchContent_Declare(reference_decks
+        GIT_REPOSITORY https://github.com/arcanaland/reference-decks.git
+        GIT_TAG ${ARCANA_REFERENCE_DECKS_TAG}
+        # shallow is needed for a commit?
+        GIT_SHALLOW FALSE
+        SOURCE_SUBDIR no-cmake-here)
+    FetchContent_MakeAvailable(reference_decks)
+    set(arcana_reference_decks_dir ${reference_decks_SOURCE_DIR})
+else()
+    set(arcana_reference_decks_dir "")
+endif()
+
 function(arcana_add_test name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;DEFINES" ${ARGN})
 
     if(NOT ARG_SOURCES)
         set(ARG_SOURCES ${name}.cpp)
@@ -14,15 +40,21 @@ function(arcana_add_test name)
     add_executable(${name} ${ARG_SOURCES})
 
     target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS} arcana::arcana)
+    target_compile_definitions(${name} PRIVATE ${ARG_DEFINES})
 
     catch_discover_tests(${name})
 endfunction()
+
+set(arcana_fixtures_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
 
 add_subdirectory(loader)
 
 arcana_add_test(version_test)
 arcana_add_test(paths_test)
 arcana_add_test(card_test)
+arcana_add_test(deck_test DEFINES
+    FIXTURES_DIR="${arcana_fixtures_dir}"
+    REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}")
 
 # Consumer tests: build against an installed libarcana
 if(ARCANA_INSTALL)

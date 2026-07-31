@@ -1,0 +1,9 @@
+[deck]
+id = "excluded-deck"
+schema_version = "1.0"
+name = "Excluded Deck"
+version = "1.0"
+
+[deck.excluded_cards]
+cards = ["minor_arcana.pentacles.page", "minor_arcana.pentacles.knight"]
+reason = "Test fixture excluding two court cards."
