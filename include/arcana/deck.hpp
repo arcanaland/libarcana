@@ -165,7 +165,7 @@ struct deck
 
     // A rank's title-cased canonical name (or alias if defined)
     [[nodiscard]] std::string display_rank_name(rank r) const;
- 
+
     // A custom rank's title-cased canonical name
     [[nodiscard]] std::string display_rank_name(std::string_view custom_rank_key) const;
 

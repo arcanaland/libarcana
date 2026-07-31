@@ -97,7 +97,9 @@ TEST_CASE("named constructors and equality agree with parsing", "[card]")
     CHECK(
         card_id::standard_minor(suit::wands, rank::ace) == *card_id::parse("minor_arcana.wands.ace")
     );
-    CHECK(card_id::custom_major("happy_squirrel") == *card_id::parse("major_arcana.happy_squirrel"));
+    CHECK(
+        card_id::custom_major("happy_squirrel") == *card_id::parse("major_arcana.happy_squirrel")
+    );
     CHECK(card_id::custom_minor("stars", "ace") == *card_id::parse("minor_arcana.stars.ace"));
 
     // A standard minor and a custom card that spell out differently never compare equal.

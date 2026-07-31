@@ -7,10 +7,7 @@
 #include <optional>
 #include <vector>
 
-namespace arcana
-{
-
-namespace paths
+namespace arcana::paths
 {
 
 // The functions below use env vars XDG_DATA_HOME, XDG_CONFIG_HOME, etc unless
@@ -42,6 +39,4 @@ std::vector<std::filesystem::path> enumerate_deck_directories(
     std::vector<std::filesystem::path> const& roots
 );
 
-}  // namespace paths
-
-}  // namespace arcana
+}  // namespace arcana::paths

@@ -61,11 +61,8 @@ namespace
 
 std::vector<std::string_view> split(std::string_view text, char delim)
 {
-    return text |
-           std::views::split(delim) |
-           std::views::transform([](auto part) {
-               return std::string_view(part);
-           }) |
+    return text | std::views::split(delim) |
+           std::views::transform([](auto part) { return std::string_view(part); }) |
            std::ranges::to<std::vector>();
 }
 
@@ -227,17 +224,15 @@ std::optional<card_image> best_of_kind(
     std::vector<card_image> const& images, image_kind kind, int target
 )
 {
-    auto const size_field =
-        (kind == image_kind::ansi) ? &card_image::lines : &card_image::height;
+    auto const size_field = (kind == image_kind::ansi) ? &card_image::lines : &card_image::height;
 
     // Raster prefers the smallest at or above the target
     // ANSI prefers the largest at or below the target
     bool const prefer_at_least = (kind != image_kind::ansi);
 
-    auto candidates = images | std::views::filter(
-        [kind, size_field](card_image const& image) {
-            return image.kind == kind && (image.*size_field);
-        });
+    auto candidates =
+        images | std::views::filter([kind, size_field](card_image const& image)
+                                    { return image.kind == kind && (image.*size_field); });
 
     // Right side of the target first, then closest.
     // break ties toward the preferred side

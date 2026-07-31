@@ -598,33 +598,11 @@ std::expected<deck, error> load_deck(
     std::filesystem::path const& deck_directory, std::optional<std::string> const& language
 )
 {
-    std::filesystem::path const toml_path = deck_directory / "deck.toml";
+    auto document = detail::read_deck_document(deck_directory);
+    if (!document)
+        return std::unexpected(std::move(document.error()));
 
-    auto parsed = toml::parse_file(toml_path.string());
-    if (!parsed)
-    {
-        return std::unexpected(
-            error{
-                .code = error_code::parse_error,
-                .message = std::format(
-                    "failed to parse {}: {}", toml_path.string(), parsed.error().description()
-                )
-            }
-        );
-    }
-
-    auto document = std::make_shared<detail::deck_document>(std::move(parsed).table());
-    if (document->table["deck"].as_table() == nullptr)
-    {
-        return std::unexpected(
-            error{
-                .code = error_code::parse_error,
-                .message = std::format("{} has no [deck] table", toml_path.string())
-            }
-        );
-    }
-
-    return detail::deck_loader{deck_directory, std::move(document), language}.build();
+    return detail::deck_loader{deck_directory, *std::move(document), language}.build();
 }
 
 }  // namespace arcana

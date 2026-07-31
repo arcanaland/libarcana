@@ -30,8 +30,7 @@ std::vector<deck_summary> enumerate_decks(std::vector<std::filesystem::path> con
 
 // Loads a specific deck by its directory name
 std::expected<deck, error> load_deck_by_name(
-    std::string const& directory_name,
-    std::vector<std::filesystem::path> const& roots = {},
+    std::string const& directory_name, std::vector<std::filesystem::path> const& roots = {},
     std::optional<std::string> const& language = std::nullopt
 );
 

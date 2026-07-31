@@ -34,8 +34,9 @@ target_sources(
 
 target_compile_features(arcana PUBLIC cxx_std_26)
 
-target_link_libraries(arcana PRIVATE tomlplusplus::tomlplusplus)
-
-target_compile_definitions(arcana PRIVATE TOML_EXCEPTIONS=0)
+# No toml++ here, deliberately. Every TU that parses TOML lives in src/loader, whose
+# objects arrive above already compiled against it, so the dependency -- and the
+# TOML_EXCEPTIONS setting that comes with it -- is confined to that one component.
+# Anything added here that needs toml++ belongs on the other side of that seam.
 
 set_target_properties(arcana PROPERTIES POSITION_INDEPENDENT_CODE ON)

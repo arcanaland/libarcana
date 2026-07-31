@@ -7,3 +7,4 @@
 # link line, so those archive members are never extracted and nothing is defined twice.
 arcana_add_test(loader_test LIBS arcana::loader)
 arcana_add_test(names_test LIBS arcana::loader)
+arcana_add_test(summary_test LIBS arcana::loader)

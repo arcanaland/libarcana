@@ -1,10 +1,16 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
+// Which directories hold decks. Reading what is in one of them belongs to src/loader,
+// which is why nothing here needs toml++.
+
 #include <arcana/library.hpp>
 #include <arcana/paths.hpp>
 
-#include <toml++/toml.hpp>
+#include "loader/summary.hpp"
+
+#include <format>
+#include <utility>
 
 namespace arcana
 {
@@ -14,24 +20,8 @@ std::vector<deck_summary> enumerate_decks(std::vector<std::filesystem::path> con
     std::vector<deck_summary> result;
 
     for (auto const& dir : paths::enumerate_deck_directories(roots))
-    {
-        auto parsed = toml::parse_file((dir / "deck.toml").string());
-        if (!parsed)
-            continue;
-
-        auto const* deck_table = parsed.table()["deck"].as_table();
-        if (deck_table == nullptr)
-            continue;
-
-        result.push_back(
-            deck_summary{
-                .directory_name = dir.filename().string(),
-                .id = (*deck_table)["id"].value<std::string>().value_or(""),
-                .name = (*deck_table)["name"].value<std::string>().value_or(""),
-                .path = dir,
-            }
-        );
-    }
+        if (auto summary = detail::read_deck_summary(dir))
+            result.push_back(*std::move(summary));
 
     return result;
 }
@@ -41,6 +31,10 @@ std::expected<deck, error> load_deck_by_name(
     std::optional<std::string> const& language
 )
 {
+    // Deliberately matches on the directory name alone, without checking that the deck
+    // is readable the way enumerate_decks() does. A malformed deck is therefore absent
+    // from the listing but still reports its parse error when asked for by name, which
+    // is a better diagnostic than claiming the deck does not exist.
     for (auto const& dir : paths::enumerate_deck_directories(roots))
         if (dir.filename() == directory_name)
             return load_deck(dir, language);
