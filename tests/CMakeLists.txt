@@ -12,10 +12,13 @@ function(arcana_add_test name)
     endif()
 
     add_executable(${name} ${ARG_SOURCES})
+
     target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS} arcana::arcana)
 
     catch_discover_tests(${name})
 endfunction()
+
+add_subdirectory(loader)
 
 arcana_add_test(version_test)
 arcana_add_test(paths_test)
