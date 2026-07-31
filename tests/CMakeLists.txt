@@ -19,6 +19,7 @@ endfunction()
 
 arcana_add_test(version_test)
 arcana_add_test(paths_test)
+arcana_add_test(card_test)
 
 # Consumer tests: build against an installed libarcana
 if(ARCANA_INSTALL)

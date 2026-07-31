@@ -16,10 +16,13 @@ target_sources(
             ${PROJECT_BINARY_DIR}/generated/include
         FILES
             ${PROJECT_BINARY_DIR}/generated/include/arcana/version.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/error.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/paths.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/card.hpp
     PRIVATE
         version.cpp
         paths.cpp
+        card.cpp
 )
 
 target_compile_features(arcana PUBLIC cxx_std_26)
