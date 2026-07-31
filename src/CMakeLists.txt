@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
+add_subdirectory(loader)
+
 add_library(arcana)
 add_library(arcana::arcana ALIAS arcana)
 
@@ -27,6 +29,7 @@ target_sources(
         card.cpp
         deck.cpp
         library.cpp
+        $<TARGET_OBJECTS:arcana-loader>
 )
 
 target_compile_features(arcana PUBLIC cxx_std_26)

@@ -26,6 +26,9 @@ namespace detail
 // The parsed deck.toml
 struct deck_document;
 
+// Builds a deck from a parsed deck.toml
+class deck_loader;
+
 }  // namespace detail
 
 inline constexpr double default_aspect_ratio = 0.5789;
@@ -194,9 +197,8 @@ struct deck
     [[nodiscard]] std::string source_toml() const;
 
   private:
-    friend std::expected<deck, error> load_deck(
-        std::filesystem::path const& deck_directory, std::optional<std::string> const& language
-    );
+    // The only thing that fills a deck in
+    friend class detail::deck_loader;
 
     // toml++ stays out of this header
     std::shared_ptr<detail::deck_document const> document_;
