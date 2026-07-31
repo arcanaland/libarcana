@@ -1,0 +1,5 @@
+[deck]
+id = "deck-two-shadowed-id"
+schema_version = "1.0"
+name = "Deck Two (shadowed copy in the second root)"
+version = "1.0"

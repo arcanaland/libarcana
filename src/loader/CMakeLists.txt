@@ -14,11 +14,13 @@ target_sources(
             loader.hpp
             manifest.hpp
             names.hpp
+            summary.hpp
             toml_read.hpp
     PRIVATE
         document.cpp
         loader.cpp
         names.cpp
+        summary.cpp
 )
 
 target_compile_features(arcana-loader PUBLIC cxx_std_26)

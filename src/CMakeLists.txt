@@ -22,11 +22,13 @@ target_sources(
             ${PROJECT_SOURCE_DIR}/include/arcana/paths.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/card.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/deck.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/library.hpp
     PRIVATE
         version.cpp
         paths.cpp
         card.cpp
         deck.cpp
+        library.cpp
         $<TARGET_OBJECTS:arcana-loader>
 )
 

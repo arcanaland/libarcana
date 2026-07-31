@@ -2,3 +2,4 @@
 # SPDX-License-Identifier: MIT
 
 arcana_add_test(names_test LIBS arcana::loader)
+arcana_add_test(summary_test LIBS arcana::loader)
