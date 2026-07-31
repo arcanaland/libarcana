@@ -303,8 +303,8 @@ void deck_loader::parse_major_arcana_remap()
 
         if (ec == std::errc{} && ptr == key_text.data() + key_text.size())
             deck_.major_arcana_remap.emplace(position, *s);
-        // TODO: this should emit a warning
         // else: unparseable key, skipped permissively.
+        // TODO: this should emit a warning
     }
 
     // `[remap_major_arcana]` reads position -> which card sits there, so inverting it gives
@@ -518,7 +518,6 @@ void deck_loader::build_standard_majors()
         c.id = std::move(id);
         c.display_name = names_.lookup("major_arcana", key).value_or(std::string(canonical_name));
 
-        // majors carry a number; display_suit and display_rank stay empty
         auto const remapped = remapped_positions_.find(fold_major_arcana_name(canonical_name));
         c.number = remapped == remapped_positions_.end() ? i : remapped->second;
         c.alt_text = names_.lookup("alt_text", key);

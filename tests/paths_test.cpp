@@ -21,8 +21,3 @@ TEST_CASE("deck_library_path is XDG_DATA_HOME/tarot/decks under a fake root", "[
         arcana::paths::deck_library_path("/fake/root") == "/fake/root/.local/share/tarot/decks"
     );
 }
-
-TEST_CASE("enumerate_deck_directories is empty when nothing is installed", "[paths]")
-{
-    REQUIRE(arcana::paths::enumerate_deck_directories("/fake/root/with/no/decks").empty());
-}

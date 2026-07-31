@@ -3,6 +3,8 @@
 
 #include "document.hpp"
 
+#include "manifest.hpp"
+
 #include <arcana/deck.hpp>
 
 #include <format>
@@ -20,7 +22,7 @@ std::expected<std::shared_ptr<deck_document const>, error> read_deck_document(
     std::filesystem::path const& deck_directory
 )
 {
-    std::filesystem::path const toml_path = deck_directory / "deck.toml";
+    std::filesystem::path const toml_path = deck_directory / deck_manifest_filename;
 
     auto parsed = toml::parse_file(toml_path.string());
     if (!parsed)
@@ -51,9 +53,6 @@ std::expected<std::shared_ptr<deck_document const>, error> read_deck_document(
 
 }  // namespace detail
 
-// deck::source_toml() is the one query that reaches into the retained document, so it
-// is defined here beside deck_document rather than in deck.cpp with the rest of the
-// deck API -- that is what lets deck.cpp compile without toml++.
 std::string deck::source_toml() const
 {
     if (!document_)

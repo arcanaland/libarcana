@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
+// Where things are, and nothing about what is in them. Deciding which directories hold
+// decks is deck_library's job -- that question is about the deck format, not about XDG.
+
 #pragma once
 
 #include <filesystem>
 #include <optional>
-#include <vector>
 
 namespace arcana::paths
 {
@@ -22,21 +24,6 @@ std::filesystem::path xdg_config_home(
 
 std::filesystem::path deck_library_path(
     std::optional<std::filesystem::path> const& root_override = std::nullopt
-);
-
-// Unsorted list of directory names directly under the deck library path
-// that contain a deck.toml
-std::vector<std::filesystem::path> enumerate_deck_directories(
-    std::optional<std::filesystem::path> const& root_override = std::nullopt
-);
-
-// Unsorted list of directory names directly under the deck library path
-// that contain a deck.toml
-//
-// Roots behave like PATH: when the same directory name appears under more than
-// one root, the first wins and the shadowed one is not listed
-std::vector<std::filesystem::path> enumerate_deck_directories(
-    std::vector<std::filesystem::path> const& roots
 );
 
 }  // namespace arcana::paths

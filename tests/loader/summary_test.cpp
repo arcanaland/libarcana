@@ -123,8 +123,8 @@ name = "Rider-Waite"
 
 TEST_CASE("summary reading agrees with load_deck on what is a deck", "[summary]")
 {
-    // enumerate_decks() skips what load_deck() would reject, because both ask
-    // read_deck_document() the same question.
+    // deck_library calls a deck broken exactly when load_deck() would reject it,
+    // because both ask read_deck_document() the same question.
     arcana_test::temp_dir good;
     good.write("deck.toml", R"([deck]
 name = "Fine"

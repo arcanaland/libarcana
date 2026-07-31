@@ -22,14 +22,7 @@
 namespace arcana::detail
 {
 
-// Builds a deck from a parsed deck.toml plus whatever is on disk beside it
-//
-// Construction cannot fail. Reading and parsing deck.toml happens in load_deck(),
-// which is where the only two error paths live; everything the loader does after
-// that is permissive, so a malformed section yields a default and never a failure.
-//
-// The phases run in the order build() lists them and are not independent -- see the
-// comment there before reordering anything.
+// Builds a deck from a parsed deck.toml
 class deck_loader
 {
   public:
