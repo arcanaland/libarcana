@@ -144,10 +144,8 @@ std::vector<suit_info> deck::suits() const
 
 std::vector<card> deck::cards_of_kind(arcana_kind kind) const
 {
-    return cards | std::views::filter(
-        [kind](card const& c) {
-            return c.id.kind() == kind;
-        }) | std::ranges::to<std::vector>();
+    return cards | std::views::filter([kind](card const& c) { return c.id.kind() == kind; }) |
+           std::ranges::to<std::vector>();
 }
 
 std::vector<card> deck::cards_in_suit(std::string_view key) const

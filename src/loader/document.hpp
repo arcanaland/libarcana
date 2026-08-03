@@ -20,10 +20,10 @@ struct deck_document
     toml::table table;
 };
 
-// Reads and parses a <deck_directory>/deck.toml
+// Loads and parses a <deck_directory>/deck.toml
 //
 // Returns parse_error for a file that is missing, malformed, or has no [deck] table.
-[[nodiscard]] std::expected<std::shared_ptr<deck_document const>, error> read_deck_document(
+[[nodiscard]] std::expected<std::shared_ptr<deck_document const>, error> load_deck_document(
     std::filesystem::path const& deck_directory
 );
 

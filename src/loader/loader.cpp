@@ -3,6 +3,7 @@
 
 #include "loader.hpp"
 
+#include "standard_cards.hpp"
 #include "toml_read.hpp"
 
 #include <algorithm>
@@ -24,23 +25,6 @@ namespace
 {
 
 namespace fs = std::filesystem;
-
-constexpr std::array<std::string_view, 22> default_major_arcana_names{
-    "The Fool",         "The Magician", "The High Priestess", "The Empress", "The Emperor",
-    "The Hierophant",   "The Lovers",   "The Chariot",        "Strength",    "The Hermit",
-    "Wheel of Fortune", "Justice",      "The Hanged Man",     "Death",       "Temperance",
-    "The Devil",        "The Tower",    "The Star",           "The Moon",    "The Sun",
-    "Judgement",        "The World"
-};
-
-constexpr std::array<suit, 4> standard_suits{
-    suit::wands, suit::cups, suit::swords, suit::pentacles
-};
-
-constexpr std::array<rank, 14> standard_ranks{rank::ace,   rank::two, rank::three, rank::four,
-                                              rank::five,  rank::six, rank::seven, rank::eight,
-                                              rank::nine,  rank::ten, rank::page,  rank::knight,
-                                              rank::queen, rank::king};
 
 std::string capitalize(std::string_view word)
 {
@@ -111,12 +95,12 @@ bool looks_like_ansi_root(std::string_view name)
 
 deck_loader::deck_loader(
     fs::path deck_root, std::shared_ptr<deck_document const> document,
-    std::optional<std::string> const& language
+    std::vector<std::string> const& languages
 )
     : root_{std::move(deck_root)},
       document_{std::move(document)},
       deck_table_{document_->table["deck"].as_table()},
-      names_{name_catalog::load(root_, language)}
+      names_{name_catalog::load(root_, languages)}
 {
     deck_.root_path = root_;
     deck_.document_ = document_;
@@ -587,14 +571,14 @@ void deck_loader::build_custom_minors()
 }  // namespace detail
 
 std::expected<deck, error> load_deck(
-    std::filesystem::path const& deck_directory, std::optional<std::string> const& language
+    std::filesystem::path const& deck_directory, std::vector<std::string> const& languages
 )
 {
-    auto document = detail::read_deck_document(deck_directory);
+    auto document = detail::load_deck_document(deck_directory);
     if (!document)
         return std::unexpected(std::move(document.error()));
 
-    return detail::deck_loader{deck_directory, *std::move(document), language}.build();
+    return detail::deck_loader{deck_directory, *std::move(document), languages}.build();
 }
 
 }  // namespace arcana

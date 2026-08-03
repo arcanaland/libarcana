@@ -193,21 +193,23 @@ struct deck
 
     [[nodiscard]] std::optional<card_back_variant> default_card_back_variant() const;
 
-    // This deck's deck.toml re-serialized
+    // The deck.toml re-serialized
     [[nodiscard]] std::string source_toml() const;
 
   private:
-    // The only thing that fills a deck in
     friend class detail::deck_loader;
 
-    // toml++ stays out of this header
+    // So toml++ stays out of this header
     std::shared_ptr<detail::deck_document const> document_;
 };
 
 // Load and fully parse a deck directory
+//
+// @param deck_directory The dir to load
+// @param languages A preference chain of languages. If empty or cannot be
+//                  satisfied, falls back to English
 std::expected<deck, error> load_deck(
-    std::filesystem::path const& deck_directory,
-    std::optional<std::string> const& language = std::nullopt
+    std::filesystem::path const& deck_directory, std::vector<std::string> const& languages = {}
 );
 
 }  // namespace arcana

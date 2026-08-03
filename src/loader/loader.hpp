@@ -28,7 +28,7 @@ class deck_loader
   public:
     deck_loader(
         std::filesystem::path deck_root, std::shared_ptr<deck_document const> document,
-        std::optional<std::string> const& language
+        std::vector<std::string> const& languages
     );
 
     // Runs every parse func and moves out the finished deck

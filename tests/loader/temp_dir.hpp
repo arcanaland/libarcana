@@ -5,9 +5,12 @@
 
 #include <atomic>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <string_view>
 #include <system_error>
+
+#include <unistd.h>
 
 namespace arcana_test
 {
@@ -20,7 +23,7 @@ class temp_dir
     {
         static std::atomic<int> counter{0};
         path_ = std::filesystem::temp_directory_path() /
-                ("arcana-loader-test-" + std::to_string(counter.fetch_add(1)));
+                std::format("arcana-loader-test-{}-{}", ::getpid(), counter.fetch_add(1));
 
         std::error_code ec;
         std::filesystem::remove_all(path_, ec);

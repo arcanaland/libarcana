@@ -31,7 +31,7 @@ else()
 endif()
 
 function(arcana_add_test name)
-    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;DEFINES" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;DEFINES;INCLUDES" ${ARGN})
 
     if(NOT ARG_SOURCES)
         set(ARG_SOURCES ${name}.cpp)
@@ -41,6 +41,7 @@ function(arcana_add_test name)
 
     target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS} arcana::arcana)
     target_compile_definitions(${name} PRIVATE ${ARG_DEFINES})
+    target_include_directories(${name} PRIVATE ${ARG_INCLUDES})
 
     catch_discover_tests(${name})
 endfunction()
@@ -55,6 +56,9 @@ arcana_add_test(card_test)
 arcana_add_test(deck_test DEFINES
     FIXTURES_DIR="${arcana_fixtures_dir}"
     REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}")
+arcana_add_test(library_test
+    DEFINES FIXTURES_DIR="${arcana_fixtures_dir}"
+    INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/loader)
 
 # Consumer tests: build against an installed libarcana
 if(ARCANA_INSTALL)

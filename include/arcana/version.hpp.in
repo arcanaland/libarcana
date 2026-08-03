@@ -3,6 +3,12 @@
 
 #pragma once
 
+#define ARCANA_VERSION \
+    ((@PROJECT_VERSION_MAJOR@ * 10000) + (@PROJECT_VERSION_MINOR@ * 100) + @PROJECT_VERSION_PATCH@)
+
+#define ARCANA_VERSION_AT_LEAST(major, minor, patch) \
+    (ARCANA_VERSION >= (((major) * 10000) + ((minor) * 100) + (patch)))
+
 #include <string_view>
 
 namespace arcana

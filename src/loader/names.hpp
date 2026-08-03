@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace arcana::detail
 {
@@ -17,25 +18,24 @@ namespace arcana::detail
 class name_catalog
 {
   public:
-    // Prefers names/<language>.toml, then names/en.toml, then any .toml in names/
+    // Tries each language, then names/en.toml, then any .toml in names/
     //
-    // Returns an unloaded catalog when the deck has no names/ directory, no .toml
-    // in it, or the chosen file fails to parse.
+    // @returns Empty catalog when the deck has no name files or they can't be parsed
     [[nodiscard]] static name_catalog load(
-        std::filesystem::path const& deck_root, std::optional<std::string> const& language
+        std::filesystem::path const& deck_root, std::vector<std::string> const& languages
     );
 
-    // The string at [<section>].<key>
+    // @return The string at [<section>].<key>
     [[nodiscard]] std::optional<std::string> lookup(
         std::string_view section, std::string_view key
     ) const;
 
-    // The string at [<section>.<suit_key>].<rank_key>
+    // @return The string at [<section>.<suit_key>].<rank_key>
     [[nodiscard]] std::optional<std::string> lookup_minor(
         std::string_view section, std::string_view suit_key, std::string_view rank_key
     ) const;
 
-    // False when no names file was found or it failed to parse
+    // @return False when no names file was found or failed to parse
     [[nodiscard]] bool loaded() const noexcept
     {
         return loaded_;
