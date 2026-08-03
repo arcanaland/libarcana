@@ -72,6 +72,50 @@ jobs:
           path: ${{ env.PODMAN_STORAGE_PATH }}
           key: ${{ steps.podman-cache-restore.outputs.cache-primary-key }}
 
+  python-binding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: extractions/setup-just@v2
+
+      - name: Cache podman image layers
+        id: podman-cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.PODMAN_STORAGE_PATH }}
+          key: podman-image-${{ hashFiles('Containerfile') }}
+          restore-keys: |
+            podman-image-
+
+      - name: Create conan volume
+        run: podman volume create libarcana-conan
+
+      - name: Cache conan store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CONAN_VOLUME_PATH }}
+          key: conan-${{ hashFiles('conan.lock') }}
+          restore-keys: |
+            conan-
+
+      - name: Build image
+        run: just build-image
+
+      - name: Test the Python binding
+        run: just test-python
+
+      - name: Fix podman cache permissions
+        if: always() && !cancelled()
+        run: sudo chown -R "$(id -u):$(id -g)" "${PODMAN_STORAGE_PATH}"
+
+      - name: Save podman image layers
+        if: always() && !cancelled()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.PODMAN_STORAGE_PATH }}
+          key: ${{ steps.podman-cache-restore.outputs.cache-primary-key }}
+
   lint:
     runs-on: ubuntu-latest
     steps:

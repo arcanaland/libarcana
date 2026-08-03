@@ -17,6 +17,7 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 option(ARCANA_BUILD_TESTS "Build the arcana test suite" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_INSTALL "Generate arcana install rules" ${PROJECT_IS_TOP_LEVEL})
+option(ARCANA_BUILD_PYTHON "Build the Python binding" OFF)
 
 find_package(tomlplusplus REQUIRED)
 
@@ -25,6 +26,10 @@ add_subdirectory(src)
 if(ARCANA_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(ARCANA_BUILD_PYTHON)
+    add_subdirectory(bindings/python)
 endif()
 
 if(ARCANA_INSTALL)

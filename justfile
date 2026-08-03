@@ -14,6 +14,8 @@ prefix := "/usr/local"
 stage := build_dir / "stage"
 staged_prefix := stage + prefix
 
+python_build_dir := build_root / "python"
+
 export LIBARCANA_IMAGE := image
 
 default:
@@ -45,6 +47,26 @@ build: configure
 [script]
 test: build
     ctest --preset {{preset}} --output-on-failure
+
+# Configure the nanobind binding env
+[script]
+configure-python: configure
+    cmake -S . -B {{python_build_dir}} -G Ninja \
+        -DCMAKE_TOOLCHAIN_FILE="$PWD/{{build_dir}}/generators/conan_toolchain.cmake" \
+        -DCMAKE_BUILD_TYPE={{build_type}} \
+        -DARCANA_BUILD_PYTHON=ON \
+        -DARCANA_INSTALL=OFF \
+        -DARCANA_FETCH_REFERENCE_DECKS=OFF
+
+# Build the nanobind smoke binding.
+[script]
+build-python: configure-python
+    cmake --build {{python_build_dir}}
+
+# Run the smoke binding's pytest suite.
+[script]
+test-python: build-python
+    ctest --test-dir {{python_build_dir}} -L python --output-on-failure
 
 # Stage the install tree.
 [script]
