@@ -1,4 +1,6 @@
 /build/
 .cache/
+__pycache__/
+.pytest_cache/
 CMakeUserPresets.json
 agents/

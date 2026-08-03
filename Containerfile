@@ -11,11 +11,12 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         git \
         clang-tools-extra \
         python3-pip \
+        python3-devel \
         gdb \
         libasan \
         libubsan \
     && dnf clean all
 
-RUN pip install --no-cache-dir conan
+RUN pip install --no-cache-dir conan nanobind pytest
 
 WORKDIR /src
