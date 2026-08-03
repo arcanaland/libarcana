@@ -71,12 +71,8 @@ void bind_span_view(nb::module_& m)
     nb::class_<span_view<T>>(m, "deck_summary_view")
         .def("__len__", [](span_view<T> const& self) { return self.items.size(); })
         .def(
-            "__getitem__",
-            [](span_view<T> const& self, std::size_t index) -> T const&
-            {
-                return self.items[index];
-            },
-            nb::rv_policy::reference_internal
+            "__getitem__", [](span_view<T> const& self, std::size_t index) -> T const&
+            { return self.items[index]; }, nb::rv_policy::reference_internal
         );
 }
 
