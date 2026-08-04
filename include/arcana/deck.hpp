@@ -54,15 +54,6 @@ struct deck_metadata
 };
 
 // The major component of [deck].schema_version
-//
-// DECK.md#1.4 requires the value to be "<major>.<minor>", two decimal
-// integers separated by a dot. This parses that form and nothing else: nullopt
-// where schema_version is absent, malformed, or names a major above 255.
-//
-// A malformed schema_version is itself a rule — `bad-schema-version` in the
-// diagnostic catalogue — so this returns nullopt rather than a sentinel major
-// that a caller could confuse with a real one. It validates nothing and
-// reports nothing.
 [[nodiscard]] std::optional<std::uint8_t> schema_major(deck_metadata const& metadata) noexcept;
 
 // One entry of [deck.companions].esoterica
