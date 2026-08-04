@@ -620,8 +620,7 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::document,
         .spec_ref = "DECK.md#3.1",
-        .explanation =
-            "This card reference is not a canonical ID with an optional variant suffix",
+        .explanation = "This card reference is not a canonical ID with an optional variant suffix",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -641,8 +640,7 @@ constexpr std::array catalogue{
         .area = "names",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#2.3",
-        .explanation =
-            "This name file is not encoded as UTF-8.",
+        .explanation = "This name file is not encoded as UTF-8.",
         .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
@@ -663,9 +661,10 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#7.6; DECK.md#9.4",
-        .explanation = "The packager and author fields carry the same value. The field exists to "
-                       "distinguish whoever assembled the directory from whoever created the artwork. "
-                       "Drop it, or correct whichever is wrong.",
+        .explanation =
+            "The packager and author fields carry the same value. The field exists to "
+            "distinguish whoever assembled the directory from whoever created the artwork. "
+            "Drop it, or correct whichever is wrong.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -948,8 +947,9 @@ constexpr std::array catalogue{
         .area = "names",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.2; DECK.md#4.3",
-        .explanation = "A name or alt text  only exists in deck.toml, where it cannot be translated."
-                       " Write it in the deck's name files as well.",
+        .explanation =
+            "A name or alt text  only exists in deck.toml, where it cannot be translated."
+            " Write it in the deck's name files as well.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },

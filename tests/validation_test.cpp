@@ -93,8 +93,7 @@ TEST_CASE("the catalogue is not empty", "[validation]")
 TEST_CASE("the catalogue is sorted strictly ascending by code", "[validation]")
 {
     auto const all = rules();
-    for (std::size_t i = 1; i < all.size(); ++i)
-      REQUIRE(all[i - 1].code < all[i].code);
+    for (std::size_t i = 1; i < all.size(); ++i) REQUIRE(all[i - 1].code < all[i].code);
 }
 
 TEST_CASE("find_rule is a bijection over the catalogue", "[validation]")
