@@ -36,4 +36,13 @@ target_sources(
 
 target_compile_features(arcana PUBLIC cxx_std_26)
 
-set_target_properties(arcana PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# PIC is required for the shared build and for linking this archive into a Python
+# extension module. Hidden keeps toml++'s symbols, which out of the dynamic symbol
+# table
+set_target_properties(
+    arcana
+    PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+)
