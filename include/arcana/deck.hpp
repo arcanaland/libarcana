@@ -53,6 +53,9 @@ struct deck_metadata
     std::vector<std::string> tags;
 };
 
+// The major component of [deck].schema_version
+[[nodiscard]] std::optional<std::uint8_t> schema_major(deck_metadata const& metadata) noexcept;
+
 // One entry of [deck.companions].esoterica
 struct esoterica_companion
 {
