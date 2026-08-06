@@ -1,0 +1,20 @@
+libarcana
+Copyright 2026 Adam Fidel
+
+This product is licensed under the MIT License. See LICENSE.
+
+It includes the following third-party material.
+
+--------------------------------------------------------------------------------
+
+SPDX License List
+Copyright Linux Foundation and SPDX contributors
+Licensed under the Creative Commons Attribution 3.0 Unported licence (CC-BY-3.0)
+https://creativecommons.org/licenses/by/3.0/
+
+The identifiers in src/data/spdx_licenses.cpp are generated from the SPDX
+License List data published at https://github.com/spdx/license-list-data. The
+release the file was generated from is recorded in a comment at the top of it.
+
+libarcana uses the list to check the `[deck].license` field of a deck against
+DECK.md section 7.1, which requires that its identifiers come from that list.

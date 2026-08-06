@@ -48,6 +48,7 @@ endfunction()
 
 set(arcana_fixtures_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
 
+add_subdirectory(data)
 add_subdirectory(loader)
 
 arcana_add_test(version_test)

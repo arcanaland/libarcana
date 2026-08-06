@@ -89,6 +89,11 @@ check-format:
 tidy: configure
     run-clang-tidy -quiet -p {{build_dir}} $(git ls-files 'src/*.cpp')
 
+# Regenerate the vendored SPDX License List. Not a build step; the output is checked in.
+[script]
+generate-spdx *tag:
+    python3 tools/generate_spdx_data.py {{tag}}
+
 # Trash build artifacts
 clean:
     rm -rf {{build_root}} CMakeUserPresets.json
