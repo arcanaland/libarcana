@@ -6,6 +6,8 @@
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>
 
+#include "validation/fixture.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -18,6 +20,10 @@
 #include <vector>
 
 using namespace arcana;
+
+using arcana_test::codes_of;
+using arcana_test::validate_fixture;
+using arcana_test::validation_fixtures;
 
 namespace
 {
@@ -346,26 +352,6 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "wrong-value-type",
 };
 
-constexpr std::array<std::string_view, 1> fixture_decks{
-    "ansi-outside-root",
-};
-
-std::vector<diagnostic> validate_fixture(std::string_view name)
-{
-    auto loaded = load_deck(std::filesystem::path{FIXTURES_DIR} / name);
-    REQUIRE(loaded.has_value());
-    return validate(*loaded);
-}
-
-std::vector<std::string_view> codes_of(std::vector<diagnostic> const& found)
-{
-    std::vector<std::string_view> codes;
-    codes.reserve(found.size());
-    for (auto const& one : found) codes.push_back(one.code);
-
-    return codes;
-}
-
 bool contains(std::span<std::string_view const> haystack, std::string_view needle)
 {
     return std::ranges::find(haystack, needle) != haystack.end();
@@ -376,7 +362,7 @@ bool contains(std::span<std::string_view const> haystack, std::string_view needl
 TEST_CASE("the three coverage lists partition the catalogue", "[validation][coverage]")
 {
     std::vector<std::string_view> covered;
-    for (auto const& name : fixture_decks)
+    for (auto const& name : validation_fixtures)
         for (auto const code : codes_of(validate_fixture(name)))
             if (!contains(covered, code))
                 covered.push_back(code);
@@ -405,7 +391,7 @@ TEST_CASE("the three coverage lists partition the catalogue", "[validation][cove
 
 TEST_CASE("no deferred rule has a fixture that fires it", "[validation][coverage]")
 {
-    for (auto const& name : fixture_decks)
+    for (auto const& name : validation_fixtures)
         for (auto const code : codes_of(validate_fixture(name)))
         {
             INFO("fixture: " << name);
@@ -425,66 +411,18 @@ TEST_CASE("validate on a deck with no root on disk finds nothing", "[validation]
 
 TEST_CASE("validate is deterministic", "[validation]")
 {
-    auto const once = codes_of(validate_fixture("ansi-outside-root"));
-    auto const twice = codes_of(validate_fixture("ansi-outside-root"));
+    auto const once = codes_of(validate_fixture(validation_fixtures.front()));
+    auto const twice = codes_of(validate_fixture(validation_fixtures.front()));
     CHECK(once == twice);
 }
 
 TEST_CASE("validate never runs a rule that needs a whole library", "[validation]")
 {
-    for (auto const& name : fixture_decks)
+    for (auto const& name : validation_fixtures)
         for (auto const code : codes_of(validate_fixture(name)))
         {
             INFO("code: " << code);
             REQUIRE(find_rule(code) != nullptr);
             CHECK(find_rule(code)->needs != phase::library);
         }
-}
-
-// ---------------------------------------------------------------------------
-// ansi
-// ---------------------------------------------------------------------------
-
-TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
-{
-    auto const found = validate_fixture("ansi-outside-root");
-
-    // ansi32/ is a well-formed ANSI root, so neither the card art nor the card
-    // back under it is reported. `ansi/` names no line count and `ansi032/`
-    // carries a leading zero, so DECK.md section 5.7.1 makes both of them
-    // ordinary directories. previews/ was never a root. notes.txt carries no
-    // ESC and is plain text, which section 5.4 does not distinguish from any
-    // other text file.
-    REQUIRE(
-        codes_of(found) == std::vector<std::string_view>{
-                               "ansi-outside-image-root",
-                               "ansi-outside-image-root",
-                               "ansi-outside-image-root",
-                           }
-    );
-
-    std::vector<std::string> paths;
-    for (auto const& one : found)
-    {
-        REQUIRE(one.path.has_value());
-        paths.push_back(one.path->generic_string());
-    }
-
-    // Sorted by path, which is what the diagnostic ordering gives.
-    CHECK(
-        paths == std::vector<std::string>{
-                     "ansi/major_arcana/00.ans",
-                     "ansi032/major_arcana/00.ans",
-                     "previews/banner.ans",
-                 }
-    );
-
-    for (auto const& one : found)
-    {
-        INFO("path: " << one.path->generic_string());
-        CHECK(one.level == severity::info);
-        CHECK(one.message.find(one.path->generic_string()) != std::string::npos);
-        CHECK_FALSE(one.card.has_value());
-        CHECK_FALSE(one.key.has_value());
-    }
 }

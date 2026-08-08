@@ -50,6 +50,7 @@ set(arcana_fixtures_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
 
 add_subdirectory(data)
 add_subdirectory(loader)
+add_subdirectory(validation)
 
 arcana_add_test(version_test)
 arcana_add_test(paths_test)

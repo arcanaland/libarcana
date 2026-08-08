@@ -20,7 +20,7 @@ namespace
 
 std::string fixture(std::string const& name)
 {
-    return std::string(FIXTURES_DIR) + "/" + name;
+    return std::string(FIXTURES_DIR) + "/loader/" + name;
 }
 
 std::optional<card> find(deck const& d, std::string_view canonical_id)
