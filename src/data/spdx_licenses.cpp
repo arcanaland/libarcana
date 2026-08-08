@@ -9,8 +9,8 @@
 // Regenerate with `just generate-spdx`, which runs tools/generate_spdx_data.py.
 //
 // Source: the SPDX License List, release 3.28.0 of 2026-02-20, taken from
-// https://github.com/spdx/license-list-data at tag v3.28.0. The list data is CC-BY-3.0; see the
-// NOTICE file at the repository root.
+// https://github.com/spdx/license-list-data at tag v3.28.0. The list data is CC-BY-3.0; see
+// LICENSES/CC-BY-3.0.txt.
 //
 // The pin is deliberate. An identifier added upstream after this release is not
 // known here and draws a spurious finding, which is why bad-spdx-expression is a

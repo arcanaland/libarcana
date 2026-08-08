@@ -89,7 +89,12 @@ check-format:
 tidy: configure
     run-clang-tidy -quiet -p {{build_dir}} $(git ls-files 'src/*.cpp')
 
-# Regenerate the vendored SPDX License List. Not a build step; the output is checked in.
+# Check that every file declares its copyright and licence (REUSE 3.3).
+[script]
+lint-reuse:
+    reuse lint
+
+# Regenerate the vendored SPDX License List.
 [script]
 generate-spdx *tag:
     python3 tools/generate_spdx_data.py {{tag}}

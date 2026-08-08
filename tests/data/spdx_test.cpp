@@ -22,12 +22,11 @@ TEST_CASE("the vendored list carries the identifiers a deck uses", "[spdx]")
     CHECK(is_spdx_license_id("Apache-2.0"));
     CHECK(is_spdx_license_id("0BSD"));
 
-    // Deprecated identifiers are still on the list, so a deck naming one
-    // satisfies DECK.md section 7.1.
+    // Deprecated identifiers are still on the list
     CHECK(is_spdx_license_id("GPL-2.0"));
 }
 
-TEST_CASE("membership is case-sensitive, as DECK.md 7.1 says", "[spdx]")
+TEST_CASE("membership is case-sensitive", "[spdx]")
 {
     CHECK_FALSE(is_spdx_license_id("mit"));
     CHECK_FALSE(is_spdx_license_id("Mit"));
@@ -76,7 +75,7 @@ TEST_CASE("well-formed expressions parse and their identifiers resolve", "[spdx]
     }
 }
 
-TEST_CASE("ill-formed expressions are reported as such and name nothing", "[spdx]")
+TEST_CASE("ill-formed expressions are reported", "[spdx]")
 {
     for (std::string_view const expression : {
              "",
@@ -114,7 +113,6 @@ TEST_CASE("a well-formed expression can still name an identifier off the list", 
     CHECK(two.well_formed);
     CHECK(two.unknown_identifier == "Nope-1.0");
 
-    // Case is the usual way to get here.
     auto const lowered = check_spdx_expression("mit");
     CHECK(lowered.well_formed);
     CHECK(lowered.unknown_identifier == "mit");
@@ -124,7 +122,7 @@ TEST_CASE("a well-formed expression can still name an identifier off the list", 
     CHECK(exception.unknown_identifier == "Not-An-Exception");
 }
 
-TEST_CASE("a LicenseRef is well-formed by construction and never looked up", "[spdx]")
+TEST_CASE("a LicenseRef is well-formed", "[spdx]")
 {
     auto const ref = check_spdx_expression("LicenseRef-Something-Nobody-Registered");
     CHECK(ref.well_formed);

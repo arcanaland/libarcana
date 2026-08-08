@@ -23,13 +23,23 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUTPUT = REPO_ROOT / "src" / "data" / "spdx_licenses.cpp"
 
 HEADER = """\
-// GENERATED FILE. DO NOT EDIT.
-//
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 //
 // SPDX-FileCopyrightText: Linux Foundation and SPDX contributors
 // SPDX-License-Identifier: CC-BY-3.0
+
+// GENERATED FILE. DO NOT EDIT.
+//
+// Regenerate with `just generate-spdx`, which runs tools/generate_spdx_data.py.
+//
+// Source: the SPDX License List, release @version@ of @date@, taken from
+// https://github.com/@repo@ at tag @tag@. The list data is CC-BY-3.0; see
+// LICENSES/CC-BY-3.0.txt.
+//
+// The pin is deliberate. An identifier added upstream after this release is not
+// known here and draws a spurious finding, which is why bad-spdx-expression is a
+// warning rather than an error (DECK.md section 7.1).
 
 #include "spdx_licenses.hpp"
 
@@ -43,7 +53,8 @@ namespace arcana::data
 namespace
 {
 
-// Deprecated identifiers are included
+// Sorted ascending bytewise. Deprecated identifiers are included: they are on
+// the list, so a deck naming one satisfies DECK.md section 7.1.
 constexpr std::array<std::string_view, @license_count@> license_ids{
 @license_rows@
 };
