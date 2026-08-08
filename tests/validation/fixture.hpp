@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// Shared by validation_test.cpp and every tests/validation/<area>_test.cpp.
-
 #pragma once
 
 #include <arcana/deck.hpp>
@@ -18,10 +16,6 @@
 namespace arcana_test
 {
 
-// Every fixture deck under tests/fixtures/validation/, as a path relative to
-// FIXTURES_DIR. This is the list the coverage test walks, so a fixture missing
-// from it reads as coverage and is not — add the row in the same layer that
-// adds the directory.
 constexpr std::array<std::string_view, 1> validation_fixtures{
     "validation/ansi/ansi-outside-root-error",
 };

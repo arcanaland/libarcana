@@ -21,14 +21,6 @@ TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
 {
     auto const found = validate_fixture("validation/ansi/ansi-outside-root-error");
 
-    // ansi32/ is a well-formed ANSI root, so neither the card art nor the card
-    // back under it is reported. `ansi/` names no line count and `ansi032/`
-    // carries a leading zero, so DECK.md section 5.7.1 makes both of them
-    // ordinary directories. previews/ was never a root. notes.txt carries no
-    // ESC and is plain text, which section 5.4 does not distinguish from any
-    // other text file.
-    //
-    // Closed world: this is the complete set, in catalogue order.
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "ansi-outside-image-root",
@@ -44,7 +36,6 @@ TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
         paths.push_back(one.path->generic_string());
     }
 
-    // Sorted by path, which is what the diagnostic ordering gives.
     CHECK(
         paths == std::vector<std::string>{
                      "ansi/major_arcana/00.ans",
