@@ -3,6 +3,7 @@
 
 add_subdirectory(data)
 add_subdirectory(loader)
+add_subdirectory(validation)
 
 add_library(arcana)
 add_library(arcana::arcana ALIAS arcana)
@@ -34,6 +35,7 @@ target_sources(
         validation.cpp
         $<TARGET_OBJECTS:arcana-data>
         $<TARGET_OBJECTS:arcana-loader>
+        $<TARGET_OBJECTS:arcana-validation>
 )
 
 target_compile_features(arcana PUBLIC cxx_std_26)

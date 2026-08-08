@@ -50,6 +50,7 @@ set(arcana_fixtures_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
 
 add_subdirectory(data)
 add_subdirectory(loader)
+add_subdirectory(validation)
 
 arcana_add_test(version_test)
 arcana_add_test(paths_test)
@@ -57,7 +58,7 @@ arcana_add_test(card_test)
 arcana_add_test(deck_test DEFINES
     FIXTURES_DIR="${arcana_fixtures_dir}"
     REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}")
-arcana_add_test(validation_test)
+arcana_add_test(validation_test DEFINES FIXTURES_DIR="${arcana_fixtures_dir}")
 arcana_add_test(library_test
     DEFINES FIXTURES_DIR="${arcana_fixtures_dir}"
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/loader)
