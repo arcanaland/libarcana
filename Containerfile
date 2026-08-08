@@ -17,6 +17,6 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         libubsan \
     && dnf clean all
 
-RUN pip install --no-cache-dir conan nanobind pytest
+RUN pip install --no-cache-dir conan nanobind pytest reuse
 
 WORKDIR /src

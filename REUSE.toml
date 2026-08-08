@@ -1,0 +1,19 @@
+version = 1
+SPDX-PackageName = "libarcana"
+SPDX-PackageSupplier = "Adam Fidel <adam@fidel.cloud>"
+SPDX-PackageDownloadLocation = "https://github.com/arcanaland/libarcana"
+
+[[annotations]]
+path = [
+  ".clang-format",
+  ".clang-tidy",
+  ".gitignore",
+  "conan.lock",
+  "lefthook.yml",
+  "LICENSE",
+  "README.md",
+  "tests/fixtures/**",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Adam Fidel"
+SPDX-License-Identifier = "MIT"

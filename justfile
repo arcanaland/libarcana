@@ -89,6 +89,16 @@ check-format:
 tidy: configure
     run-clang-tidy -quiet -p {{build_dir}} $(git ls-files 'src/*.cpp')
 
+# Check that every file declares its copyright and licence (REUSE 3.3).
+[script]
+lint-reuse:
+    reuse lint
+
+# Regenerate the vendored SPDX License List.
+[script]
+generate-spdx *tag:
+    python3 tools/generate_spdx_data.py {{tag}}
+
 # Trash build artifacts
 clean:
     rm -rf {{build_root}} CMakeUserPresets.json

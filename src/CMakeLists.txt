@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
+add_subdirectory(data)
 add_subdirectory(loader)
 
 add_library(arcana)
@@ -31,6 +32,7 @@ target_sources(
         deck.cpp
         library.cpp
         validation.cpp
+        $<TARGET_OBJECTS:arcana-data>
         $<TARGET_OBJECTS:arcana-loader>
 )
 

@@ -1,0 +1,38 @@
+// SPDX-FileCopyrightText: 2026 Adam Fidel
+// SPDX-License-Identifier: MIT
+
+#include <image_signature.hpp>
+
+#include <catch2/catch_test_macros.hpp>
+
+#include <cstddef>
+#include <span>
+#include <string_view>
+
+using arcana::data::image_format;
+using arcana::data::sniff_image_format;
+
+namespace
+{
+
+// Wraps the bytes a signature test cares about, which is all sniffing reads.
+std::span<std::byte const> bytes_of(std::string_view s)
+{
+    return {reinterpret_cast<std::byte const*>(s.data()), s.size()};
+}
+
+}  // namespace
+
+TEST_CASE("image formats are read from signature bytes", "[image_signature]")
+{
+    CHECK(sniff_image_format(bytes_of("\x89PNG\r\n\x1a\n\x00\x00")) == image_format::png);
+    CHECK(sniff_image_format(bytes_of("\xff\xd8\xff\xe0JFIF")) == image_format::jpeg);
+
+    CHECK(sniff_image_format(bytes_of("<svg xmlns=")) == image_format::unknown);
+    CHECK(sniff_image_format(bytes_of("GIF89a")) == image_format::unknown);
+    CHECK(sniff_image_format(bytes_of("")) == image_format::unknown);
+
+    // A truncated signature is not a signature.
+    CHECK(sniff_image_format(bytes_of("\x89PNG")) == image_format::unknown);
+    CHECK(sniff_image_format(bytes_of("\xff\xd8")) == image_format::unknown);
+}
