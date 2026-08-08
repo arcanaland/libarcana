@@ -17,12 +17,12 @@ def fixtures_dir() -> Path:
 @pytest.fixture
 def alt_root(fixtures_dir: Path) -> Path:
     """A library root holding deck-two, deck-three and deck-broken."""
-    return fixtures_dir / "library-root-alt"
+    return fixtures_dir / "loader" / "library-root-alt"
 
 
 @pytest.fixture
 def reference_deck(fixtures_dir: Path) -> Path:
-    return fixtures_dir / "reference-deck"
+    return fixtures_dir / "loader" / "reference-deck"
 
 
 def write_deck(root: Path, directory_name: str, deck_id: str | None = None) -> Path:
