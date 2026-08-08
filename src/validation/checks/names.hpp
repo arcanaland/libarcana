@@ -10,6 +10,4 @@
 namespace arcana::validation
 {
 
-// No check is written yet. Declarations land here as TASK-016's layers do.
-
 }  // namespace arcana::validation

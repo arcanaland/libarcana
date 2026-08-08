@@ -22,8 +22,6 @@ void run_all(
     std::vector<diagnostic>& out
 )
 {
-    // all_rules() and checks are parallel arrays; the static_assert in
-    // catalogue.cpp is what makes indexing one with the other's index sound.
     auto const catalogue = all_rules();
 
     for (std::size_t i = 0; i < catalogue.size(); ++i)

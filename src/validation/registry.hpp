@@ -1,13 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// Which check runs for which code.
-//
-// This header is cheap: it carries the 87-row dispatch table and nothing else.
-// The catalogue itself — ~1,000 lines of constexpr `rule` — stays out of it and
-// out of every area translation unit, which is the whole point of the split.
-// The assertion that this table covers the catalogue lives in catalogue.cpp,
-// the one translation unit that sees both.
+// Which checks run for which codes.
 
 #pragma once
 
@@ -32,10 +26,6 @@
 
 namespace arcana::validation
 {
-
-// A `constexpr` pointer to a function merely *declared* in another translation
-// unit is a valid constant expression, which is what keeps this table
-// `constexpr` now that the bodies live in checks/.
 
 // TODO
 constexpr check_fn deferred = nullptr;
