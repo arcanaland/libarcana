@@ -10,8 +10,12 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using namespace arcana;
 
@@ -213,12 +217,6 @@ TEST_CASE("exactly one rule needs a whole library", "[validation]")
     CHECK(library_wide.front() == "duplicate-deck-identifier");
 }
 
-TEST_CASE("validate returns nothing", "[validation]")
-{
-    deck const empty{};
-    CHECK(validate(empty).empty());
-}
-
 TEST_CASE("schema_major", "[validation]")
 {
     auto const major_of = [](std::string_view text)
@@ -242,4 +240,257 @@ TEST_CASE("schema_major rejects a major it cannot carry", "[validation]")
     deck_metadata metadata;
     metadata.schema_version = "256.0";
     CHECK_FALSE(schema_major(metadata).has_value());
+}
+
+// ---------------------------------------------------------------------------
+// Coverage
+// ---------------------------------------------------------------------------
+
+namespace
+{
+
+// The two rules TASK-016 deliberately leaves unimplemented. Both keep their
+// catalogue entries; neither is marked experimental, because experimental
+// describes a check that exists.
+constexpr std::array<std::string_view, 2> deferred{
+    // Needs an image decoder, and no image decoder enters this tree.
+    "aspect-ratio-mismatch",
+
+    // The sole phase::library rule. validate(deck const&) cannot see a
+    // sibling deck, and the frozen surface gains no overload for one.
+    "duplicate-deck-identifier",
+};
+
+// Codes whose checks are not written yet. TASK-016 layers 2-8 delete their own
+// rows from this list as they land; when it is empty the stack is done.
+constexpr std::array<std::string_view, 84> not_yet_covered{
+    "backslash-in-path",
+    "bad-app-realm",
+    "bad-card-back-design-key",
+    "bad-cards-table-key",
+    "bad-custom-name",
+    "bad-deck-identifier",
+    "bad-language-tag",
+    "bad-link-rel",
+    "bad-link-url",
+    "bad-name-template-placeholder",
+    "bad-palette-color",
+    "bad-palette-snapped-color",
+    "bad-rights-field-value",
+    "bad-rights-status-uri",
+    "bad-schema-version",
+    "bad-signifies",
+    "bad-spdx-expression",
+    "bom-in-toml",
+    "card-back-default-by-collation",
+    "card-back-not-baseline-format",
+    "deck-has-no-cards",
+    "deck-identifier-path-shape",
+    "declared-card-without-image",
+    "deprecated-1-0-key",
+    "duplicate-card-position",
+    "duplicate-chain-extension",
+    "duplicate-rank-in-ranks",
+    "empty-card-number",
+    "excluded-card-also-declared",
+    "excluded-card-has-image",
+    "ignored-card-back-file",
+    "ignored-image-root-lookalike",
+    "language-tag-case-collision",
+    "malformed-deck-toml",
+    "malformed-name-file",
+    "malformed-surrogate-file",
+    "missing-alt-text",
+    "missing-card-back-image",
+    "missing-deck-identifier",
+    "missing-deck-toml",
+    "missing-default-language-file",
+    "missing-edition-default",
+    "missing-license-file",
+    "missing-license-text",
+    "missing-packager",
+    "missing-required-field",
+    "missing-variant-image",
+    "no-rights-statement",
+    "non-canonical-card-reference",
+    "non-canonical-language-tag",
+    "non-utf8-name-file",
+    "non-utf8-toml",
+    "packager-equals-author",
+    "palette-snapped-length-mismatch",
+    "position-on-minor-arcanum",
+    "rank-without-image",
+    "raster-outside-image-root",
+    "redistribution-contradicts-rights-status",
+    "redistribution-narrower-than-license",
+    "reserved-custom-name",
+    "signifies-self",
+    "stem-case-collision",
+    "surrogate-deck-redistribution-full",
+    "surrogate-deck-without-buy-link",
+    "surrogate-deck-without-license",
+    "surrogate-deck-without-signifies",
+    "svg-outside-scalable",
+    "symlink-escapes-deck-root",
+    "unknown-default-card-back",
+    "unknown-edition-card-back",
+    "unknown-edition-default",
+    "unknown-metadata-alt-text-key",
+    "unknown-name-key",
+    "unknown-surrogate-key",
+    "unknown-table",
+    "unknown-variant-default",
+    "unlocalized-fallback-string",
+    "unnamed-extended-major",
+    "unregistered-link-rel",
+    "unsafe-path",
+    "variant-card-without-default",
+    "variant-for-unknown-card",
+    "variant-missing-alt-text",
+    "wrong-value-type",
+};
+
+// One fixture deck per implemented code. A fixture may fire more than one code,
+// but every implemented code needs a fixture that provably fires it.
+constexpr std::array<std::string_view, 1> fixture_decks{
+    "ansi-outside-root",
+};
+
+std::vector<diagnostic> validate_fixture(std::string_view name)
+{
+    auto loaded = load_deck(std::filesystem::path{FIXTURES_DIR} / name);
+    REQUIRE(loaded.has_value());
+    return validate(*loaded);
+}
+
+std::vector<std::string_view> codes_of(std::vector<diagnostic> const& found)
+{
+    std::vector<std::string_view> codes;
+    codes.reserve(found.size());
+    for (auto const& one : found) codes.push_back(one.code);
+
+    return codes;
+}
+
+bool contains(std::span<std::string_view const> haystack, std::string_view needle)
+{
+    return std::ranges::find(haystack, needle) != haystack.end();
+}
+
+}  // namespace
+
+TEST_CASE("the three coverage lists partition the catalogue", "[validation][coverage]")
+{
+    std::vector<std::string_view> covered;
+    for (auto const& name : fixture_decks)
+        for (auto const code : codes_of(validate_fixture(name)))
+            if (!contains(covered, code))
+                covered.push_back(code);
+
+    for (auto const& r : rules())
+    {
+        INFO("rule: " << r.code);
+
+        int const memberships = static_cast<int>(contains(covered, r.code)) +
+                                static_cast<int>(contains(not_yet_covered, r.code)) +
+                                static_cast<int>(contains(deferred, r.code));
+
+        CHECK(memberships == 1);
+    }
+
+    // Every code a fixture fired is a real one, so the three lists cover the
+    // catalogue and nothing else.
+    for (auto const code : covered)
+    {
+        INFO("code: " << code);
+        CHECK(find_rule(code) != nullptr);
+    }
+
+    CHECK(covered.size() + not_yet_covered.size() + deferred.size() == rules().size());
+}
+
+TEST_CASE("no deferred rule has a fixture that fires it", "[validation][coverage]")
+{
+    for (auto const& name : fixture_decks)
+        for (auto const code : codes_of(validate_fixture(name)))
+        {
+            INFO("fixture: " << name);
+            CHECK_FALSE(contains(deferred, code));
+        }
+}
+
+// ---------------------------------------------------------------------------
+// Harness
+// ---------------------------------------------------------------------------
+
+TEST_CASE("validate on a deck with no root on disk finds nothing", "[validation]")
+{
+    deck const empty{};
+    CHECK(validate(empty).empty());
+}
+
+TEST_CASE("validate is deterministic", "[validation]")
+{
+    auto const once = codes_of(validate_fixture("ansi-outside-root"));
+    auto const twice = codes_of(validate_fixture("ansi-outside-root"));
+    CHECK(once == twice);
+}
+
+TEST_CASE("validate never runs a rule that needs a whole library", "[validation]")
+{
+    for (auto const& name : fixture_decks)
+        for (auto const code : codes_of(validate_fixture(name)))
+        {
+            INFO("code: " << code);
+            REQUIRE(find_rule(code) != nullptr);
+            CHECK(find_rule(code)->needs != phase::library);
+        }
+}
+
+// ---------------------------------------------------------------------------
+// ansi
+// ---------------------------------------------------------------------------
+
+TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
+{
+    auto const found = validate_fixture("ansi-outside-root");
+
+    // ansi32/ is a well-formed ANSI root, so neither the card art nor the card
+    // back under it is reported. `ansi/` names no line count and `ansi032/`
+    // carries a leading zero, so DECK.md section 5.7.1 makes both of them
+    // ordinary directories. previews/ was never a root. notes.txt carries no
+    // ESC and is plain text, which section 5.4 does not distinguish from any
+    // other text file.
+    REQUIRE(
+        codes_of(found) == std::vector<std::string_view>{
+                               "ansi-outside-image-root",
+                               "ansi-outside-image-root",
+                               "ansi-outside-image-root",
+                           }
+    );
+
+    std::vector<std::string> paths;
+    for (auto const& one : found)
+    {
+        REQUIRE(one.path.has_value());
+        paths.push_back(one.path->generic_string());
+    }
+
+    // Sorted by path, which is what the diagnostic ordering gives.
+    CHECK(
+        paths == std::vector<std::string>{
+                     "ansi/major_arcana/00.ans",
+                     "ansi032/major_arcana/00.ans",
+                     "previews/banner.ans",
+                 }
+    );
+
+    for (auto const& one : found)
+    {
+        INFO("path: " << one.path->generic_string());
+        CHECK(one.level == severity::info);
+        CHECK(one.message.find(one.path->generic_string()) != std::string::npos);
+        CHECK_FALSE(one.card.has_value());
+        CHECK_FALSE(one.key.has_value());
+    }
 }

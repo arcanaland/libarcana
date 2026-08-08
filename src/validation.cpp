@@ -7,9 +7,24 @@
 
 #include <arcana/validation.hpp>
 
+#include "data/ascii.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <ios>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace arcana
 {
@@ -1051,6 +1066,348 @@ static_assert(
     "the catalogue must be sorted strictly ascending by code, with no duplicate code"
 );
 
+
+// The major a deck is judged under when [deck].schema_version cannot be read:
+// the newest this catalogue knows.
+constexpr std::uint8_t current_schema_major = 2;
+
+// ---------------------------------------------------------------------------
+// The deck's tree
+// ---------------------------------------------------------------------------
+
+// One regular file inside a deck root.
+struct deck_file
+{
+    // Deck-root-relative. This is what a diagnostic's `path` carries.
+    std::filesystem::path relative;
+
+    std::filesystem::path absolute;
+};
+
+// Every regular file under the deck root, sorted by relative path.
+//
+// Walked once and shared by every phase::filesystem check, so no check pays
+// for the traversal twice and every check sees the same order regardless of
+// what directory_iterator hands back.
+//
+// Directory symlinks are not descended and no symlink resolving outside the
+// deck root is followed (DECK.md section 10.1). Escaping links are skipped
+// silently here; symlink-escapes-deck-root is what reports them.
+std::vector<deck_file> walk_deck(std::filesystem::path const& root)
+{
+    namespace fs = std::filesystem;
+
+    std::vector<deck_file> files;
+
+    std::error_code ec;
+    if (!fs::is_directory(root, ec))
+        return files;
+
+    auto const canonical_root = fs::weakly_canonical(root, ec);
+    if (ec)
+        return files;
+
+    fs::recursive_directory_iterator it{root, fs::directory_options::skip_permission_denied, ec};
+    if (ec)
+        return files;
+
+    // True when what this path names resolves to the deck root itself or to
+    // something under it.
+    auto const stays_inside = [&canonical_root](fs::path const& candidate)
+    {
+        std::error_code resolve_ec;
+        auto const resolved = fs::weakly_canonical(candidate, resolve_ec);
+        if (resolve_ec)
+            return false;
+
+        auto const inside = resolved.lexically_relative(canonical_root);
+        return !inside.empty() && *inside.begin() != "..";
+    };
+
+    for (fs::recursive_directory_iterator const end; it != end; it.increment(ec))
+    {
+        if (ec)
+            break;
+
+        auto const& path = it->path();
+
+        if (it->is_symlink(ec) && !stays_inside(path))
+        {
+            it.disable_recursion_pending();
+            continue;
+        }
+
+        if (!it->is_regular_file(ec))
+            continue;
+
+        files.push_back({.relative = path.lexically_relative(root), .absolute = path});
+    }
+
+    std::ranges::sort(files, {}, &deck_file::relative);
+    return files;
+}
+
+// ---------------------------------------------------------------------------
+// What a check is
+// ---------------------------------------------------------------------------
+
+// What a check reports. Every field but the message is optional because most
+// rules locate their finding with only one of them.
+struct finding
+{
+    std::string message;
+    std::optional<std::string> card;
+    std::optional<std::filesystem::path> path;
+    std::optional<std::string> key;
+};
+
+// What a check sees. It never sees anything else: no globals, no caching, no
+// logging, no locale.
+struct check_context
+{
+    deck const& d;
+
+    // The deck's own tree, already walked. Empty for a phase::document check
+    // whose deck has no root on disk.
+    std::span<deck_file const> files;
+
+    // The rule being run. A finding takes its level and code from here.
+    rule const& r;
+
+    std::vector<diagnostic>& out;
+
+    void report(finding what) const
+    {
+        out.push_back(
+            diagnostic{
+                .level = r.default_level,
+                .code = r.code,
+                .message = std::move(what.message),
+                .card = std::move(what.card),
+                .path = std::move(what.path),
+                .key = std::move(what.key),
+            }
+        );
+    }
+};
+
+using check_fn = void (*)(check_context const&);
+
+// ---------------------------------------------------------------------------
+// Checks: ansi
+// ---------------------------------------------------------------------------
+
+// DECK.md section 5.7.1: an ANSI image root is `ansi<lines>/`, where <lines> is
+// a decimal integer greater than zero written without a sign, leading zeroes or
+// separators. `ansi/`, `ansi0/` and `ansi032/` are therefore ordinary
+// directories that discovery ignores.
+//
+// src/loader/loader.cpp's looks_like_ansi_root() is looser than this: it admits
+// leading zeroes. That divergence is a loader bug and is not fixed here.
+bool is_ansi_root_name(std::string_view name)
+{
+    if (!name.starts_with("ansi"))
+        return false;
+
+    auto const lines = name.substr(4);
+    if (lines.empty() || lines.front() == '0')
+        return false;
+
+    return std::ranges::all_of(lines, data::is_digit);
+}
+
+// How much of a file is read before giving up on finding an ESC. ANSI art is
+// small; anything this far in without one is not art that a terminal reads.
+constexpr std::size_t ansi_sniff_bytes = 64UL * 1024UL;
+
+// How much is read at a time while doing it.
+constexpr std::size_t ansi_sniff_chunk = 4096;
+
+// DECK.md section 5.4 fixes an ANSI file's kind by its content rather than its
+// extension: art carrying escape sequences necessarily contains ESC (0x1B), and
+// a file with no ESC byte is plain text.
+//
+// Plain text is indistinguishable from any other text file, so this recognizes
+// escape-carrying art only. It under-reports rather than guessing, which is why
+// the rule this serves is info and not error. A NUL byte before any ESC settles
+// the file as binary, which keeps card artwork out of the result.
+bool carries_ansi_escapes(std::filesystem::path const& file)
+{
+    std::ifstream stream{file, std::ios::binary};
+    if (!stream)
+        return false;
+
+    std::array<char, ansi_sniff_chunk> buffer{};
+    for (std::size_t seen = 0; seen < ansi_sniff_bytes;)
+    {
+        stream.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+
+        auto const got = static_cast<std::size_t>(stream.gcount());
+        if (got == 0)
+            break;
+
+        seen += got;
+
+        auto const chunk = std::string_view(buffer.data(), got);
+        auto const stop = chunk.find_first_of(std::string_view("\0\x1b", 2));
+        if (stop != std::string_view::npos)
+            return chunk[stop] == '\x1b';
+    }
+
+    return false;
+}
+
+void check_ansi_outside_image_root(check_context const& ctx)
+{
+    for (auto const& file : ctx.files)
+    {
+        if (is_ansi_root_name(file.relative.begin()->string()))
+            continue;
+
+        if (!carries_ansi_escapes(file.absolute))
+            continue;
+
+        auto const shown = file.relative.generic_string();
+        ctx.report({
+            .message =
+                std::format("'{}' carries ANSI escapes but is under no ansi<lines>/ root", shown),
+            .path = file.relative,
+        });
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The dispatch table
+// ---------------------------------------------------------------------------
+
+// TASK-016 defers two rules, both for a reason that outlives the task.
+// aspect-ratio-mismatch needs an image decoder, and no image decoder enters
+// this tree; duplicate-deck-identifier is the sole phase::library rule and
+// validate(deck const&) cannot reach a sibling deck. Their catalogue entries
+// are untouched, and the coverage test names them.
+constexpr check_fn deferred = nullptr;
+
+// No check is written yet. TASK-016 layers 2-8 replace these one area at a
+// time; each layer also deletes its codes from the coverage test's
+// not_yet_covered list.
+constexpr check_fn pending = nullptr;
+
+struct check_entry
+{
+    std::string_view code;
+    check_fn run;
+};
+
+// One row per catalogue rule, in catalogue order. The static_assert below ties
+// the two element by element, so a rule minted without a row here -- or a row
+// whose code no longer names a rule -- is a compile error rather than a check
+// that silently never runs.
+constexpr std::array checks{
+    check_entry{.code = "ansi-outside-image-root", .run = check_ansi_outside_image_root},
+    check_entry{.code = "aspect-ratio-mismatch", .run = deferred},
+    check_entry{.code = "backslash-in-path", .run = pending},
+    check_entry{.code = "bad-app-realm", .run = pending},
+    check_entry{.code = "bad-card-back-design-key", .run = pending},
+    check_entry{.code = "bad-cards-table-key", .run = pending},
+    check_entry{.code = "bad-custom-name", .run = pending},
+    check_entry{.code = "bad-deck-identifier", .run = pending},
+    check_entry{.code = "bad-language-tag", .run = pending},
+    check_entry{.code = "bad-link-rel", .run = pending},
+    check_entry{.code = "bad-link-url", .run = pending},
+    check_entry{.code = "bad-name-template-placeholder", .run = pending},
+    check_entry{.code = "bad-palette-color", .run = pending},
+    check_entry{.code = "bad-palette-snapped-color", .run = pending},
+    check_entry{.code = "bad-rights-field-value", .run = pending},
+    check_entry{.code = "bad-rights-status-uri", .run = pending},
+    check_entry{.code = "bad-schema-version", .run = pending},
+    check_entry{.code = "bad-signifies", .run = pending},
+    check_entry{.code = "bad-spdx-expression", .run = pending},
+    check_entry{.code = "bom-in-toml", .run = pending},
+    check_entry{.code = "card-back-default-by-collation", .run = pending},
+    check_entry{.code = "card-back-not-baseline-format", .run = pending},
+    check_entry{.code = "deck-has-no-cards", .run = pending},
+    check_entry{.code = "deck-identifier-path-shape", .run = pending},
+    check_entry{.code = "declared-card-without-image", .run = pending},
+    check_entry{.code = "deprecated-1-0-key", .run = pending},
+    check_entry{.code = "duplicate-card-position", .run = pending},
+    check_entry{.code = "duplicate-chain-extension", .run = pending},
+    check_entry{.code = "duplicate-deck-identifier", .run = deferred},
+    check_entry{.code = "duplicate-rank-in-ranks", .run = pending},
+    check_entry{.code = "empty-card-number", .run = pending},
+    check_entry{.code = "excluded-card-also-declared", .run = pending},
+    check_entry{.code = "excluded-card-has-image", .run = pending},
+    check_entry{.code = "ignored-card-back-file", .run = pending},
+    check_entry{.code = "ignored-image-root-lookalike", .run = pending},
+    check_entry{.code = "language-tag-case-collision", .run = pending},
+    check_entry{.code = "malformed-deck-toml", .run = pending},
+    check_entry{.code = "malformed-name-file", .run = pending},
+    check_entry{.code = "malformed-surrogate-file", .run = pending},
+    check_entry{.code = "missing-alt-text", .run = pending},
+    check_entry{.code = "missing-card-back-image", .run = pending},
+    check_entry{.code = "missing-deck-identifier", .run = pending},
+    check_entry{.code = "missing-deck-toml", .run = pending},
+    check_entry{.code = "missing-default-language-file", .run = pending},
+    check_entry{.code = "missing-edition-default", .run = pending},
+    check_entry{.code = "missing-license-file", .run = pending},
+    check_entry{.code = "missing-license-text", .run = pending},
+    check_entry{.code = "missing-packager", .run = pending},
+    check_entry{.code = "missing-required-field", .run = pending},
+    check_entry{.code = "missing-variant-image", .run = pending},
+    check_entry{.code = "no-rights-statement", .run = pending},
+    check_entry{.code = "non-canonical-card-reference", .run = pending},
+    check_entry{.code = "non-canonical-language-tag", .run = pending},
+    check_entry{.code = "non-utf8-name-file", .run = pending},
+    check_entry{.code = "non-utf8-toml", .run = pending},
+    check_entry{.code = "packager-equals-author", .run = pending},
+    check_entry{.code = "palette-snapped-length-mismatch", .run = pending},
+    check_entry{.code = "position-on-minor-arcanum", .run = pending},
+    check_entry{.code = "rank-without-image", .run = pending},
+    check_entry{.code = "raster-outside-image-root", .run = pending},
+    check_entry{.code = "redistribution-contradicts-rights-status", .run = pending},
+    check_entry{.code = "redistribution-narrower-than-license", .run = pending},
+    check_entry{.code = "reserved-custom-name", .run = pending},
+    check_entry{.code = "signifies-self", .run = pending},
+    check_entry{.code = "stem-case-collision", .run = pending},
+    check_entry{.code = "surrogate-deck-redistribution-full", .run = pending},
+    check_entry{.code = "surrogate-deck-without-buy-link", .run = pending},
+    check_entry{.code = "surrogate-deck-without-license", .run = pending},
+    check_entry{.code = "surrogate-deck-without-signifies", .run = pending},
+    check_entry{.code = "svg-outside-scalable", .run = pending},
+    check_entry{.code = "symlink-escapes-deck-root", .run = pending},
+    check_entry{.code = "unknown-default-card-back", .run = pending},
+    check_entry{.code = "unknown-edition-card-back", .run = pending},
+    check_entry{.code = "unknown-edition-default", .run = pending},
+    check_entry{.code = "unknown-metadata-alt-text-key", .run = pending},
+    check_entry{.code = "unknown-name-key", .run = pending},
+    check_entry{.code = "unknown-surrogate-key", .run = pending},
+    check_entry{.code = "unknown-table", .run = pending},
+    check_entry{.code = "unknown-variant-default", .run = pending},
+    check_entry{.code = "unlocalized-fallback-string", .run = pending},
+    check_entry{.code = "unnamed-extended-major", .run = pending},
+    check_entry{.code = "unregistered-link-rel", .run = pending},
+    check_entry{.code = "unsafe-path", .run = pending},
+    check_entry{.code = "variant-card-without-default", .run = pending},
+    check_entry{.code = "variant-for-unknown-card", .run = pending},
+    check_entry{.code = "variant-missing-alt-text", .run = pending},
+    check_entry{.code = "wrong-value-type", .run = pending},
+};
+
+consteval bool checks_cover_catalogue()
+{
+    if (checks.size() != catalogue.size())
+        return false;
+
+    for (std::size_t i = 0; i < catalogue.size(); ++i)
+        if (checks[i].code != catalogue[i].code)
+            return false;
+
+    return true;
+}
+
+static_assert(
+    checks_cover_catalogue(), "every rule needs a row in the dispatch table, in catalogue order"
+);
+
 }  // namespace
 
 std::span<rule const> rules() noexcept
@@ -1069,9 +1426,45 @@ rule const* find_rule(std::string_view code) noexcept
 
 std::vector<diagnostic> validate(deck const& d)
 {
-    // No check is written yet.
-    (void)d;
-    return {};
+    // A deck whose schema_version cannot be read is judged under the current
+    // major. bad-schema-version is what reports the field itself.
+    auto const major = schema_major(d.metadata).value_or(current_schema_major);
+
+    auto const files = walk_deck(d.root_path);
+
+    std::vector<diagnostic> found;
+    for (std::size_t i = 0; i < catalogue.size(); ++i)
+    {
+        rule const& r = catalogue[i];
+
+        // A phase::library rule needs sibling decks, which this overload does
+        // not have. Nothing here can run one.
+        if (r.needs == phase::library)
+            continue;
+
+        if (!r.applies_to.contains(major))
+            continue;
+
+        if (checks[i].run == nullptr)
+            continue;
+
+        check_context const ctx{.d = d, .files = files, .r = r, .out = found};
+        checks[i].run(ctx);
+    }
+
+    // Ascending by (code, card, path, key), disengaged optionals first, with
+    // the message breaking a tie so that two findings of one rule about one
+    // place still come back in a fixed order.
+    std::ranges::sort(
+        found,
+        [](diagnostic const& left, diagnostic const& right)
+        {
+            return std::tie(left.code, left.card, left.path, left.key, left.message) <
+                   std::tie(right.code, right.card, right.path, right.key, right.message);
+        }
+    );
+
+    return found;
 }
 
 }  // namespace arcana
