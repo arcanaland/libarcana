@@ -1,5 +1,3 @@
-# Carries an identifier so this fixture's only defect is the ANSI art it files
-# outside an ansi<lines>/ root.
 [deck]
 id = "ansi-outside-root"
 identifier = "org.example/deck/ansi-outside-root"

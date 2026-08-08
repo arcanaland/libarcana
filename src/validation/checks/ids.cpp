@@ -379,8 +379,7 @@ void check_bad_cards_table_key(check_context const& ctx)
         auto message =
             data::is_variant_reference(card)
                 ? std::format(
-                      "[cards] key '{}' is a variant reference "
-                      "[card_variants]",
+                      "[cards] key '{}' is a variant reference",
                       card
                   )
                 : std::format(

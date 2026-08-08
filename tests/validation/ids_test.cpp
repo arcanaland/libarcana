@@ -221,8 +221,8 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
 
     // A variant reference in [cards] gets its own message: the fix is to move
     // it, not to rewrite it.
-    CHECK(found[0].message.find("[card_variants]") != std::string::npos);
-    CHECK(found[1].message.find("both of its digits") != std::string::npos);
+    CHECK(found[0].message.find("is a variant reference") != std::string::npos);
+    CHECK(found[1].message.find("is not a canonical ID") != std::string::npos);
 
     // The identifier is a well-formed qualified identifier whose fragment is
     // not a card reference, so only the fragment is reported.

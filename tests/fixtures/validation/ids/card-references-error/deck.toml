@@ -1,6 +1,9 @@
-# A one-digit major key, a variant reference where a canonical ID belongs, an
-# uppercase suit in an exclusion, and a fragment that is not a card reference.
-# The identifier itself is well formed: a bad fragment is not a bad identifier.
+# Few problems:
+# - A one-digit major key
+# - A variant reference where a canonical ID belongs
+# - An uppercase suit in an exclusion
+# - card ref in identifier
+
 [deck]
 schema_version = "2.0"
 name = "Bad Card References"
