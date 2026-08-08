@@ -9,11 +9,6 @@
 namespace arcana::data
 {
 
-// The character classes the scanners share.
-//
-// ASCII only, and deliberately so: every grammar the deck specification defines
-// is an ASCII one, so nothing here consults a locale.
-
 constexpr bool is_lcalpha(char c) noexcept
 {
     return c >= 'a' && c <= 'z';

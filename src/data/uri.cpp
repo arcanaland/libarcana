@@ -25,12 +25,11 @@ bool is_absolute_http_url(std::string_view s) noexcept
     else
         return false;
 
-    // A URL with no authority has no host to reach.
+    // A URL with no authority
     if (rest.empty() || rest.front() == '/' || rest.front() == '?' || rest.front() == '#')
         return false;
 
-    // The characters RFC 3986 excludes outright, plus everything outside
-    // printable ASCII. Nothing here is fetched, so this goes no further.
+    // The characters RFC 3986 excludes plus non-printable ASCII
     return std::ranges::all_of(
         s,
         [](char c)

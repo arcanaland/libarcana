@@ -27,8 +27,7 @@ target_sources(
             tables.hpp
             uri.hpp
     PRIVATE
-        # ascii.hpp is shared between these and nothing else, so it stays out
-        # of the header set.
+        # ascii.hpp is internal
         ascii.hpp
         identifiers.cpp
         image_signature.cpp
