@@ -249,20 +249,16 @@ TEST_CASE("schema_major rejects a major it cannot carry", "[validation]")
 namespace
 {
 
-// The two rules TASK-016 deliberately leaves unimplemented. Both keep their
-// catalogue entries; neither is marked experimental, because experimental
-// describes a check that exists.
+// TODO: need to figure out what to do with these
 constexpr std::array<std::string_view, 2> deferred{
-    // Needs an image decoder, and no image decoder enters this tree.
+    // Needs an image decoder
     "aspect-ratio-mismatch",
 
-    // The sole phase::library rule. validate(deck const&) cannot see a
-    // sibling deck, and the frozen surface gains no overload for one.
+    // The only phase::library rule
     "duplicate-deck-identifier",
 };
 
-// Codes whose checks are not written yet. TASK-016 layers 2-8 delete their own
-// rows from this list as they land; when it is empty the stack is done.
+// This should be zero when we're done
 constexpr std::array<std::string_view, 84> not_yet_covered{
     "backslash-in-path",
     "bad-app-realm",
@@ -350,8 +346,6 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "wrong-value-type",
 };
 
-// One fixture deck per implemented code. A fixture may fire more than one code,
-// but every implemented code needs a fixture that provably fires it.
 constexpr std::array<std::string_view, 1> fixture_decks{
     "ansi-outside-root",
 };

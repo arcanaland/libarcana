@@ -29,6 +29,8 @@
 namespace arcana
 {
 
+constexpr std::uint8_t current_schema_major = 2;
+
 namespace
 {
 
@@ -1067,14 +1069,6 @@ static_assert(
 );
 
 
-// The major a deck is judged under when [deck].schema_version cannot be read:
-// the newest this catalogue knows.
-constexpr std::uint8_t current_schema_major = 2;
-
-// ---------------------------------------------------------------------------
-// The deck's tree
-// ---------------------------------------------------------------------------
-
 // One regular file inside a deck root.
 struct deck_file
 {
@@ -1085,14 +1079,6 @@ struct deck_file
 };
 
 // Every regular file under the deck root, sorted by relative path.
-//
-// Walked once and shared by every phase::filesystem check, so no check pays
-// for the traversal twice and every check sees the same order regardless of
-// what directory_iterator hands back.
-//
-// Directory symlinks are not descended and no symlink resolving outside the
-// deck root is followed (DECK.md section 10.1). Escaping links are skipped
-// silently here; symlink-escapes-deck-root is what reports them.
 std::vector<deck_file> walk_deck(std::filesystem::path const& root)
 {
     namespace fs = std::filesystem;
@@ -1147,12 +1133,8 @@ std::vector<deck_file> walk_deck(std::filesystem::path const& root)
     return files;
 }
 
-// ---------------------------------------------------------------------------
-// What a check is
-// ---------------------------------------------------------------------------
 
-// What a check reports. Every field but the message is optional because most
-// rules locate their finding with only one of them.
+// What a check reports.
 struct finding
 {
     std::string message;
@@ -1161,17 +1143,14 @@ struct finding
     std::optional<std::string> key;
 };
 
-// What a check sees. It never sees anything else: no globals, no caching, no
-// logging, no locale.
 struct check_context
 {
     deck const& d;
 
-    // The deck's own tree, already walked. Empty for a phase::document check
-    // whose deck has no root on disk.
+    // The deck's own tree
     std::span<deck_file const> files;
 
-    // The rule being run. A finding takes its level and code from here.
+    // The rule being run.
     rule const& r;
 
     std::vector<diagnostic>& out;
@@ -1197,13 +1176,7 @@ using check_fn = void (*)(check_context const&);
 // Checks: ansi
 // ---------------------------------------------------------------------------
 
-// DECK.md section 5.7.1: an ANSI image root is `ansi<lines>/`, where <lines> is
-// a decimal integer greater than zero written without a sign, leading zeroes or
-// separators. `ansi/`, `ansi0/` and `ansi032/` are therefore ordinary
-// directories that discovery ignores.
-//
-// src/loader/loader.cpp's looks_like_ansi_root() is looser than this: it admits
-// leading zeroes. That divergence is a loader bug and is not fixed here.
+// Tighter than looks_like_ansi_root()
 bool is_ansi_root_name(std::string_view name)
 {
     if (!name.starts_with("ansi"))
@@ -1216,22 +1189,13 @@ bool is_ansi_root_name(std::string_view name)
     return std::ranges::all_of(lines, data::is_digit);
 }
 
-// How much of a file is read before giving up on finding an ESC. ANSI art is
-// small; anything this far in without one is not art that a terminal reads.
+// How much of a file is read before giving up on finding an ESC.
 constexpr std::size_t ansi_sniff_bytes = 64UL * 1024UL;
 
-// How much is read at a time while doing it.
+// How much is read at a time
 constexpr std::size_t ansi_sniff_chunk = 4096;
 
-// DECK.md section 5.4 fixes an ANSI file's kind by its content rather than its
-// extension: art carrying escape sequences necessarily contains ESC (0x1B), and
-// a file with no ESC byte is plain text.
-//
-// Plain text is indistinguishable from any other text file, so this recognizes
-// escape-carrying art only. It under-reports rather than guessing, which is why
-// the rule this serves is info and not error. A NUL byte before any ESC settles
-// the file as binary, which keeps card artwork out of the result.
-bool carries_ansi_escapes(std::filesystem::path const& file)
+bool contains_ansi_escapes(std::filesystem::path const& file)
 {
     std::ifstream stream{file, std::ios::binary};
     if (!stream)
@@ -1264,13 +1228,13 @@ void check_ansi_outside_image_root(check_context const& ctx)
         if (is_ansi_root_name(file.relative.begin()->string()))
             continue;
 
-        if (!carries_ansi_escapes(file.absolute))
+        if (!contains_ansi_escapes(file.absolute))
             continue;
 
         auto const shown = file.relative.generic_string();
         ctx.report({
             .message =
-                std::format("'{}' carries ANSI escapes but is under no ansi<lines>/ root", shown),
+                std::format("'{}' has ANSI escape codes but is under no ansi<lines>/ root", shown),
             .path = file.relative,
         });
     }
@@ -1280,16 +1244,8 @@ void check_ansi_outside_image_root(check_context const& ctx)
 // The dispatch table
 // ---------------------------------------------------------------------------
 
-// TASK-016 defers two rules, both for a reason that outlives the task.
-// aspect-ratio-mismatch needs an image decoder, and no image decoder enters
-// this tree; duplicate-deck-identifier is the sole phase::library rule and
-// validate(deck const&) cannot reach a sibling deck. Their catalogue entries
-// are untouched, and the coverage test names them.
+// TODO
 constexpr check_fn deferred = nullptr;
-
-// No check is written yet. TASK-016 layers 2-8 replace these one area at a
-// time; each layer also deletes its codes from the coverage test's
-// not_yet_covered list.
 constexpr check_fn pending = nullptr;
 
 struct check_entry
@@ -1298,10 +1254,6 @@ struct check_entry
     check_fn run;
 };
 
-// One row per catalogue rule, in catalogue order. The static_assert below ties
-// the two element by element, so a rule minted without a row here -- or a row
-// whose code no longer names a rule -- is a compile error rather than a check
-// that silently never runs.
 constexpr std::array checks{
     check_entry{.code = "ansi-outside-image-root", .run = check_ansi_outside_image_root},
     check_entry{.code = "aspect-ratio-mismatch", .run = deferred},
@@ -1405,7 +1357,7 @@ consteval bool checks_cover_catalogue()
 }
 
 static_assert(
-    checks_cover_catalogue(), "every rule needs a row in the dispatch table, in catalogue order"
+    checks_cover_catalogue(), "every rule needs a row in the dispatch table in catalogue order"
 );
 
 }  // namespace
@@ -1426,8 +1378,6 @@ rule const* find_rule(std::string_view code) noexcept
 
 std::vector<diagnostic> validate(deck const& d)
 {
-    // A deck whose schema_version cannot be read is judged under the current
-    // major. bad-schema-version is what reports the field itself.
     auto const major = schema_major(d.metadata).value_or(current_schema_major);
 
     auto const files = walk_deck(d.root_path);
@@ -1437,8 +1387,7 @@ std::vector<diagnostic> validate(deck const& d)
     {
         rule const& r = catalogue[i];
 
-        // A phase::library rule needs sibling decks, which this overload does
-        // not have. Nothing here can run one.
+        // TODO
         if (r.needs == phase::library)
             continue;
 
@@ -1452,9 +1401,7 @@ std::vector<diagnostic> validate(deck const& d)
         checks[i].run(ctx);
     }
 
-    // Ascending by (code, card, path, key), disengaged optionals first, with
-    // the message breaking a tie so that two findings of one rule about one
-    // place still come back in a fixed order.
+    // Ascending by (code, card, path, key)
     std::ranges::sort(
         found,
         [](diagnostic const& left, diagnostic const& right)
