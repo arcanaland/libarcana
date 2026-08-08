@@ -46,3 +46,6 @@ target_sources(
 target_compile_features(arcana-validation PUBLIC cxx_std_26)
 
 target_include_directories(arcana-validation PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
+target_link_libraries(arcana-validation PUBLIC tomlplusplus::tomlplusplus)
+target_compile_definitions(arcana-validation PUBLIC TOML_EXCEPTIONS=0)

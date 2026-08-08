@@ -40,6 +40,9 @@ target_sources(
 
 target_compile_features(arcana PUBLIC cxx_std_26)
 
+target_link_libraries(arcana PRIVATE tomlplusplus::tomlplusplus)
+target_compile_definitions(arcana PRIVATE TOML_EXCEPTIONS=0)
+
 # PIC is required for the shared build and for linking this archive into a Python
 # extension module. Keeps toml++'s symbols out of the dynamic symbol table
 set_target_properties(

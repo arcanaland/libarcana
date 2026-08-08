@@ -265,13 +265,9 @@ constexpr std::array<std::string_view, 2> deferred{
 };
 
 // This should be zero when we're done
-constexpr std::array<std::string_view, 84> not_yet_covered{
+constexpr std::array<std::string_view, 74> not_yet_covered{
     "backslash-in-path",
-    "bad-app-realm",
     "bad-card-back-design-key",
-    "bad-cards-table-key",
-    "bad-custom-name",
-    "bad-deck-identifier",
     "bad-language-tag",
     "bad-link-rel",
     "bad-link-url",
@@ -281,13 +277,11 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "bad-rights-field-value",
     "bad-rights-status-uri",
     "bad-schema-version",
-    "bad-signifies",
     "bad-spdx-expression",
     "bom-in-toml",
     "card-back-default-by-collation",
     "card-back-not-baseline-format",
     "deck-has-no-cards",
-    "deck-identifier-path-shape",
     "declared-card-without-image",
     "deprecated-1-0-key",
     "duplicate-card-position",
@@ -304,7 +298,6 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "malformed-surrogate-file",
     "missing-alt-text",
     "missing-card-back-image",
-    "missing-deck-identifier",
     "missing-deck-toml",
     "missing-default-language-file",
     "missing-edition-default",
@@ -314,7 +307,6 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "missing-required-field",
     "missing-variant-image",
     "no-rights-statement",
-    "non-canonical-card-reference",
     "non-canonical-language-tag",
     "non-utf8-name-file",
     "non-utf8-toml",
@@ -325,8 +317,6 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "raster-outside-image-root",
     "redistribution-contradicts-rights-status",
     "redistribution-narrower-than-license",
-    "reserved-custom-name",
-    "signifies-self",
     "stem-case-collision",
     "surrogate-deck-redistribution-full",
     "surrogate-deck-without-buy-link",
@@ -403,10 +393,25 @@ TEST_CASE("no deferred rule has a fixture that fires it", "[validation][coverage
 // Harness
 // ---------------------------------------------------------------------------
 
-TEST_CASE("validate on a deck with no root on disk finds nothing", "[validation]")
+TEST_CASE("validate on a deck with no root on disk reads nothing from a tree", "[validation]")
 {
     deck const empty{};
-    CHECK(validate(empty).empty());
+
+    // walk_deck finds no files, so nothing a check learns here can have come
+    // from the filesystem. The document checks still run and see an empty
+    // deck.toml, and as layers land more of them have something to say about
+    // one, so the assertion is about where a finding came from rather than
+    // about how many there are.
+    for (auto const& one : validate(empty))
+    {
+        INFO("code: " << one.code);
+
+        rule const* r = find_rule(one.code);
+        REQUIRE(r != nullptr);
+
+        CHECK(r->needs == phase::document);
+        CHECK_FALSE(one.path.has_value());
+    }
 }
 
 TEST_CASE("validate is deterministic", "[validation]")

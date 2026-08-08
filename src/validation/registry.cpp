@@ -9,13 +9,18 @@
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>
 
+#include <toml++/toml.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace arcana::validation
 {
+
+void no_check(check_context const& /*ctx*/) {}
 
 void run_all(
     deck const& d, std::uint8_t major, std::span<deck_file const> files,
@@ -23,6 +28,19 @@ void run_all(
 )
 {
     auto const catalogue = all_rules();
+
+    // A document check reads deck.toml's keys, and `deck` does not carry them
+    // all — see check_context::doc. Re-parsing the deck's own serialization
+    // keeps validate() a pure function of the deck object and needs no change
+    // to the public surface, which brief 2 froze. The round trip is
+    // structural, and structure is all a key check reads: toml++ writes a key
+    // holding a dot quoted, so `[app."com.example"]` and `[app.com.example]`
+    // come back as the one key and the two nested tables they were.
+    std::string const source = d.source_toml();
+    auto const parsed = toml::parse(source);
+
+    toml::table const empty;
+    toml::table const& doc = parsed ? parsed.table() : empty;
 
     for (std::size_t i = 0; i < catalogue.size(); ++i)
     {
@@ -35,10 +53,10 @@ void run_all(
         if (!r.applies_to.contains(major))
             continue;
 
-        if (checks[i].run == nullptr)
+        if (checks[i].run == pending)
             continue;
 
-        check_context const ctx{.d = d, .files = files, .r = r, .out = out};
+        check_context const ctx{.d = d, .files = files, .doc = doc, .r = r, .out = out};
         checks[i].run(ctx);
     }
 }

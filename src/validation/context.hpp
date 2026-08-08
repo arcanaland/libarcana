@@ -8,6 +8,8 @@
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>
 
+#include <toml++/toml.hpp>
+
 #include <filesystem>
 #include <optional>
 #include <span>
@@ -45,6 +47,13 @@ struct check_context
 
     // The deck's own tree
     std::span<deck_file const> files;
+
+    // deck.toml as parsed, which is the only place a key this library's model
+    // does not carry can be seen. `deck` is a v1.0-era model: it has no
+    // `signifies`, no `[app]`, no `[card_variants]` and no `[editions]`, and
+    // its `metadata.id` reads `[deck].id` rather than 2.0's
+    // `[deck].identifier`. A document check reads keys, so it reads them here.
+    toml::table const& doc;
 
     // The rule being run.
     rule const& r;

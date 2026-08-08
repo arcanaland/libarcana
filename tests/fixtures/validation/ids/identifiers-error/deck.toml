@@ -1,0 +1,11 @@
+# A bare label is not a realm, `also_bad` has no slash, and the [app] subtable
+# key is unquoted so TOML reads it as two nested tables keyed `land`.
+[deck]
+schema_version = "2.0"
+name = "Bad Identifiers"
+version = "1.0"
+identifier = "notarealm/deck/bad-identifiers"
+signifies = "also_bad"
+
+[app.land.arcana]
+bleed = true

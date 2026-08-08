@@ -1,0 +1,20 @@
+# A one-digit major key, a variant reference where a canonical ID belongs, an
+# uppercase suit in an exclusion, and a fragment that is not a card reference.
+# The identifier itself is well formed: a bad fragment is not a bad identifier.
+[deck]
+schema_version = "2.0"
+name = "Bad Card References"
+version = "1.0"
+identifier = "org.example/deck/bad-card-references#major_arcana.6"
+
+[cards."major_arcana.6"]
+number = "VI"
+
+[cards."major_arcana.06:two_women"]
+name = "The Lovers"
+
+[card_variants."major_arcana.06:two_women"]
+default = "two_women"
+
+[excluded_cards]
+cards = ["minor_arcana.Pentacles.page"]

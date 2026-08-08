@@ -1,0 +1,19 @@
+# `Stars` and `first-edition` are outside the custom-name grammar, `2nd` starts
+# with a digit, and `wands` and `major_arcana` are reserved canonical keys used
+# where the author had to coin one. `ace` is a canonical rank in a ranks list,
+# which is exactly where one belongs, so it is not reported.
+[deck]
+schema_version = "2.0"
+name = "Bad Custom Names"
+version = "1.0"
+identifier = "org.example/deck/bad-custom-names"
+
+[suits.Stars]
+name = "Stars"
+ranks = ["ace", "2nd", "wands"]
+
+[card_backs.designs.major_arcana]
+name = "Nope"
+
+[editions.first-edition]
+name = "First"
