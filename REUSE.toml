@@ -3,8 +3,6 @@ SPDX-PackageName = "libarcana"
 SPDX-PackageSupplier = "Adam Fidel <adam@fidel.cloud>"
 SPDX-PackageDownloadLocation = "https://github.com/arcanaland/libarcana"
 
-# Files that cannot carry a comment header: test fixtures, images, and the
-# dotfiles whose parsers reject one. Everything else declares itself in-file.
 [[annotations]]
 path = [
   ".clang-format",

@@ -3,6 +3,8 @@
 
 #include "tables.hpp"
 
+#include "ascii.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -11,21 +13,6 @@
 
 namespace arcana::data
 {
-
-namespace
-{
-
-constexpr bool is_digit(char c) noexcept
-{
-    return c >= '0' && c <= '9';
-}
-
-constexpr bool is_lcalpha(char c) noexcept
-{
-    return c >= 'a' && c <= 'z';
-}
-
-}  // namespace
 
 bool is_css_color_name(std::string_view name) noexcept
 {
@@ -187,6 +174,16 @@ bool is_css_color_name(std::string_view name) noexcept
     static_assert(std::ranges::is_sorted(names), "binary_search needs a sorted table");
 
     return std::ranges::binary_search(names, name);
+}
+
+bool is_srgb_hex_triplet(std::string_view s) noexcept
+{
+    constexpr std::size_t triplet_size = 7;
+
+    return s.size() == triplet_size && s.front() == '#' &&
+           std::ranges::all_of(
+               s.substr(1), [](char c) { return is_digit(c) || (c >= 'a' && c <= 'f'); }
+           );
 }
 
 bool is_registered_link_rel(std::string_view rel) noexcept

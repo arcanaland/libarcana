@@ -18,13 +18,25 @@ target_sources(
         FILE_SET HEADERS
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
+            identifiers.hpp
+            image_signature.hpp
+            language_tag.hpp
             scanners.hpp
+            spdx_expression.hpp
             spdx_licenses.hpp
             tables.hpp
+            uri.hpp
     PRIVATE
-        scanners.cpp
+        # ascii.hpp is shared between these and nothing else, so it stays out
+        # of the header set.
+        ascii.hpp
+        identifiers.cpp
+        image_signature.cpp
+        language_tag.cpp
+        spdx_expression.cpp
         spdx_licenses.cpp
         tables.cpp
+        uri.cpp
 )
 
 target_compile_features(arcana-data PUBLIC cxx_std_26)

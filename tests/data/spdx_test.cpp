@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-#include <scanners.hpp>
+#include <spdx_expression.hpp>
 #include <spdx_licenses.hpp>
 
 #include <catch2/catch_test_macros.hpp>

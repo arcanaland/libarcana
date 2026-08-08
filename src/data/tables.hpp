@@ -10,11 +10,17 @@
 namespace arcana::data
 {
 
-// The small frozen reference tables the deck checks read.
+// The small frozen reference tables the deck checks read, and the handful of
+// checks that are only a lookup in one of them.
 //
 
 // True when name is one of the 148 CSS Color 4 named colours.
 [[nodiscard]] bool is_css_color_name(std::string_view name) noexcept;
+
+// True when s is an sRGB hex triplet as DECK.md section 5.8.1 writes them: a
+// hash and exactly six lowercase hexadecimal digits. Upper case is not
+// accepted. The other half of the colour question is_css_color_name asks.
+[[nodiscard]] bool is_srgb_hex_triplet(std::string_view s) noexcept;
 
 // True when rel is one of the five relations the specification registers.
 [[nodiscard]] bool is_registered_link_rel(std::string_view rel) noexcept;

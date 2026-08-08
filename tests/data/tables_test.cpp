@@ -15,6 +15,7 @@ using arcana::data::is_extension_link_rel;
 using arcana::data::is_registered_link_rel;
 using arcana::data::is_rights_status_uri;
 using arcana::data::is_spdx_license_id;
+using arcana::data::is_srgb_hex_triplet;
 using arcana::data::rights_status_class;
 using arcana::data::shortest_language_subtag;
 
@@ -41,6 +42,20 @@ TEST_CASE("names outside CSS Color 4 are not colors", "[tables]")
     CHECK_FALSE(is_css_color_name("#e8d5a3"));
     CHECK_FALSE(is_css_color_name("burntsienna"));
     CHECK_FALSE(is_css_color_name("canvastext"));
+}
+
+TEST_CASE("sRGB hex triplets are lower case and exactly six digits", "[tables]")
+{
+    CHECK(is_srgb_hex_triplet("#e8d5a3"));
+    CHECK(is_srgb_hex_triplet("#000000"));
+    CHECK(is_srgb_hex_triplet("#ffffff"));
+
+    CHECK_FALSE(is_srgb_hex_triplet("#E8D5A3"));
+    CHECK_FALSE(is_srgb_hex_triplet("e8d5a3"));
+    CHECK_FALSE(is_srgb_hex_triplet("#e8d5a"));
+    CHECK_FALSE(is_srgb_hex_triplet("#e8d5a33"));
+    CHECK_FALSE(is_srgb_hex_triplet("#gggggg"));
+    CHECK_FALSE(is_srgb_hex_triplet(""));
 }
 
 TEST_CASE("the link registry", "[tables]")
