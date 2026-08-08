@@ -6,14 +6,24 @@
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>
 
+#include "validation/fixture.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using namespace arcana;
+
+using arcana_test::codes_of;
+using arcana_test::validate_fixture;
+using arcana_test::validation_fixtures;
 
 namespace
 {
@@ -213,12 +223,6 @@ TEST_CASE("exactly one rule needs a whole library", "[validation]")
     CHECK(library_wide.front() == "duplicate-deck-identifier");
 }
 
-TEST_CASE("validate returns nothing", "[validation]")
-{
-    deck const empty{};
-    CHECK(validate(empty).empty());
-}
-
 TEST_CASE("schema_major", "[validation]")
 {
     auto const major_of = [](std::string_view text)
@@ -242,4 +246,183 @@ TEST_CASE("schema_major rejects a major it cannot carry", "[validation]")
     deck_metadata metadata;
     metadata.schema_version = "256.0";
     CHECK_FALSE(schema_major(metadata).has_value());
+}
+
+// ---------------------------------------------------------------------------
+// Coverage
+// ---------------------------------------------------------------------------
+
+namespace
+{
+
+// TODO: need to figure out what to do with these
+constexpr std::array<std::string_view, 2> deferred{
+    // Needs an image decoder
+    "aspect-ratio-mismatch",
+
+    // The only phase::library rule
+    "duplicate-deck-identifier",
+};
+
+// This should be zero when we're done
+constexpr std::array<std::string_view, 84> not_yet_covered{
+    "backslash-in-path",
+    "bad-app-realm",
+    "bad-card-back-design-key",
+    "bad-cards-table-key",
+    "bad-custom-name",
+    "bad-deck-identifier",
+    "bad-language-tag",
+    "bad-link-rel",
+    "bad-link-url",
+    "bad-name-template-placeholder",
+    "bad-palette-color",
+    "bad-palette-snapped-color",
+    "bad-rights-field-value",
+    "bad-rights-status-uri",
+    "bad-schema-version",
+    "bad-signifies",
+    "bad-spdx-expression",
+    "bom-in-toml",
+    "card-back-default-by-collation",
+    "card-back-not-baseline-format",
+    "deck-has-no-cards",
+    "deck-identifier-path-shape",
+    "declared-card-without-image",
+    "deprecated-1-0-key",
+    "duplicate-card-position",
+    "duplicate-chain-extension",
+    "duplicate-rank-in-ranks",
+    "empty-card-number",
+    "excluded-card-also-declared",
+    "excluded-card-has-image",
+    "ignored-card-back-file",
+    "ignored-image-root-lookalike",
+    "language-tag-case-collision",
+    "malformed-deck-toml",
+    "malformed-name-file",
+    "malformed-surrogate-file",
+    "missing-alt-text",
+    "missing-card-back-image",
+    "missing-deck-identifier",
+    "missing-deck-toml",
+    "missing-default-language-file",
+    "missing-edition-default",
+    "missing-license-file",
+    "missing-license-text",
+    "missing-packager",
+    "missing-required-field",
+    "missing-variant-image",
+    "no-rights-statement",
+    "non-canonical-card-reference",
+    "non-canonical-language-tag",
+    "non-utf8-name-file",
+    "non-utf8-toml",
+    "packager-equals-author",
+    "palette-snapped-length-mismatch",
+    "position-on-minor-arcanum",
+    "rank-without-image",
+    "raster-outside-image-root",
+    "redistribution-contradicts-rights-status",
+    "redistribution-narrower-than-license",
+    "reserved-custom-name",
+    "signifies-self",
+    "stem-case-collision",
+    "surrogate-deck-redistribution-full",
+    "surrogate-deck-without-buy-link",
+    "surrogate-deck-without-license",
+    "surrogate-deck-without-signifies",
+    "svg-outside-scalable",
+    "symlink-escapes-deck-root",
+    "unknown-default-card-back",
+    "unknown-edition-card-back",
+    "unknown-edition-default",
+    "unknown-metadata-alt-text-key",
+    "unknown-name-key",
+    "unknown-surrogate-key",
+    "unknown-table",
+    "unknown-variant-default",
+    "unlocalized-fallback-string",
+    "unnamed-extended-major",
+    "unregistered-link-rel",
+    "unsafe-path",
+    "variant-card-without-default",
+    "variant-for-unknown-card",
+    "variant-missing-alt-text",
+    "wrong-value-type",
+};
+
+bool contains(std::span<std::string_view const> haystack, std::string_view needle)
+{
+    return std::ranges::find(haystack, needle) != haystack.end();
+}
+
+}  // namespace
+
+TEST_CASE("the three coverage lists partition the catalogue", "[validation][coverage]")
+{
+    std::vector<std::string_view> covered;
+    for (auto const& name : validation_fixtures)
+        for (auto const code : codes_of(validate_fixture(name)))
+            if (!contains(covered, code))
+                covered.push_back(code);
+
+    for (auto const& r : rules())
+    {
+        INFO("rule: " << r.code);
+
+        int const memberships = static_cast<int>(contains(covered, r.code)) +
+                                static_cast<int>(contains(not_yet_covered, r.code)) +
+                                static_cast<int>(contains(deferred, r.code));
+
+        CHECK(memberships == 1);
+    }
+
+    // Every code a fixture fired is a real one, so the three lists cover the
+    // catalogue and nothing else.
+    for (auto const code : covered)
+    {
+        INFO("code: " << code);
+        CHECK(find_rule(code) != nullptr);
+    }
+
+    CHECK(covered.size() + not_yet_covered.size() + deferred.size() == rules().size());
+}
+
+TEST_CASE("no deferred rule has a fixture that fires it", "[validation][coverage]")
+{
+    for (auto const& name : validation_fixtures)
+        for (auto const code : codes_of(validate_fixture(name)))
+        {
+            INFO("fixture: " << name);
+            CHECK_FALSE(contains(deferred, code));
+        }
+}
+
+// ---------------------------------------------------------------------------
+// Harness
+// ---------------------------------------------------------------------------
+
+TEST_CASE("validate on a deck with no root on disk finds nothing", "[validation]")
+{
+    deck const empty{};
+    CHECK(validate(empty).empty());
+}
+
+TEST_CASE("validate is deterministic", "[validation]")
+{
+    auto const once = codes_of(validate_fixture(validation_fixtures.front()));
+    auto const twice = codes_of(validate_fixture(validation_fixtures.front()));
+    CHECK(once == twice);
+}
+
+TEST_CASE("validate never runs a rule that needs a whole library", "[validation]")
+{
+    for (auto const& name : validation_fixtures)
+        for (auto const code : codes_of(validate_fixture(name)))
+        {
+            INFO("code: " << code);
+            REQUIRE(find_rule(code) != nullptr);
+            CHECK(find_rule(code)->needs != phase::library);
+        }
 }

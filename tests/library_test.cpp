@@ -21,18 +21,20 @@ namespace
 // A home-shaped fake root
 std::filesystem::path primary_root()
 {
-    return paths::deck_library_path(std::filesystem::path(FIXTURES_DIR) / "library-root");
+    return paths::deck_library_path(
+        std::filesystem::path(FIXTURES_DIR) / "loader" / "library-root"
+    );
 }
 
 // A second library that is not under any XDG path
 std::filesystem::path alt_root()
 {
-    return std::filesystem::path(FIXTURES_DIR) / "library-root-alt";
+    return std::filesystem::path(FIXTURES_DIR) / "loader" / "library-root-alt";
 }
 
 std::filesystem::path fixture(std::string const& name)
 {
-    return std::filesystem::path(FIXTURES_DIR) / name;
+    return std::filesystem::path(FIXTURES_DIR) / "loader" / name;
 }
 
 deck_library open_library(std::vector<std::filesystem::path> roots)
