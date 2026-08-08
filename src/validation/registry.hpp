@@ -28,22 +28,14 @@
 namespace arcana::validation
 {
 
-// Runs for the two codes TASK-016 defers on purpose and reports nothing.
-//
-// It exists so that `deferred` and `pending` are different values. Both were
-// `nullptr` through layer 1.5, which made "deliberately not implemented" and
-// "not written yet" indistinguishable and left an unwritten check a silent
-// no-op — the thing TASK-016 forbids. A real function here means `nullptr` in
-// the table below carries exactly one meaning, which is what lets
-// `pending_checks()` be counted and driven to zero.
 void no_check(check_context const& ctx);
 
-// `aspect-ratio-mismatch` needs an image decoder and
-// `duplicate-deck-identifier` needs sibling decks `validate(deck const&)`
-// cannot see. Both keep their catalogue entry; neither ever gets a body.
+// We are punting on the following for now:
+// - `aspect-ratio-mismatch` needs an image decoder
+// - `duplicate-deck-identifier` waiting for library phase
 constexpr check_fn deferred = no_check;
 
-// No check written yet. Every one of these is a debt layers 2-8 pay off.
+// No check written yet.
 constexpr check_fn pending = nullptr;
 
 struct check_entry
@@ -153,8 +145,7 @@ inline constexpr std::array checks{
     return count;
 }
 
-// How many codes are deliberately never implemented. TASK-016 fixes this at
-// two, and no later layer may grow it.
+// How many codes are deliberately never implemented.
 [[nodiscard]] consteval std::size_t deferred_checks()
 {
     std::size_t count = 0;
@@ -165,14 +156,9 @@ inline constexpr std::array checks{
     return count;
 }
 
-// Each of TASK-016's layers 2-8 lowers this number by the count of codes it
-// implements, and layer 8 lowers it to zero. Failing here means a layer either
-// wrote fewer checks than it claimed or quietly left one out: fix the check,
-// not the number. The count was 84 at the end of layer 1.5 and this layer's
-// ten `ids` codes take it to 74.
-static_assert(pending_checks() == 74, "a layer landed without the checks it owes");
+static_assert(pending_checks() == 74, "work landed without the checks it required");
 
-static_assert(deferred_checks() == 2, "only aspect-ratio-mismatch and duplicate-deck-identifier");
+static_assert(deferred_checks() == 2, "only two punted checks");
 
 static_assert(
     pending_checks() + deferred_checks() <= checks.size(), "the two sentinels must not overlap"

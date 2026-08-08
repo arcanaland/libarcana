@@ -26,11 +26,7 @@ namespace arcana::validation
 namespace
 {
 
-// A [deck] key's value, or nothing when it is absent or is not a string. A key
-// of the wrong type is wrong-value-type's to report and not this area's, so it
-// reads here exactly as an absent one does.
-//
-// The returned view points into `ctx.doc`, which outlives every check.
+// A [deck] key's value, or nothing when it is absent or is not a string.
 std::optional<std::string_view> deck_string(check_context const& ctx, std::string_view key)
 {
     auto const* value = ctx.doc["deck"][key].as_string();
@@ -40,22 +36,18 @@ std::optional<std::string_view> deck_string(check_context const& ctx, std::strin
     return std::string_view{value->get()};
 }
 
-// Where a name the author coined was written. Which reserved keys are legal
-// depends on it: DECK.md section 4.4 lets a canonical suit key a `[suits]`
-// table, and a canonical rank is what a `ranks` list is normally made of.
+// Where a name the author coined was written.
 enum class name_site : std::uint8_t
 {
     suit,
     rank,
 
     // A card back design key, an edition key, a card variant key or a custom
-    // major arcanum, none of which may be a reserved canonical key at all.
+    // major arcanum
     other,
 };
 
-// One key the deck author coined, with whichever locator names where it came
-// from: `key` for one declared in deck.toml, `path` for one discovered in the
-// tree.
+// One key the deck author coined
 struct coined_name
 {
     std::string name;
@@ -99,8 +91,7 @@ void collect_suit_names(toml::table const& doc, std::vector<coined_name>& found)
     }
 }
 
-// The variant keys under each `[card_variants."<id>"]`, and the one its
-// `default` names.
+// The variant keys under each `[card_variants."<id>"]`
 void collect_variant_names(toml::table const& doc, std::vector<coined_name>& found)
 {
     auto const* variants_of = doc["card_variants"].as_table();
@@ -131,8 +122,7 @@ void collect_variant_names(toml::table const& doc, std::vector<coined_name>& fou
     }
 }
 
-// Every custom name deck.toml declares: the sites DECK.md section 3.2 lists,
-// less the `[cards]` keys, whose shape bad-cards-table-key already judges.
+// Every custom name deck.toml declares
 void collect_declared(toml::table const& doc, std::vector<coined_name>& found)
 {
     collect_suit_names(doc, found);
@@ -145,8 +135,6 @@ void collect_declared(toml::table const& doc, std::vector<coined_name>& found)
 
     if (auto const* editions = doc["editions"].as_table())
         for (auto const& [key, value] : *editions)
-            // `[editions].default` is a string naming an edition, not an
-            // edition. Only the subtables are keyed by a custom name.
             if (value.is_table())
                 add_declared(
                     found, key.str(), name_site::other, std::format("editions.{}", key.str())
@@ -155,8 +143,7 @@ void collect_declared(toml::table const& doc, std::vector<coined_name>& found)
     collect_variant_names(doc, found);
 }
 
-// The stem up to the first `.`, which DECK.md section 5.1 calls the base. What
-// follows it is a variant key and belongs to the card the base names.
+// The stem up to the first .
 std::string_view base_of(std::string_view filename)
 {
     return filename.substr(0, filename.find('.'));
@@ -174,8 +161,7 @@ bool already_collected(std::vector<coined_name> const& found, std::string_view n
     );
 }
 
-// The names one file's path contributes. A name declared in deck.toml, or
-// carried by an earlier file, is already in `found` and is not added twice.
+// The names that can be inferred from a file's path
 void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
 {
     std::vector<std::string> parts;
@@ -194,7 +180,7 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
         );
     };
 
-    // The last component is the file; everything before it is directories.
+    // The last component is the file
     auto const last = parts.size() - 1;
 
     for (std::size_t at = 0; at < last; ++at)
@@ -204,8 +190,7 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
         {
             auto const base = base_of(parts[last]);
 
-            // A two-digit base is a canonical major arcanum, not a name the
-            // author coined.
+            // A two-digit base is a canonical major arcanum
             if (!is_canonical_major_key(base))
                 add(base, name_site::other);
 
@@ -224,13 +209,7 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
     }
 }
 
-// The suit, rank and custom major keys DECK.md section 5.1 discovers from the
-// tree rather than from deck.toml. This is why the two rules are
-// phase::filesystem.
-//
-// Card back stems are deliberately absent: section 5.5 says an ill-formed one
-// defines no design and is a file discovery ignores, reported as a warning by
-// ignored-card-back-file rather than as an error here.
+// The suits, ranks and custom majors discovered from the file tree
 void collect_discovered(std::span<deck_file const> files, std::vector<coined_name>& found)
 {
     for (auto const& file : files) collect_from_file(file, found);
@@ -257,7 +236,7 @@ bool reserved_is_legal_here(std::string_view name, name_site site)
             return suit_from_string(name).has_value();
 
         case name_site::rank:
-            // A `ranks` list is normally the canonical sequence.
+            // A ranks list is normally the canonical sequence.
             return rank_from_string(name).has_value();
 
         case name_site::other:
@@ -296,13 +275,11 @@ void check_bad_deck_identifier(check_context const& ctx)
 
 void check_missing_deck_identifier(check_context const& ctx)
 {
-    // Present but of the wrong type is not missing; that is
-    // wrong-value-type's finding to make.
     if (ctx.doc["deck"]["identifier"])
         return;
 
     ctx.report({
-        .message = "deck declares no identifier, so nothing can reference it",
+        .message = "deck declares no identifier so nothing can reference it",
         .key = "deck.identifier",
     });
 }
@@ -315,8 +292,7 @@ void check_deck_identifier_path_shape(check_context const& ctx)
 
     auto const parts = data::parse_qualified_identifier(*identifier);
     if (!parts)
-        // Ill-formed is bad-deck-identifier's to report, and its path cannot
-        // be judged.
+        // Ill-formed is bad-deck-identifier's to report
         return;
 
     // DECK.md section 3.3: a deck's path SHOULD be `deck/<name>`, so exactly
@@ -328,8 +304,7 @@ void check_deck_identifier_path_shape(check_context const& ctx)
 
     ctx.report({
         .message = std::format(
-            "deck identifier path '{}' is not deck/<name>, which is what tells a deck's identifier "
-            "from a spread's",
+            "deck identifier path '{}' is not deck/<name>",
             parts->path
         ),
         .key = "deck.identifier",
@@ -380,7 +355,7 @@ void check_bad_app_realm(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "[app] subtable key '{}' is not a realm; a realm has two labels or more and must "
+                "[app] subtable key '{}' is not a realm, which must "
                 "be written as a quoted TOML key",
                 realm
             ),
@@ -404,13 +379,12 @@ void check_bad_cards_table_key(check_context const& ctx)
         auto message =
             data::is_variant_reference(card)
                 ? std::format(
-                      "[cards] key '{}' is a variant reference; variants take their strings from "
+                      "[cards] key '{}' is a variant reference "
                       "[card_variants]",
                       card
                   )
                 : std::format(
-                      "[cards] key '{}' is not a canonical ID; a major arcanum's key carries both "
-                      "of its digits",
+                      "[cards] key '{}' is not a canonical ID",
                       card
                   );
 
@@ -424,11 +398,6 @@ void check_bad_cards_table_key(check_context const& ctx)
 
 void check_non_canonical_card_reference(check_context const& ctx)
 {
-    // Each site takes the tightness the section defining it states. Section
-    // 4.7 keys `[card_variants]` by a canonical ID and section 4.5 lists
-    // canonical IDs, so a variant suffix is wrong in both; section 3.3 makes
-    // the fragment of a deck's qualified identifier a card reference, where
-    // one is allowed.
     if (auto const* variants_of = ctx.doc["card_variants"].as_table())
     {
         for (auto const& [key, value] : *variants_of)
@@ -519,7 +488,7 @@ void check_reserved_custom_name(check_context const& ctx)
             continue;
 
         report_name(
-            ctx, one, std::format("'{}' is a reserved canonical key and cannot be coined", one.name)
+            ctx, one, std::format("'{}' is a reserved canonical key in this context", one.name)
         );
     }
 }

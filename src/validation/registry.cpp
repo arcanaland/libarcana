@@ -29,13 +29,6 @@ void run_all(
 {
     auto const catalogue = all_rules();
 
-    // A document check reads deck.toml's keys, and `deck` does not carry them
-    // all — see check_context::doc. Re-parsing the deck's own serialization
-    // keeps validate() a pure function of the deck object and needs no change
-    // to the public surface, which brief 2 froze. The round trip is
-    // structural, and structure is all a key check reads: toml++ writes a key
-    // holding a dot quoted, so `[app."com.example"]` and `[app.com.example]`
-    // come back as the one key and the two nested tables they were.
     std::string const source = d.source_toml();
     auto const parsed = toml::parse(source);
 
