@@ -1,10 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# Vendored reference data and the grammar scanners that read it. No new
-# dependency enters here: a static archive does not resolve its own, so every
-# PRIVATE dependency would propagate to consumers as a find_dependency() and a
-# CPS link_requires entry. See RFC-006 in the agents knowledge-base.
 add_library(arcana-data OBJECT)
 add_library(arcana::data ALIAS arcana-data)
 

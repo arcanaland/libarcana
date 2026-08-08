@@ -21,9 +21,6 @@ namespace arcana::data
 namespace
 {
 
-// The grammars below are ASCII. These deliberately do not go through <cctype>,
-// whose answers depend on the global locale; validation is a pure function.
-
 constexpr bool is_lcalpha(char c) noexcept
 {
     return c >= 'a' && c <= 'z';

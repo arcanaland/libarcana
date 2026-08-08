@@ -27,13 +27,9 @@ constexpr bool is_lcalpha(char c) noexcept
 
 }  // namespace
 
-// --- CSS Color 4 named colours (DECK.md section 5.8.1) --------------------
-
 bool is_css_color_name(std::string_view name) noexcept
 {
-    // CSS Color 4 section 6.1. The set is frozen: sixteen names come from the
-    // VGA palette by way of HTML and the rest from X11 by way of SVG, and no
-    // level of CSS Color has added to it since.
+    // CSS Color 4 section 6.1.
     constexpr auto names = std::to_array<std::string_view>(
         {"aliceblue",
          "antiquewhite",
@@ -193,8 +189,6 @@ bool is_css_color_name(std::string_view name) noexcept
     return std::ranges::binary_search(names, name);
 }
 
-// --- The link relation registry (DECK.md section 4.1.1) -------------------
-
 bool is_registered_link_rel(std::string_view rel) noexcept
 {
     constexpr auto registry =
@@ -210,19 +204,9 @@ bool is_extension_link_rel(std::string_view rel) noexcept
     return rel.starts_with("x_");
 }
 
-// --- Rights status (DECK.md section 7.4) ----------------------------------
-
 namespace
 {
 
-// Strips an http or https scheme and any trailing slash.
-//
-// Both registries publish https URIs ending in a slash, and decks in the wild
-// carry every combination of the two, so the tables below are written once in
-// the stripped form and the input is brought to it.
-//
-// @returns Nothing where the URI has neither scheme, which is enough on its own
-//          to say it is not a rights-status URI.
 std::optional<std::string_view> strip_uri_scheme(std::string_view uri) noexcept
 {
     constexpr std::string_view secure{"https://"};
@@ -240,7 +224,7 @@ std::optional<std::string_view> strip_uri_scheme(std::string_view uri) noexcept
     return uri;
 }
 
-// The RightsStatements.org vocabulary, all twelve of it.
+// The RightsStatements.org vocabulary
 struct rights_statement_row
 {
     std::string_view uri;
@@ -376,8 +360,6 @@ std::optional<rights_status_class> classify_creative_commons(std::string_view st
 
     auto const path = stripped.substr(host.size());
 
-    // A licence is a grant, which is only needed where there is a copyright to
-    // grant from.
     if (path.starts_with(licenses) && is_cc_license_path(path.substr(licenses.size())))
         return rights_status_class::in_copyright;
 
@@ -407,8 +389,6 @@ std::optional<rights_status_class> classify_rights_status(std::string_view uri) 
     return classify_creative_commons(*stripped);
 }
 
-// --- ISO 639 shortest subtag (DECK.md section 6.1) ------------------------
-
 namespace
 {
 
@@ -424,10 +404,7 @@ std::optional<std::string_view> shortest_language_subtag(std::string_view subtag
 {
     // ISO 639-2, as published by the Library of Congress at
     // https://www.loc.gov/standards/iso639-2/, restricted to the codes that
-    // have a two-letter form. Both the bibliographic and the terminological
-    // three-letter code map, so "ger" and "deu" both answer "de".
-    //
-    // The set has not moved since ISO 639-1 closed to new assignments.
+    // have a two-letter form.
     constexpr auto rows = std::to_array<language_subtag_row>(
         {{.three = "abk", .two = "ab"},   {.three = "afr", .two = "af"},
          {.three = "aka", .two = "ak"},   {.three = "alb", .two = "sq"},
@@ -540,13 +517,14 @@ std::optional<std::string_view> shortest_language_subtag(std::string_view subtag
 
     auto const* const found =
         std::ranges::lower_bound(rows, subtag, {}, &language_subtag_row::three);
+
     if (found == rows.end() || found->three != subtag)
         return std::nullopt;
 
     return found->two;
 }
 
-// --- Curated licence permissions (DECK.md section 7.5) --------------------
+// --- Curated licence permissions --------------------
 
 namespace
 {
@@ -564,15 +542,7 @@ std::optional<license_permissions> find_license_permissions(std::string_view spd
     // Hand-curated, because the SPDX License List carries no permissions matrix
     // and no canonical machine-readable source for one exists.
     //
-    // Every Creative Commons licence grants redistribution; the NonCommercial
-    // clause conditions it rather than withholding it, and section 7.5's
-    // "redistribution" field asks whether the artwork may be passed on at all.
-    // Only the NoDerivatives licences withhold derivation, which is what makes
-    // a surrogate the interesting case for them.
-    //
-    // Anything outside this table is unknown, and an unknown licence draws no
-    // finding at all. Growing the table is cheap; guessing about someone's
-    // licensing is not.
+    // Anything outside this table is unknown.
     constexpr auto rows = std::to_array<license_permissions_row>(
         {{.id = "CC-BY-1.0",
           .permissions = {.grants_redistribution = true, .grants_derivation = true}},

@@ -3,25 +3,6 @@
 # SPDX-License-Identifier: MIT
 
 """Regenerate src/data/spdx_licenses.cpp from a pinned SPDX License List release.
-
-DECK.md section 7.1 requires that every identifier in a deck's `license`
-expression comes from the SPDX License List, case-sensitively. The list is a
-volatile external dataset and there is no mainstream C++ library that carries
-it, so libarcana vendors it as a sorted `constexpr` array and looks identifiers
-up by binary search.
-
-The generated file is checked in. This script is for regenerating it when the
-pin moves, not a build step: nothing in CMake runs it.
-
-Run it through `just generate-spdx`, which executes it inside the build
-container. It shells out to clang-format, because `just check-format` globs
-`git ls-files` and the generated file cannot be exempted from that gate.
-
-    just generate-spdx            # the pinned release below
-    just generate-spdx v3.29.0    # a different one
-
-Moving the pin is a deliberate act: a wider list silences findings, a narrower
-one invents them. Record the move in the commit message.
 """
 
 import argparse
@@ -32,7 +13,7 @@ import subprocess
 import sys
 import urllib.request
 
-# The pinned upstream release. Bump deliberately; see the module docstring.
+# The pinned upstream release
 DEFAULT_TAG = "v3.28.0"
 
 REPO = "spdx/license-list-data"
@@ -42,23 +23,13 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUTPUT = REPO_ROOT / "src" / "data" / "spdx_licenses.cpp"
 
 HEADER = """\
+// GENERATED FILE. DO NOT EDIT.
+//
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 //
 // SPDX-FileCopyrightText: Linux Foundation and SPDX contributors
 // SPDX-License-Identifier: CC-BY-3.0
-
-// GENERATED FILE. DO NOT EDIT.
-//
-// Regenerate with `just generate-spdx`, which runs tools/generate_spdx_data.py.
-//
-// Source: the SPDX License List, release @version@ of @date@, taken from
-// https://github.com/@repo@ at tag @tag@. The list data is CC-BY-3.0; see the
-// NOTICE file at the repository root.
-//
-// The pin is deliberate. An identifier added upstream after this release is not
-// known here and draws a spurious finding, which is why bad-spdx-expression is a
-// warning rather than an error (DECK.md section 7.1).
 
 #include "spdx_licenses.hpp"
 
@@ -72,8 +43,7 @@ namespace arcana::data
 namespace
 {
 
-// Sorted ascending bytewise. Deprecated identifiers are included: they are on
-// the list, so a deck naming one satisfies DECK.md section 7.1.
+// Deprecated identifiers are included
 constexpr std::array<std::string_view, @license_count@> license_ids{
 @license_rows@
 };
@@ -120,8 +90,7 @@ def main() -> int:
     clang_format = shutil.which("clang-format")
     if clang_format is None:
         print(
-            "clang-format is not on PATH. Run this through `just generate-spdx`, "
-            "which executes it inside the build container.",
+            "clang-format missing",
             file=sys.stderr,
         )
         return 1

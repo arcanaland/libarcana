@@ -85,8 +85,6 @@ TEST_CASE("canonical IDs cover both arcana", "[scanners]")
     CHECK(is_canonical_id("minor_arcana.stars.ace"));
     CHECK(is_canonical_id("minor_arcana.wands.knight"));
 
-    // The grammar admits any two digits; only 00 to 21 mean anything shared,
-    // and that is a separate rule rather than a grammar question.
     CHECK(is_canonical_id("major_arcana.99"));
 }
 
@@ -177,7 +175,7 @@ TEST_CASE("well-formed language tags follow RFC 5646", "[scanners]")
     CHECK(is_well_formed_language_tag("en-x-custom"));
     CHECK(is_well_formed_language_tag("eng"));
 
-    // Grandfathered, and not otherwise expressible in the grammar.
+    // Grandfathered
     CHECK(is_well_formed_language_tag("i-klingon"));
     CHECK(is_well_formed_language_tag("en-GB-oed"));
     CHECK(is_well_formed_language_tag("sgn-BE-FR"));
@@ -216,7 +214,7 @@ TEST_CASE("canonicalization takes the shortest ISO 639 subtag", "[scanners]")
     CHECK(canonicalize_language_tag("deu") == "de");
     CHECK(canonicalize_language_tag("fra-CA") == "fr-CA");
 
-    // No two-letter form exists, so the three-letter one is already shortest.
+    // No two-letter form exists
     CHECK(canonicalize_language_tag("haw") == "haw");
     CHECK(canonicalize_language_tag("ceb") == "ceb");
 }
