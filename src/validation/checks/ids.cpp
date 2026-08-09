@@ -284,8 +284,7 @@ void check_bad_deck_identifier(check_context const& ctx)
     // fragments can't be in qualified ids
     ctx.report({
         .message = std::format(
-            "deck identifier has a fragment '{}', which is not allowed",
-            parts->fragment
+            "deck identifier has a fragment '{}', which is not allowed", parts->fragment
         ),
         .key = "deck.identifier",
     });

@@ -40,7 +40,8 @@ target_sources(
 
 target_compile_features(arcana PUBLIC cxx_std_26)
 
-target_link_libraries(arcana PRIVATE tomlplusplus::tomlplusplus)
+# BUILD_INTERFACE so we keep toml++ out of the exports
+target_link_libraries(arcana PRIVATE $<BUILD_INTERFACE:tomlplusplus::tomlplusplus>)
 target_compile_definitions(arcana PRIVATE TOML_EXCEPTIONS=0)
 
 # PIC is required for the shared build and for linking this archive into a Python
