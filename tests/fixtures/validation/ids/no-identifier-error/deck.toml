@@ -1,4 +1,4 @@
-# An identifier is RECOMMENDED, not required, so its absence is a warning.
+# An identifier is RECOMMENDED so its absence is a warning.
 [deck]
 schema_version = "2.0"
 name = "No Identifier"

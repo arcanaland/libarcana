@@ -278,17 +278,13 @@ void check_bad_deck_identifier(check_context const& ctx)
         return;
     }
 
-    // DECK.md section 3.4: an identifier names the deck as a whole and must
-    // not carry a fragment. Section 3.5's grammar still admits one, because a
-    // qualified identifier written anywhere else may name a card, so this is
-    // a rule about the field rather than something the scanner can judge.
     if (parts->fragment.empty())
         return;
 
+    // fragments can't be in qualified ids
     ctx.report({
         .message = std::format(
-            "deck identifier carries the fragment '{}', which names a card; an identifier names "
-            "the deck as a whole",
+            "deck identifier has a fragment '{}', which is not allowed",
             parts->fragment
         ),
         .key = "deck.identifier",
@@ -317,8 +313,7 @@ void check_deck_identifier_path_shape(check_context const& ctx)
         // Ill-formed is bad-deck-identifier's to report
         return;
 
-    // DECK.md section 3.3: a deck's path SHOULD be `deck/<name>`, so exactly
-    // two segments with `deck` first.
+    // a deck's path SHOULD be deck/<name>
     constexpr std::string_view prefix = "deck/";
     if (parts->path.starts_with(prefix) &&
         parts->path.find('/', prefix.size()) == std::string_view::npos)
@@ -351,16 +346,13 @@ void check_bad_signifies(check_context const& ctx)
         return;
     }
 
-    // DECK.md section 4.1.2: the value is a merge key against another
-    // package's `identifier`, which carries no fragment either, so a
-    // fragmented one could never match.
     if (parts->fragment.empty())
         return;
 
     ctx.report({
         .message = std::format(
-            "signifies carries the fragment '{}'; the field names a deck, not a card or a variant "
-            "of one",
+            "signifies must refer to a deck via a qualified identifier, but you passed "
+            "one with the fragment '{}'",
             parts->fragment
         ),
         .key = "deck.signifies",
@@ -430,11 +422,6 @@ void check_bad_cards_table_key(check_context const& ctx)
 
 void check_non_canonical_card_reference(check_context const& ctx)
 {
-    // Both sites name a card rather than a variant of one, so both take a bare
-    // canonical ID: DECK.md section 4.7 keys `[card_variants]` by one and
-    // section 4.5 lists them. A qualified identifier's fragment is the only
-    // place in Arcana Land where a variant suffix is legal, and since
-    // `45512b6` no field of this specification carries one.
     if (auto const* variants_of = ctx.doc["card_variants"].as_table())
     {
         for (auto const& [key, value] : *variants_of)

@@ -46,7 +46,30 @@ build: configure
 # Run the test suite.
 [script]
 test: build
-    ctest --preset {{preset}} --output-on-failure
+    ctest --preset {{preset}} --output-on-failure --verbose
+
+# Run the ctest cases matching a regex, e.g. `just test-match 'ids'`.
+[script]
+test-match pattern: build
+    ctest --preset {{preset}} --output-on-failure -R '{{pattern}}'
+
+# Run one test binary directly, passing the rest to Catch2.
+# e.g. `just run-test validation/ids_test --list-tests`
+#      `just run-test validation/ids_test '[ids]' -s`
+[script]
+run-test bin *args: build
+    {{build_dir}}/tests/{{bin}} {{args}}
+
+# Run one test binary under gdb, stopping where it fails.
+# e.g. `just debug-test validation/ids_test '[ids]'`
+[script]
+debug-test bin *args: build
+    gdb -q -ex run --args {{build_dir}}/tests/{{bin}} --break {{args}}
+
+# Run an arbitrary command inside the build container.
+[script]
+sh +cmd:
+    {{cmd}}
 
 # Configure the nanobind binding env
 [script]

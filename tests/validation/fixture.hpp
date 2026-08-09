@@ -17,7 +17,7 @@ namespace arcana_test
 {
 
 // Every fixture deck the corpus has. A directory missing from this list is
-// invisible to the coverage test, so a layer adds its rows here.
+// invisible to the coverage test, so we must list all our stuff here
 constexpr std::array<std::string_view, 8> validation_fixtures{
     "validation/ansi/ansi-outside-root-error", "validation/ids/card-references-error",
     "validation/ids/custom-names-error",       "validation/ids/fragment-error",

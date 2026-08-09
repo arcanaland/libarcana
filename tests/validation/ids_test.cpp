@@ -1,19 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// The `ids` area: ten rules. `duplicate-deck-identifier`, the eleventh, is the
-// catalogue's only phase::library rule and validate(deck const&) cannot see a
-// sibling deck, so TASK-016 defers it and no fixture here fires it.
-//
-// Every assertion below is closed-world: the complete set of codes the fixture
-// produces, in the order validate() returns them. A fixture that starts firing
-// an extra code fails here rather than silently broadening.
-
 #include "fixture.hpp"
 
 #include <arcana/validation.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <optional>
 #include <string>
@@ -50,8 +43,6 @@ std::vector<std::string> cards_of(std::vector<diagnostic> const& found)
 
 TEST_CASE("a well-formed deck fires no ids diagnostic", "[validation][ids]")
 {
-    // Exercises every site the ten checks read, all of them well formed. This
-    // is what stops a check from firing on a legitimate deck.
     CHECK(validate_fixture("validation/ids/identifiers-valid").empty());
 }
 
@@ -83,7 +74,6 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
         CHECK_FALSE(one.path.has_value());
     }
 
-    // Each message names the value it judged.
     CHECK(found[0].message.find("'land'") != std::string::npos);
     CHECK(found[1].message.find("notarealm/deck/bad-identifiers") != std::string::npos);
     CHECK(found[2].message.find("also_bad") != std::string::npos);
@@ -141,9 +131,6 @@ TEST_CASE("coined names outside the grammar and reserved ones are reported", "[v
                            }
     );
 
-    // The three declared names carry a key and no path; the two discovered in
-    // the tree carry a path and no key, which is what makes these rules
-    // phase::filesystem.
     CHECK(
         keys_of(found) == std::vector<std::string>{
                               "editions.first-edition",
@@ -216,8 +203,6 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
                           }
     );
 
-    // A variant reference in [cards] gets its own message: the fix is to move
-    // it, not to rewrite it.
     CHECK(found[0].message.find("is a variant reference") != std::string::npos);
     CHECK(found[1].message.find("is not a canonical ID") != std::string::npos);
 
@@ -230,9 +215,6 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
 
 TEST_CASE("a fragment on a field that names a deck is reported", "[validation][ids]")
 {
-    // DECK.md gained this at `45512b6`: a fragment names a card, so neither
-    // `identifier` nor `signifies` accepts one. Both values here are otherwise
-    // well-formed, which is what keeps this distinct from a malformed one.
     auto const found = validate_fixture("validation/ids/fragment-error");
 
     REQUIRE(
@@ -249,9 +231,10 @@ TEST_CASE("a fragment on a field that names a deck is reported", "[validation][i
                           }
     );
 
-    // Each message names the offending fragment and not the whole value.
-    CHECK(found[0].message.find("major_arcana.00") != std::string::npos);
-    CHECK(found[1].message.find("major_arcana.06:two_women") != std::string::npos);
+    using Catch::Matchers::ContainsSubstring;
+
+    REQUIRE_THAT(found[0].message, ContainsSubstring("major_arcana.00"));
+    REQUIRE_THAT(found[1].message, ContainsSubstring("major_arcana.06:two_enbys"));
 
     for (auto const& one : found)
     {
