@@ -16,8 +16,13 @@
 namespace arcana_test
 {
 
-constexpr std::array<std::string_view, 1> validation_fixtures{
-    "validation/ansi/ansi-outside-root-error",
+// Every fixture deck the corpus has. A directory missing from this list is
+// invisible to the coverage test, so we must list all our stuff here
+constexpr std::array<std::string_view, 8> validation_fixtures{
+    "validation/ansi/ansi-outside-root-error", "validation/ids/card-references-error",
+    "validation/ids/custom-names-error",       "validation/ids/fragment-error",
+    "validation/ids/identifier-shape-error",   "validation/ids/identifiers-error",
+    "validation/ids/identifiers-valid",        "validation/ids/no-identifier-error",
 };
 
 // Load a fixture deck and run the full catalogue over it.

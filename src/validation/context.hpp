@@ -8,6 +8,8 @@
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>
 
+#include <toml++/toml.hpp>
+
 #include <filesystem>
 #include <optional>
 #include <span>
@@ -45,6 +47,9 @@ struct check_context
 
     // The deck's own tree
     std::span<deck_file const> files;
+
+    // deck.toml as parsed
+    toml::table const& doc;
 
     // The rule being run.
     rule const& r;

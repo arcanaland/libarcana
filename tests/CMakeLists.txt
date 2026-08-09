@@ -43,6 +43,12 @@ function(arcana_add_test name)
     target_compile_definitions(${name} PRIVATE ${ARG_DEFINES})
     target_include_directories(${name} PRIVATE ${ARG_INCLUDES})
 
+    # The random "Checking <VAR> env var" lines are coming from Catch2.
+    # Annoying but harmless:
+    #   Checking XDG_RUNTIME_DIR env var
+    #   Checking TMPDIR env var
+    #   Checking TMP env var
+    #   Checking TEMP env var
     catch_discover_tests(${name})
 endfunction()
 

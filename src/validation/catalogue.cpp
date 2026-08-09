@@ -116,9 +116,10 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .spec_ref = "DECK.md#3.3; DECK.md#9.4",
+        .spec_ref = "DECK.md#3.3; DECK.md#3.4; DECK.md#9.4",
         .explanation = "The deck's identifier is not a well-formed qualified identifier: a realm, "
-                       "a slash, one or more path segments, and an optional fragment after a hash.",
+                       "a slash, and one or more path segments. It names the deck as a whole, so "
+                       "it carries no fragment.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -233,8 +234,9 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.2; DECK.md#9.4",
         .explanation =
-            "The signifies field is not a well-formed qualified identifier. The value is used as a "
-            "merge key against another package's identifier, so a malformed one can never match.",
+            "The signifies field is not a well-formed qualified identifier, or it carries a "
+            "fragment. The value is a merge key against another package's identifier, which names "
+            "a deck rather than a card.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -628,7 +630,8 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::document,
         .spec_ref = "DECK.md#3.1",
-        .explanation = "This card reference is not a canonical ID with an optional variant suffix.",
+        .explanation = "This card reference is not a canonical ID. Where a card is named rather "
+                       "than a variant of one, a variant suffix is not accepted.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
