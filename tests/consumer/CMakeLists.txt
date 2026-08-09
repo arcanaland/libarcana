@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 4.3)
 project(arcana-consumer LANGUAGES CXX)
 
-list(PREPEND CMAKE_PREFIX_PATH ${ARCANA_PREFIX} ${ARCANA_DEP_PREFIX})
+list(PREPEND CMAKE_PREFIX_PATH ${ARCANA_PREFIX})
 
 if(ARCANA_FORCE_SCRIPT_CONFIG)
     find_package(arcana 0.1.0 REQUIRED CONFIGS arcanaConfig.cmake)

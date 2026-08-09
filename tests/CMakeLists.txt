@@ -100,7 +100,6 @@ if(ARCANA_INSTALL)
                     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DARCANA_PREFIX=${arcana_staged_prefix}
-                    -DARCANA_DEP_PREFIX=${PROJECT_BINARY_DIR}/generators
                     -DARCANA_FORCE_SCRIPT_CONFIG=${ARG_FORCE_SCRIPT_CONFIG}
                 --test-command ${CMAKE_CTEST_COMMAND})
 
