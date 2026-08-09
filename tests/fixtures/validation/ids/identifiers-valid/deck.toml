@@ -1,11 +1,9 @@
-# Every site the `ids` area reads, all of them well formed. This fixture exists
-# to prove the ten checks stay silent, so nothing here may be a defect.
 [deck]
 schema_version = "2.0"
 name = "Good Identifiers"
 version = "1.0"
 identifier = "org.example/deck/good-identifiers"
-signifies = "com.example/deck/other#major_arcana.06:two_women"
+signifies = "com.example/deck/other"
 
 [app."org.example.viewer"]
 bleed = true

@@ -195,7 +195,6 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
                                "bad-cards-table-key",
                                "non-canonical-card-reference",
                                "non-canonical-card-reference",
-                               "non-canonical-card-reference",
                            }
     );
 
@@ -204,7 +203,6 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
                                "major_arcana.06:two_women",
                                "major_arcana.6",
                                "major_arcana.06:two_women",
-                               "major_arcana.6",
                                "minor_arcana.Pentacles.page",
                            }
     );
@@ -214,7 +212,6 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
                               R"(cards."major_arcana.06:two_women")",
                               R"(cards."major_arcana.6")",
                               R"(card_variants."major_arcana.06:two_women")",
-                              "deck.identifier",
                               "excluded_cards.cards",
                           }
     );
@@ -224,13 +221,42 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
     CHECK(found[0].message.find("is a variant reference") != std::string::npos);
     CHECK(found[1].message.find("is not a canonical ID") != std::string::npos);
 
-    // The identifier is a well-formed qualified identifier whose fragment is
-    // not a card reference, so only the fragment is reported.
-    CHECK(found[3].message.find("fragment") != std::string::npos);
+    for (auto const& one : found)
+    {
+        INFO("code: " << one.code);
+        CHECK(one.level == severity::error);
+    }
+}
+
+TEST_CASE("a fragment on a field that names a deck is reported", "[validation][ids]")
+{
+    // DECK.md gained this at `45512b6`: a fragment names a card, so neither
+    // `identifier` nor `signifies` accepts one. Both values here are otherwise
+    // well-formed, which is what keeps this distinct from a malformed one.
+    auto const found = validate_fixture("validation/ids/fragment-error");
+
+    REQUIRE(
+        codes_of(found) == std::vector<std::string_view>{
+                               "bad-deck-identifier",
+                               "bad-signifies",
+                           }
+    );
+
+    CHECK(
+        keys_of(found) == std::vector<std::string>{
+                              "deck.identifier",
+                              "deck.signifies",
+                          }
+    );
+
+    // Each message names the offending fragment and not the whole value.
+    CHECK(found[0].message.find("major_arcana.00") != std::string::npos);
+    CHECK(found[1].message.find("major_arcana.06:two_women") != std::string::npos);
 
     for (auto const& one : found)
     {
         INFO("code: " << one.code);
         CHECK(one.level == severity::error);
+        CHECK_FALSE(one.card.has_value());
     }
 }

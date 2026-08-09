@@ -260,14 +260,36 @@ void report_name(check_context const& ctx, coined_name const& one, std::string m
 void check_bad_deck_identifier(check_context const& ctx)
 {
     auto const identifier = deck_string(ctx, "identifier");
-    if (!identifier || data::is_qualified_identifier(*identifier))
+    if (!identifier)
+        return;
+
+    auto const parts = data::parse_qualified_identifier(*identifier);
+    if (!parts)
+    {
+        ctx.report({
+            .message = std::format(
+                "deck identifier '{}' is not a qualified identifier: a realm, a slash and one or "
+                "more path segments",
+                *identifier
+            ),
+            .key = "deck.identifier",
+        });
+
+        return;
+    }
+
+    // DECK.md section 3.4: an identifier names the deck as a whole and must
+    // not carry a fragment. Section 3.5's grammar still admits one, because a
+    // qualified identifier written anywhere else may name a card, so this is
+    // a rule about the field rather than something the scanner can judge.
+    if (parts->fragment.empty())
         return;
 
     ctx.report({
         .message = std::format(
-            "deck identifier '{}' is not a qualified identifier: a realm, a slash, one or more "
-            "path segments, and an optional fragment after a hash",
-            *identifier
+            "deck identifier carries the fragment '{}', which names a card; an identifier names "
+            "the deck as a whole",
+            parts->fragment
         ),
         .key = "deck.identifier",
     });
@@ -303,10 +325,7 @@ void check_deck_identifier_path_shape(check_context const& ctx)
         return;
 
     ctx.report({
-        .message = std::format(
-            "deck identifier path '{}' is not deck/<name>",
-            parts->path
-        ),
+        .message = std::format("deck identifier path '{}' is not deck/<name>", parts->path),
         .key = "deck.identifier",
     });
 }
@@ -314,14 +333,35 @@ void check_deck_identifier_path_shape(check_context const& ctx)
 void check_bad_signifies(check_context const& ctx)
 {
     auto const signifies = deck_string(ctx, "signifies");
-    if (!signifies || data::is_qualified_identifier(*signifies))
+    if (!signifies)
+        return;
+
+    auto const parts = data::parse_qualified_identifier(*signifies);
+    if (!parts)
+    {
+        ctx.report({
+            .message = std::format(
+                "signifies '{}' is not a qualified identifier, so it can never match the "
+                "identifier of the deck it names",
+                *signifies
+            ),
+            .key = "deck.signifies",
+        });
+
+        return;
+    }
+
+    // DECK.md section 4.1.2: the value is a merge key against another
+    // package's `identifier`, which carries no fragment either, so a
+    // fragmented one could never match.
+    if (parts->fragment.empty())
         return;
 
     ctx.report({
         .message = std::format(
-            "signifies '{}' is not a qualified identifier, so it can never match the identifier of "
-            "the deck it names",
-            *signifies
+            "signifies carries the fragment '{}'; the field names a deck, not a card or a variant "
+            "of one",
+            parts->fragment
         ),
         .key = "deck.signifies",
     });
@@ -376,16 +416,9 @@ void check_bad_cards_table_key(check_context const& ctx)
         if (data::is_canonical_id(card))
             continue;
 
-        auto message =
-            data::is_variant_reference(card)
-                ? std::format(
-                      "[cards] key '{}' is a variant reference",
-                      card
-                  )
-                : std::format(
-                      "[cards] key '{}' is not a canonical ID",
-                      card
-                  );
+        auto message = data::is_variant_reference(card)
+                           ? std::format("[cards] key '{}' is a variant reference", card)
+                           : std::format("[cards] key '{}' is not a canonical ID", card);
 
         ctx.report({
             .message = std::move(message),
@@ -397,6 +430,11 @@ void check_bad_cards_table_key(check_context const& ctx)
 
 void check_non_canonical_card_reference(check_context const& ctx)
 {
+    // Both sites name a card rather than a variant of one, so both take a bare
+    // canonical ID: DECK.md section 4.7 keys `[card_variants]` by one and
+    // section 4.5 lists them. A qualified identifier's fragment is the only
+    // place in Arcana Land where a variant suffix is legal, and since
+    // `45512b6` no field of this specification carries one.
     if (auto const* variants_of = ctx.doc["card_variants"].as_table())
     {
         for (auto const& [key, value] : *variants_of)
@@ -431,27 +469,6 @@ void check_non_canonical_card_reference(check_context const& ctx)
                 .key = "excluded_cards.cards",
             });
         }
-    }
-
-    for (auto const* const field : {"identifier", "signifies"})
-    {
-        auto const identifier = deck_string(ctx, field);
-        if (!identifier)
-            continue;
-
-        auto const parts = data::parse_qualified_identifier(*identifier);
-        if (!parts || parts->fragment.empty())
-            continue;
-
-        if (data::is_card_reference(parts->fragment))
-            continue;
-
-        ctx.report({
-            .message =
-                std::format("fragment '{}' of {} is not a card reference", parts->fragment, field),
-            .card = std::string{parts->fragment},
-            .key = std::format("deck.{}", field),
-        });
     }
 }
 

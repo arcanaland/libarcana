@@ -1,5 +1,5 @@
-# The path is `tarot/<name>` rather than `deck/<name>`, and the deck signifies
-# itself. Both values are well-formed qualified identifiers.
+# - path is `tarot/<name>` rather than `deck/<name>`
+# - the deck signifies itself
 [deck]
 schema_version = "2.0"
 name = "Odd Shape"
