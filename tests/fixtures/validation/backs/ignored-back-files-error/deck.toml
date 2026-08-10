@@ -1,0 +1,12 @@
+[deck]
+schema_version = "2.0"
+name = "Ignored Back Files"
+version = "1.0"
+identifier = "org.example/deck/ignored-back-files"
+
+[card_backs]
+default = "classic"
+
+[card_backs.designs.classic]
+name = "Classic"
+image = "card_backs/classic.tiff"

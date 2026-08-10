@@ -1,0 +1,5 @@
+[deck]
+schema_version = "2.0"
+name = "Root Lookalikes"
+version = "1.0"
+identifier = "org.example/deck/root-lookalikes"

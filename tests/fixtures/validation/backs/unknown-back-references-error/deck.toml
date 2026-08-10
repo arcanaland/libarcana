@@ -1,0 +1,12 @@
+[deck]
+schema_version = "2.0"
+name = "Unknown Back References"
+version = "1.0"
+identifier = "org.example/deck/unknown-back-references"
+
+[card_backs]
+default = "missing"
+
+[editions.special]
+name = "Special"
+card_back = "gone"
