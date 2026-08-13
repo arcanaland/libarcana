@@ -11,6 +11,7 @@
 #include "validation/context.hpp"
 #include "validation/registry.hpp"
 #include "validation/spec.hpp"
+#include "validation/tree.hpp"
 
 #include <algorithm>
 #include <span>
