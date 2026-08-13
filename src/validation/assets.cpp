@@ -8,8 +8,11 @@
 #include <toml++/toml.hpp>
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <filesystem>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -20,8 +23,6 @@ namespace arcana::validation
 namespace
 {
 
-// A decimal integer greater than zero, written without a sign, leading zeroes
-// or separators.
 bool is_root_size(std::string_view digits) noexcept
 {
     if (digits.empty() || digits.front() == '0')
@@ -30,13 +31,36 @@ bool is_root_size(std::string_view digits) noexcept
     return std::ranges::all_of(digits, data::is_digit);
 }
 
-// The components of a deck-root-relative path, as strings.
-std::vector<std::string> components_of(std::filesystem::path const& relative)
+// The components of a deck-root-relative path.
+struct path_parts
 {
-    std::vector<std::string> parts;
-    for (auto const& one : relative) parts.push_back(one.string());
+    // The deepest a location for a file, for example:
+    //    <deck-root>/minor_arcana/<suit>/<file>
+    constexpr std::size_t location_depth = 4;
+    std::array<std::string_view, location_depth> parts;
+    std::size_t size = 0;
 
-    return parts;
+    std::string_view operator[](std::size_t index) const noexcept
+    {
+        return parts[index];
+    }
+};
+
+path_parts components_of(std::filesystem::path const& relative) noexcept
+{
+    // We'll need to update this strategy when we support Windows
+    static_assert(std::filesystem::path::preferred_separator == '/');
+
+    path_parts found;
+    for (auto const one : std::views::split(std::string_view{relative.native()}, '/'))
+    {
+        if (found.size == found.parts.size())
+            return {};
+
+        found.parts[found.size++] = std::string_view{one};
+    }
+
+    return found;
 }
 
 // Collects a path-valued key where it holds a string.
@@ -81,22 +105,22 @@ std::optional<asset_location> locate_asset(std::filesystem::path const& relative
 {
     auto const parts = components_of(relative);
 
-    // The top-level card back directory: `card_backs/<file>`.
-    if (parts.size() == 2 && parts[0] == "card_backs")
+    // The top-level card back directory: card_backs/<file>.
+    if (parts.size == 2 && parts[0] == "card_backs")
         return asset_location{.kind = std::nullopt, .card_back = true};
 
-    if (parts.size() < 3)
+    if (parts.size < 3)
         return std::nullopt;
 
     auto const kind = parse_image_root(parts[0]);
     if (!kind)
         return std::nullopt;
 
-    if (parts.size() == 3 && (parts[1] == "major_arcana" || parts[1] == "card_backs"))
+    if (parts.size == 3 && (parts[1] == "major_arcana" || parts[1] == "card_backs"))
         return asset_location{.kind = kind, .card_back = parts[1] == "card_backs"};
 
     // `<root>/minor_arcana/<suit>/<file>`.
-    if (parts.size() == 4 && parts[1] == "minor_arcana")
+    if (parts.size == 4 && parts[1] == "minor_arcana")
         return asset_location{.kind = kind, .card_back = false};
 
     return std::nullopt;
@@ -113,8 +137,7 @@ chain_format chain_format_of(std::string_view extension) noexcept
     if (extension == "avif")
         return chain_format::avif;
 
-    // DECK.md 5.7.4 ranks these together and leaves the choice between them
-    // unspecified, so they are one format rather than two.
+    // the spec ranks these together
     if (extension == "jpeg" || extension == "jpg")
         return chain_format::jpeg;
 
@@ -185,8 +208,7 @@ std::vector<std::string> declared_paths(toml::table const& doc)
             if (auto const* text = element.as_string())
                 found.push_back(text->get());
 
-    // Both spellings of the card back designs table: 2.0's `designs` and 1.0's
-    // `variants`.
+    // designs for 2.0 and variants for 1.0
     add_image_paths(found, doc["card_backs"]["designs"]);
     add_image_paths(found, doc["card_backs"]["variants"]);
 
