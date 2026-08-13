@@ -10,8 +10,6 @@
 namespace arcana::data
 {
 
-// The baseline raster formats, which DECK.md#5.7.4 requires every application to
-// decode. WebP joined the two at `29edd24`; AVIF and SVG remain OPTIONAL.
 enum class image_format : std::uint8_t
 {
     unknown,

@@ -394,8 +394,6 @@ void check_bad_cards_table_key(check_context const& ctx)
 
     for (auto const& [key, value] : *cards)
     {
-        // `cc9081e` moved variants onto this table, so a variant reference is now a
-        // legal key here rather than one belonging in `[card_variants]`.
         auto const card = std::string_view{key.str()};
         if (data::is_canonical_id(card) || data::is_variant_reference(card))
             continue;
@@ -410,9 +408,6 @@ void check_bad_cards_table_key(check_context const& ctx)
 
 void check_non_canonical_card_reference(check_context const& ctx)
 {
-    // `[excluded_cards].cards` is the one site left. The `[card_variants]` keys this
-    // check also read are gone with the table (`cc9081e`), and a `[cards]` key may now
-    // legally be a variant reference, which `bad-cards-table-key` judges instead.
     if (auto const* excluded = ctx.doc["excluded_cards"]["cards"].as_array())
     {
         for (auto const& element : *excluded)

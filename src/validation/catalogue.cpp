@@ -46,10 +46,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
         .explanation = "An artwork declares a content rating descriptor above the value the deck "
-                       "declares for the "
-                       "same system and descriptor. The deck level states the ceiling, so raise it "
-                       "or lower the "
-                       "artwork.",
+                       "declares. Either lower the artwork's rating or raise the deck's rating.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -107,9 +104,7 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1; DECK.md#9.4",
-        .explanation = "card_size_mm does not hold exactly two numbers greater than zero. It is "
-                       "the physical width "
-                       "then the height in millimetres.",
+        .explanation = "card_size_mm should be two numbers: width x height.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -119,9 +114,7 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::document,
         .spec_ref = "DECK.md#3.1.2; DECK.md#4.3; DECK.md#9.4",
-        .explanation = "A key in the cards table is not a well-formed card reference. A major "
-                       "arcanum's key carries "
-                       "both of its digits, and a variant reference's suffix is a custom name.",
+        .explanation = "A key in the cards table is not a well-formed card reference.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -131,11 +124,8 @@ constexpr std::array catalogue{
         .area = "container",
         .needs = phase::library,
         .spec_ref = "DECK.md#2.4; DECK.md#9.4",
-        .explanation = "A container entry is a symbolic link, a hard link, an encrypted entry, or "
-                       "something other "
-                       "than a regular file or directory, or it uses a compression method other "
-                       "than stored or "
-                       "deflate.",
+        .explanation = "A zip entry is a not a regular file or uses a "
+                       "compression method other than stored or deflate.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -145,9 +135,7 @@ constexpr std::array catalogue{
         .area = "container",
         .needs = phase::library,
         .spec_ref = "DECK.md#2.4; DECK.md#9.4",
-        .explanation = "A container does not carry deck.toml at the root of the archive. A deck "
-                       "sitting inside a "
-                       "wrapping directory is not a container.",
+        .explanation = "A container does not have a deck.toml at its root.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -157,11 +145,7 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
-        .explanation =
-            "A content rating system key or descriptor key is not a well-formed custom name, or a "
-            "descriptor carries no non-empty string, or artwork_complete is not a boolean or "
-            "appears "
-            "somewhere other than the deck level.",
+        .explanation = "A content rating key is not well-formed custom name.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -195,10 +179,7 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.3; DECK.md#9.4",
-        .explanation =
-            "The follows field is not a well-formed qualified identifier, or it carries a "
-            "fragment. It "
-            "names the deck this one is patterned on, as a whole, so it carries no fragment.",
+        .explanation = "The follows field is not a well-formed qualified identifier.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -208,11 +189,7 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
-        .explanation = "A gtin is not eight, twelve, thirteen or fourteen digits, contains a "
-                       "character other than a "
-                       "digit, or fails its check digit. Box copy is transcribed by hand and this "
-                       "is the error that "
-                       "transcription makes.",
+        .explanation = "GTIN needs to be eight, twelve, thirteen or fourteen digits.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -222,10 +199,7 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
-        .explanation = "An isbn is not ten or thirteen characters once hyphens and spaces are "
-                       "removed, or fails its "
-                       "check digit. Box copy is transcribed by hand and this is the error that "
-                       "transcription makes.",
+        .explanation = "ISBN needs to be ten or thirteen characters.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -281,10 +255,8 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
-        .explanation =
-            "A descriptor under an oars-1.1 subtable is not one of the twenty-two OARS 1.1 "
-            "attribute ids "
-            "written with underscores, or its value is not one of none, mild, moderate or intense.",
+        .explanation = "An oras-1.1 descriptor is not one of the OARS 1.1 "
+                       "attribute ids or its value is not one of <none, mild, moderate, intense>.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -317,10 +289,8 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.4; DECK.md#9.4",
-        .explanation = "The pips field is not one of scenic, emblematic or unstated. A deck whose "
-                       "suits differ among "
-                       "themselves declares nothing rather than coining a fourth value.",
-        .applies_to = {.min = 2, .max = 2},
+        .explanation = "The pips field is not one of scenic, emblematic or unstated.",
+                           .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -330,8 +300,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
         .explanation = "A product_ids key is not a well-formed custom name, or its value is not a "
-                       "non-empty string. "
-                       "The key names the identifier scheme and the value is the identifier.",
+                       "non-empty string.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -342,10 +311,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#3.5; DECK.md#4.1.7; DECK.md#9.4",
         .explanation = "published_date is not a year, a year and month, or a full date denoting a "
-                       "real calendar "
-                       "date. State no precision you do not have: the year alone is the correct "
-                       "value where the day "
-                       "is unknown.",
+                       "real calendar date.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -451,11 +417,7 @@ constexpr std::array catalogue{
         .area = "images",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#5.7.4; DECK.md#9.4",
-        .explanation =
-            "Every raster asset this card has, across all image roots, is in a format outside the "
-            "baseline of PNG, JPEG and WebP, so an application that decodes only the baseline "
-            "falls back "
-            "to a reference deck or shows nothing.",
+        .explanation = "There are no PNG, JPEG or WebP assets for a card.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -466,10 +428,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1; DECK.md#5.6; DECK.md#9.4",
         .explanation = "The width-to-height ratio of card_size_mm differs from the declared "
-                       "aspect_ratio by more "
-                       "than a tenth. One of the two is likely a transcription error, though "
-                       "aspect_ratio governs "
-                       "either way.",
+                       "aspect_ratio by more than a tenth.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -479,10 +438,7 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::document,
         .spec_ref = "DECK.md#3.6; DECK.md#4.3; DECK.md#9.4",
-        .explanation = "A cards entry is written as a key path rather than a single key, so it "
-                       "declares a table "
-                       "named for the card's first segment rather than the card. Quote the whole "
-                       "card reference.",
+        .explanation = "Entries in [cards] should be quoted card references.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -516,11 +472,9 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
-        .explanation = "Under artwork_complete, a deck level descriptor is above every value the "
-                       "deck's artwork "
-                       "carries for it. The deck says the content is somewhere in it and the "
-                       "annotation says it is "
-                       "nowhere, so one of the two is unfinished.",
+        .explanation =
+            "The content rating of the deck is higher than the content rating of any card "
+            " in the deck.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -639,10 +593,8 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.3; DECK.md#9.4",
         .explanation =
-            "The follows field names this deck's own identifier or the deck it signifies. A deck "
-            "is not "
-            "patterned on itself, and following carries none of signifies' merge semantics.",
-        .applies_to = {.min = 2, .max = 2},
+            "The follows field cannot be this deck's own identifier or the deck it signifies.",
+                .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -675,10 +627,9 @@ constexpr std::array catalogue{
         .area = "cards",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.3; DECK.md#9.4",
-        .explanation = "A number, position or default_variant is declared on a variant reference "
-                       "key, where an "
-                       "application ignores all three. They belong to the card rather than to one "
-                       "of its artworks.",
+        .explanation =
+            "A number, position or default_variant is declared on a variant, which will be "
+            "ignored.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -742,11 +693,9 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
-        .explanation = "An artwork declares a content rating descriptor for a system whose deck "
-                       "level subtable "
-                       "carries no artwork_complete. Without it an application cannot tell an "
-                       "unannotated artwork "
-                       "from an unrated one.",
+        .explanation = "An artwork declares a content rating for a system that doesn't have "
+                       "artwork_complete defined. It is ambiguous what is unrated and what is "
+                       "unannotated.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -768,11 +717,7 @@ constexpr std::array catalogue{
         .area = "container",
         .needs = phase::library,
         .spec_ref = "DECK.md#2.4; DECK.md#9.4",
-        .explanation = "A container's first entry is not an uncompressed mimetype file carrying "
-                       "the media type. "
-                       "Applications still read it, but it cannot be recognised by its leading "
-                       "bytes and presents as "
-                       "a plain archive.",
+        .explanation = "A container's first entry is not an uncompressed mimetype file.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -951,11 +896,8 @@ constexpr std::array catalogue{
         .area = "names",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#6.2; DECK.md#6.4; DECK.md#9.4",
-        .explanation = "This name file gives alt text to some entities of a kind and not to this "
-                       "one. The two facets "
-                       "are written as separate blocks, so an entity missed out of one is "
-                       "invisible to a reader "
-                       "checking the other.",
+        .explanation = "This name file gives alt text to some entities of a kind but not to this "
+                       "one.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1131,10 +1073,7 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
-        .explanation =
-            "An artwork is rated under a system the deck level content rating table does not "
-            "declare. An "
-            "artwork refines the deck's declaration and cannot introduce a system of its own.",
+        .explanation = "An artwork is rated under a system that the deck does not declare.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1156,9 +1095,7 @@ constexpr std::array catalogue{
         .area = "names",
         .needs = phase::document,
         .spec_ref = "DECK.md#6.2.1; DECK.md#9.4",
-        .explanation = "A key in a name file's alt text metadata subtable is not one the metadata "
-                       "table defines. The subtable is an override, so the key has nothing to "
-                       "override and is ignored.",
+        .explanation = "A key in a name file's alt text metadata subtable is undefined.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1168,10 +1105,8 @@ constexpr std::array catalogue{
         .area = "names",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#6.2; DECK.md#9.4",
-        .explanation = "A table below a name file's facet names no entity kind this specification "
-                       "defines. The kinds "
-                       "are closed: card, suit, rank, card_back, variant and group, each written "
-                       "in the singular.",
+        .explanation = "Encountered an entity kind this specification does not define, which is "
+                       "one of: card, suit, rank, card_back, variant and group.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1182,10 +1117,7 @@ constexpr std::array catalogue{
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#6.2; DECK.md#9.4",
         .explanation =
-            "A top-level table in this name file is neither the name facet, the alt_text facet nor "
-            "the "
-            "reserved metadata table. An unrecognised facet supplies no strings at all, so a fully "
-            "translated deck would present as an untranslated one.",
+            "A top-level table in a name file must be one of name, alt_text or metadata.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1266,9 +1198,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
         .explanation =
-            "A content rating system is outside the registry and is not prefixed. Applications "
-            "ignore it, "
-            "and a later version of the specification may claim the name. Prefix it with x_.",
+            "A content rating system is outside the registry and is not prefixed with x_.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1291,10 +1221,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
         .explanation = "A product_ids scheme is outside the registry of isbn, gtin and "
-                       "publisher_sku and is not "
-                       "prefixed. Applications ignore it, and a later version of the specification "
-                       "may claim the "
-                       "name. Prefix it with x_.",
+                       "publisher_sku and is not prefixed with x_.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1305,10 +1232,7 @@ constexpr std::array catalogue{
         .needs = phase::library,
         .spec_ref = "DECK.md#2.4; DECK.md#9.4",
         .explanation = "A container entry name is absolute, names a drive, carries a dot-dot, dot "
-                       "or empty segment, "
-                       "or repeats another entry. A validator checks entry names itself, because "
-                       "archive libraries "
-                       "repair them by default.",
+                       "or empty segment, or repeats another entry.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1330,9 +1254,8 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
-        .explanation = "An artwork_complete is declared on a system no artwork carries a "
-                       "descriptor for, so the key "
-                       "describes an annotation that does not exist.",
+        .explanation = "An artwork_complete is declared on a system that no artwork has a "
+                       "descriptor for.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
