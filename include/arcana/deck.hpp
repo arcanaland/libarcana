@@ -47,11 +47,13 @@ struct deck_metadata
     std::optional<std::string> attribution;
     double aspect_ratio = default_aspect_ratio;
     std::optional<std::string> description;
-    std::optional<std::string> created_date;
-    std::optional<std::string> updated_date;
     std::optional<std::string> publisher;
     std::optional<std::string> website;
     std::vector<std::string> tags;
+
+    // deprecated v1.0 fields
+    std::optional<std::string> created_date;
+    std::optional<std::string> updated_date;
 };
 
 // The major component of [deck].schema_version

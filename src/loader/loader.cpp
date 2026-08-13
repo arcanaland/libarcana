@@ -140,8 +140,8 @@ void deck_loader::parse_metadata()
     m.name = get_string_or(t["name"]);
     m.version = get_string_or(t["version"]);
     m.icon = get_string(t["icon"]);
-    m.creator = get_string(t["creator"]);
     m.artist = get_string(t["artist"]);
+    m.creator = get_string(t["creator"]);
     m.license = get_string(t["license"]);
     m.attribution = get_string(t["attribution"]);
     m.aspect_ratio = t["aspect_ratio"].value<double>().value_or(default_aspect_ratio);
