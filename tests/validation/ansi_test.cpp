@@ -17,13 +17,10 @@ using arcana::severity;
 using arcana_test::codes_of;
 using arcana_test::validate_fixture;
 
-TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
+TEST_CASE("ansi outside image root", "[validation][ansi]")
 {
     auto const found = validate_fixture("validation/ansi/ansi-outside-root-error");
 
-    // The two lookalikes are `images`' to report and arrived with that area:
-    // `ansi/` names no line count and `ansi032/` writes one with a leading
-    // zero, so neither is an image root and neither holds cards.
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "ansi-outside-image-root",
