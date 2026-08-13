@@ -91,8 +91,6 @@ void collect_suit_names(toml::table const& doc, std::vector<coined_name>& found)
     }
 }
 
-// Variant names, which `cc9081e` moved off the deleted `[card_variants]` table and
-// onto `[cards]`: the suffix of a variant-reference key, and each `default_variant`.
 void collect_variant_names(toml::table const& doc, std::vector<coined_name>& found)
 {
     auto const* cards = doc["cards"].as_table();

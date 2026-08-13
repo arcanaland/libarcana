@@ -215,10 +215,6 @@ TEST_CASE("no rule ships experimental", "[validation]")
 
 TEST_CASE("every rule beyond a single deck is named", "[validation]")
 {
-    // `phase::library` carries the rules `validate(deck const&)` structurally
-    // cannot reach. One needs sibling decks; the four `container` rules judge a
-    // zip a validator is handed before any deck exists (DECK.md#2.4). The phase
-    // enum is public API and gained no `container` member for them.
     constexpr std::array<std::string_view, 5> beyond_one_deck{
         "bad-container-entry-type", "bad-container-layout", "duplicate-deck-identifier",
         "missing-container-mimetype", "unsafe-container-entry-name"
@@ -273,8 +269,7 @@ constexpr std::array<std::string_view, 6> deferred{
     // The only phase::library rule
     "duplicate-deck-identifier",
 
-    // A container is a zip a validator is handed before any deck exists, so
-    // validate(deck const&) is never given one (DECK.md#2.4).
+    // can't be reached via current API of validate(deck const&)
     "bad-container-entry-type",
     "bad-container-layout",
     "missing-container-mimetype",

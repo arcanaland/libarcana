@@ -176,9 +176,6 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
 {
     auto const found = validate_fixture("validation/ids/card-references-error");
 
-    // `cc9081e` legalised a variant reference as a `[cards]` key and deleted the
-    // `[card_variants]` table, so the fixture's `major_arcana.06:two_women` entry is
-    // now clean and `[excluded_cards]` is the one site left to `non-canonical-*`.
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "bad-cards-table-key",
