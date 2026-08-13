@@ -164,7 +164,8 @@ void check_bad_card_back_design_key(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "card back design key '{}' does not conform to the custom name grammar: lowercase ASCII letters, digits "
+                "card back design key '{}' does not conform to the custom name grammar: lowercase "
+                "ASCII letters, digits "
                 "and underscores (not starting with a digit)",
                 design
             ),
@@ -184,9 +185,8 @@ void check_missing_card_back_image(check_context const& ctx)
             continue;
 
         ctx.report({
-            .message = std::format(
-                "card back design '{}' refers to missing image '{}'", design, image
-            ),
+            .message =
+                std::format("card back design '{}' refers to missing image '{}'", design, image),
             .key = std::format("card_backs.{}.{}.image", table, design),
         });
     }
@@ -219,8 +219,8 @@ void check_card_back_default_by_collation(check_context const& ctx)
 
     ctx.report({
         .message = std::format(
-            "the deck has {} card back designs but no default, so we chose '{}'",
-            has.size(), has.front()
+            "the deck has {} card back designs but no default, so we chose '{}'", has.size(),
+            has.front()
         ),
         .key = "card_backs.default",
     });

@@ -175,7 +175,8 @@ void check_duplicate_chain_extension(check_context const& ctx)
 
             ctx.report({
                 .message = std::format(
-                    "'{}' and '{}' have the same name with different extensions, is that intentional?",
+                    "'{}' and '{}' have the same name with different extensions, is that "
+                    "intentional?",
                     file->relative.generic_string(), first->relative.generic_string()
                 ),
                 .path = file->relative,
