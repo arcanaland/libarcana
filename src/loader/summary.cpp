@@ -90,7 +90,7 @@ std::expected<deck_summary, error> load_deck_summary(std::filesystem::path const
         .id = get_string_or(deck_table["id"]),
         .name = get_string_or(deck_table["name"]),
         .version = get_string_or(deck_table["version"]),
-        .author = get_string(deck_table["author"]),
+        .artist = get_string(deck_table["artist"]),
         .icon = std::nullopt,
         .card_count =
             count_standard_cards(get_string_array(deck_table["excluded_cards"]["cards"])) +

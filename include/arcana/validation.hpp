@@ -25,7 +25,7 @@ enum class severity : std::uint8_t
     // An observation that certainly applies. Nothing is wrong.
     info,
 
-    // The deck violates a SHOULD, or does something its author probably did
+    // The deck violates a SHOULD, or does something the packager probably did
     // not intend. An application must still load it.
     warning,
 

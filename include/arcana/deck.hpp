@@ -41,16 +41,19 @@ struct deck_metadata
     std::string name;
     std::string version;
     std::optional<std::string> icon;
-    std::optional<std::string> author;
+    std::optional<std::string> creator;
+    std::optional<std::string> artist;
     std::optional<std::string> license;
     std::optional<std::string> attribution;
     double aspect_ratio = default_aspect_ratio;
     std::optional<std::string> description;
-    std::optional<std::string> created_date;
-    std::optional<std::string> updated_date;
     std::optional<std::string> publisher;
     std::optional<std::string> website;
     std::vector<std::string> tags;
+
+    // deprecated v1.0 fields
+    std::optional<std::string> created_date;
+    std::optional<std::string> updated_date;
 };
 
 // The major component of [deck].schema_version

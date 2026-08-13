@@ -43,7 +43,7 @@ version = "1.0"
     REQUIRE(summary.has_value());
     CHECK(summary->id.empty());
     CHECK(summary->name.empty());
-    CHECK_FALSE(summary->author.has_value());
+    CHECK_FALSE(summary->artist.has_value());
     CHECK_FALSE(summary->icon.has_value());
 }
 

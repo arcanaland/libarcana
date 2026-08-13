@@ -88,6 +88,7 @@ inline constexpr std::array checks{
     check_entry{.code = "card-not-baseline-format", .run = pending},
     check_entry{.code = "card-size-aspect-mismatch", .run = pending},
     check_entry{.code = "cards-key-path", .run = pending},
+    check_entry{.code = "creator-equals-artist", .run = pending},
     check_entry{.code = "deck-has-no-cards", .run = pending},
     check_entry{.code = "deck-identifier-path-shape", .run = check_deck_identifier_path_shape},
     check_entry{.code = "deck-rating-exceeds-artwork", .run = pending},
@@ -125,7 +126,7 @@ inline constexpr std::array checks{
     check_entry{.code = "non-canonical-language-tag", .run = pending},
     check_entry{.code = "non-utf8-name-file", .run = pending},
     check_entry{.code = "non-utf8-toml", .run = pending},
-    check_entry{.code = "packager-equals-author", .run = pending},
+    check_entry{.code = "packager-equals-artist", .run = pending},
     check_entry{.code = "palette-snapped-length-mismatch", .run = pending},
     check_entry{.code = "partial-alt-text-in-facet", .run = pending},
     check_entry{.code = "position-on-minor-arcanum", .run = pending},
@@ -186,7 +187,7 @@ inline constexpr std::array checks{
     return count;
 }
 
-static_assert(pending_checks() == 83, "work landed without the checks it required");
+static_assert(pending_checks() == 84, "work landed without the checks it required");
 
 static_assert(deferred_checks() == 6, "six punted checks");
 

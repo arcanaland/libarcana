@@ -155,9 +155,8 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#3.2; DECK.md#3.5; DECK.md#9.4",
-        .explanation =
-            "A key created by the deck author does not match the custom-name grammar: lowercase "
-            "ASCII letters, digits and underscores, never starting with a digit. Rename it.",
+        .explanation = "A key custom key deck does not match the custom-name grammar: lowercase "
+                       "ASCII letters, digits and underscores, never starting with a digit.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -439,6 +438,17 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#3.6; DECK.md#4.3; DECK.md#9.4",
         .explanation = "Entries in [cards] should be quoted card references.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "creator-equals-artist",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#7.6; DECK.md#9.4",
+        .explanation = "The creator and artist fields are the same. Keep artist "
+                       "and drop creator.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -866,15 +876,14 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
-        .code = "packager-equals-author",
+        .code = "packager-equals-artist",
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#7.6; DECK.md#9.4",
-        .explanation =
-            "The packager and author fields carry the same value. The field exists to "
-            "distinguish whoever assembled the directory from whoever created the artwork. "
-            "Drop it, or correct whichever is wrong.",
+        .explanation = "The packager and artist fields are the same. The field exists to "
+                       "distinguish whoever created the package from whoever made the artwork. "
+                       "Drop packager or correct whichever is wrong.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -967,7 +976,7 @@ constexpr std::array catalogue{
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#3.2; DECK.md#3.5; DECK.md#9.4",
         .explanation =
-            "A key the author coined is one of the reserved canonical names: major_arcana, "
+            "A key the deck coined is one of the reserved canonical names: major_arcana, "
             "minor_arcana, the four canonical suits, or the fourteen canonical ranks.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
@@ -1061,9 +1070,10 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#10.1",
-        .explanation = "A symbolic link inside the deck leads outside the deck root. A deck "
-                       "arrives from outside the system, so this reads a file its author chose on "
-                       "a machine they do not own.",
+        .explanation =
+            "A symbolic link inside the deck leads outside the deck root. A deck "
+            "arrives from outside the system, so this reads a file its packager chose on "
+            "a machine they do not own.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
