@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// What a check is handed and what it hands back.
-
 #pragma once
 
 #include <arcana/deck.hpp>
@@ -20,17 +18,13 @@
 namespace arcana::validation
 {
 
-// One regular file inside a deck root.
+// a regular file inside a deck root.
 struct deck_file
 {
-    // Deck-root-relative. This is what a diagnostic's `path` carries.
+    // Deck-root-relative.
     std::filesystem::path relative;
-
     std::filesystem::path absolute;
 };
-
-// Every regular file under the deck root, sorted by relative path.
-[[nodiscard]] std::vector<deck_file> walk_deck(std::filesystem::path const& root);
 
 // What a check reports.
 struct finding
@@ -41,6 +35,8 @@ struct finding
     std::optional<std::string> key;
 };
 
+struct deck_facts;
+
 struct check_context
 {
     deck const& d;
@@ -50,6 +46,9 @@ struct check_context
 
     // deck.toml as parsed
     toml::table const& doc;
+
+    // The document and tree
+    deck_facts const& facts;
 
     // The rule being run.
     rule const& r;

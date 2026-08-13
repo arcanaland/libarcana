@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
+#include "tree.hpp"
+
 #include "context.hpp"
 
 #include <algorithm>
@@ -11,7 +13,6 @@
 namespace arcana::validation
 {
 
-// Every regular file under the deck root, sorted by relative path.
 std::vector<deck_file> walk_deck(std::filesystem::path const& root)
 {
     namespace fs = std::filesystem;

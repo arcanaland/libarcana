@@ -21,7 +21,11 @@ target_sources(
             assets.hpp
             catalogue.hpp
             context.hpp
+            facts.hpp
+            probe.hpp
             registry.hpp
+            spec.hpp
+            tree.hpp
             checks/ansi.hpp
             checks/backs.hpp
             checks/cards.hpp
@@ -33,8 +37,11 @@ target_sources(
     PRIVATE
         assets.cpp
         catalogue.cpp
-        context.cpp
+        facts.cpp
+        probe.cpp
         registry.cpp
+        spec.cpp
+        tree.cpp
         checks/ansi.cpp
         checks/backs.cpp
         checks/cards.cpp

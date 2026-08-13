@@ -3,18 +3,15 @@
 
 #include "images.hpp"
 
-#include "../../data/ascii.hpp"
 #include "../assets.hpp"
+#include "../facts.hpp"
 
 #include <algorithm>
 #include <filesystem>
 #include <format>
-#include <map>
-#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace arcana::validation
@@ -23,65 +20,18 @@ namespace arcana::validation
 namespace
 {
 
-// A directory and a stem
-using stem_key = std::pair<std::string, std::string>;
-
-std::string lowered(std::string_view s)
-{
-    std::string folded{s};
-    for (auto& c : folded) c = data::to_lower(c);
-
-    return folded;
-}
-
-// The files of a deck grouped by directory and stem
-std::map<stem_key, std::vector<deck_file const*>> group_by_stem(
-    check_context const& ctx, bool fold_case
-)
-{
-    std::map<stem_key, std::vector<deck_file const*>> groups;
-
-    for (auto const& file : ctx.files)
-    {
-        auto const name = file.relative.filename().string();
-        auto const stem = stem_of(name);
-
-        groups[stem_key{
-                   file.relative.parent_path().generic_string(),
-                   fold_case ? lowered(stem) : std::string{stem},
-               }]
-            .push_back(&file);
-    }
-
-    return groups;
-}
-
-// file is in the manifest or discovery would pick it up
-bool is_reachable(deck_file const& file, std::vector<std::string> const& declared, root_kind wanted)
-{
-    auto const where = locate_asset(file.relative);
-
-    // The top-level card back directory has no kind and takes what it is given.
-    if (where && (!where->kind || *where->kind == wanted))
-        return true;
-
-    return std::ranges::contains(declared, file.relative.generic_string());
-}
-
 // Reports one file per group that discovery cannot reach.
 void report_misplaced(
     check_context const& ctx, root_kind wanted, chain_format format, std::string_view what
 )
 {
-    auto const declared = declared_paths(ctx.doc);
-
     for (auto const& file : ctx.files)
     {
         auto const name = file.relative.filename().string();
         if (chain_format_of(extension_of(name)) != format)
             continue;
 
-        if (is_reachable(file, declared, wanted))
+        if (ctx.facts.reachable(file, wanted))
             continue;
 
         ctx.report({
@@ -111,7 +61,7 @@ void check_svg_outside_scalable(check_context const& ctx)
 
 void check_stem_case_collision(check_context const& ctx)
 {
-    for (auto const& [where, group] : group_by_stem(ctx, true))
+    for (auto const& [where, group] : ctx.facts.by_folded_stem)
     {
         auto const first = group.front()->relative.filename().string();
         auto const kept = stem_of(first);
@@ -152,7 +102,7 @@ void check_duplicate_chain_extension(check_context const& ctx)
                                                                            : format;
     };
 
-    for (auto const& [where, group] : group_by_stem(ctx, false))
+    for (auto const& [where, group] : ctx.facts.by_stem)
     {
         deck_file const* first = nullptr;
         auto kept = chain_format::none;

@@ -1,11 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// Checks for the `images` area.
-//
-// `aspect-ratio-mismatch` is deliberately absent: it needs an image decoder,
-// and no image decoder enters this tree.
-
 #pragma once
 
 #include "../context.hpp"
