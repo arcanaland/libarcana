@@ -29,7 +29,7 @@ struct deck_summary
 
     std::string name;
     std::string version;
-    std::optional<std::string> author;
+    std::optional<std::string> artist;
 
     std::optional<std::filesystem::path> icon;
 

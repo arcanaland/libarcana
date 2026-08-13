@@ -43,7 +43,7 @@ def test_deck_summary_aggregate(alt_root: Path) -> None:
     assert summary.id == "deck-two-shadowed-id"
     assert summary.name.startswith("Deck Two")
     assert summary.version == "1.0"
-    assert summary.author is None  # optional<string> -> None
+    assert summary.artist is None  # optional<string> -> None
     assert summary.icon is None  # optional<path> -> None
     assert isinstance(summary.card_count, int)
 

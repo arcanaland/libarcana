@@ -41,7 +41,8 @@ struct deck_metadata
     std::string name;
     std::string version;
     std::optional<std::string> icon;
-    std::optional<std::string> author;
+    std::optional<std::string> creator;
+    std::optional<std::string> artist;
     std::optional<std::string> license;
     std::optional<std::string> attribution;
     double aspect_ratio = default_aspect_ratio;

@@ -95,11 +95,13 @@ TEST_CASE("optional metadata stays nullopt when the key is missing", "[loader]")
 {
     auto const d = build_from(R"([deck]
 name = "n"
-author = "Pamela"
+creator = "Arthur"
+artist = "Pamela"
 tags = ["classic", 7, "rider"]
 )");
 
-    CHECK(d.metadata.author == "Pamela");
+    CHECK(d.metadata.creator == "Arthur");
+    CHECK(d.metadata.artist == "Pamela");
     CHECK_FALSE(d.metadata.license.has_value());
     CHECK_FALSE(d.metadata.website.has_value());
 

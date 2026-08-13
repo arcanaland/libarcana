@@ -62,14 +62,14 @@ TEST_CASE("decks() lists every readable deck under the library root", "[library]
     CHECK(two->id == "deck-two-id");
 }
 
-TEST_CASE("a deck declaring no author or icon leaves them empty", "[library]")
+TEST_CASE("a deck declaring no artist or icon leaves them empty", "[library]")
 {
     auto const lib = open_library({primary_root()});
 
     auto const two = lib.find("deck-two");
     REQUIRE(two.has_value());
 
-    CHECK_FALSE(two->author.has_value());
+    CHECK_FALSE(two->artist.has_value());
     CHECK_FALSE(two->icon.has_value());
     CHECK(two->card_count == 78);
 }

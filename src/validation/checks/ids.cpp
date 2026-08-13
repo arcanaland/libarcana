@@ -36,7 +36,7 @@ std::optional<std::string_view> deck_string(check_context const& ctx, std::strin
     return std::string_view{value->get()};
 }
 
-// Where a name the author coined was written.
+// Where a name the packager coined was written.
 enum class name_site : std::uint8_t
 {
     suit,
@@ -47,7 +47,7 @@ enum class name_site : std::uint8_t
     other,
 };
 
-// One key the deck author coined
+// One key the packager coined
 struct coined_name
 {
     std::string name;
@@ -214,7 +214,7 @@ std::vector<coined_name> coined_names(check_context const& ctx)
 }
 
 // True where a reserved canonical key is legitimate at this site rather than a
-// name the author coined.
+// name the packager coined.
 bool reserved_is_legal_here(std::string_view name, name_site site)
 {
     switch (site)

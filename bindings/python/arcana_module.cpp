@@ -212,7 +212,8 @@ NB_MODULE(arcana, m)  // NOLINT
         .def_rw("schema_version", &deck_metadata::schema_version)
         .def_rw("name", &deck_metadata::name)
         .def_rw("version", &deck_metadata::version)
-        .def_rw("author", &deck_metadata::author)
+        .def_rw("creator", &deck_metadata::creator)
+        .def_rw("artist", &deck_metadata::artist)
         .def_rw("license", &deck_metadata::license)
         .def_rw("description", &deck_metadata::description)
         .def_rw("aspect_ratio", &deck_metadata::aspect_ratio)
@@ -225,7 +226,7 @@ NB_MODULE(arcana, m)  // NOLINT
         .def_rw("id", &deck_summary::id)
         .def_rw("name", &deck_summary::name)
         .def_rw("version", &deck_summary::version)
-        .def_rw("author", &deck_summary::author)
+        .def_rw("artist", &deck_summary::artist)
         .def_rw("icon", &deck_summary::icon)
         .def_rw("card_count", &deck_summary::card_count);
 
