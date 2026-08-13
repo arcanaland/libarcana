@@ -5,6 +5,7 @@
 
 #include "catalogue.hpp"
 #include "context.hpp"
+#include "facts.hpp"
 
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>
@@ -35,6 +36,9 @@ void run_all(
     toml::table const empty;
     toml::table const& doc = parsed ? parsed.table() : empty;
 
+    // Derived once, for every check rather than per check.
+    auto const facts = derive(files, doc, major);
+
     for (std::size_t i = 0; i < catalogue.size(); ++i)
     {
         rule const& r = catalogue[i];
@@ -49,7 +53,9 @@ void run_all(
         if (checks[i].run == pending)
             continue;
 
-        check_context const ctx{.d = d, .files = files, .doc = doc, .r = r, .out = out};
+        check_context const ctx{
+            .d = d, .files = files, .doc = doc, .facts = facts, .r = r, .out = out
+        };
         checks[i].run(ctx);
     }
 }

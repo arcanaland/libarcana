@@ -41,6 +41,11 @@ struct finding
     std::optional<std::string> key;
 };
 
+// Facts derived from the two below, in facts.hpp. Named rather than included so
+// that the eight area translation units take the dependency only where they use
+// it.
+struct deck_facts;
+
 struct check_context
 {
     deck const& d;
@@ -50,6 +55,9 @@ struct check_context
 
     // deck.toml as parsed
     toml::table const& doc;
+
+    // The tree and the document, indexed once per deck
+    deck_facts const& facts;
 
     // The rule being run.
     rule const& r;

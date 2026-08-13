@@ -10,9 +10,9 @@
 #include "validation/catalogue.hpp"
 #include "validation/context.hpp"
 #include "validation/registry.hpp"
+#include "validation/spec.hpp"
 
 #include <algorithm>
-#include <cstdint>
 #include <span>
 #include <string_view>
 #include <tuple>
@@ -20,13 +20,6 @@
 
 namespace arcana
 {
-
-namespace
-{
-
-constexpr std::uint8_t current_schema_major = 2;
-
-}  // namespace
 
 std::span<rule const> rules() noexcept
 {
@@ -40,7 +33,7 @@ rule const* find_rule(std::string_view code) noexcept
 
 std::vector<diagnostic> validate(deck const& d)
 {
-    auto const major = schema_major(d.metadata).value_or(current_schema_major);
+    auto const major = validation::major_of(d);
 
     auto const files = validation::walk_deck(d.root_path);
 

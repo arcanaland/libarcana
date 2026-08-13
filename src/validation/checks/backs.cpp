@@ -4,22 +4,17 @@
 #include "backs.hpp"
 
 #include "../../data/identifiers.hpp"
-#include "../../data/image_signature.hpp"
 #include "../assets.hpp"
+#include "../facts.hpp"
+#include "../probe.hpp"
+#include "../spec.hpp"
 
 #include <arcana/deck.hpp>
 
 #include <toml++/toml.hpp>
 
 #include <algorithm>
-#include <array>
-#include <cstddef>
 #include <format>
-#include <fstream>
-#include <ios>
-#include <map>
-#include <optional>
-#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -27,132 +22,9 @@
 namespace arcana::validation
 {
 
-namespace
-{
-
-toml::table const* designs_table(check_context const& ctx)
-{
-    auto const major = schema_major(ctx.d.metadata).value_or(2);
-
-    return ctx.doc["card_backs"][major < 2 ? "variants" : "designs"].as_table();
-}
-
-std::map<std::string, std::string> declared_images(check_context const& ctx)
-{
-    std::map<std::string, std::string> found;
-
-    auto const* designs = designs_table(ctx);
-    if (designs == nullptr)
-        return found;
-
-    for (auto const& [key, value] : *designs)
-    {
-        auto const* one = value.as_table();
-        if (one == nullptr)
-            continue;
-
-        if (auto const* image = (*one)["image"].as_string())
-            found.emplace(key.str(), image->get());
-    }
-
-    return found;
-}
-
-// One file sitting in a card back directory.
-struct back_file
-{
-    deck_file const* file;
-    std::string stem;
-    std::optional<root_kind> kind;
-
-    // True where discovery passes the file over
-    bool ignored;
-};
-
-std::vector<back_file> card_back_files(check_context const& ctx)
-{
-    auto const declared = declared_images(ctx);
-
-    auto const is_declared_image = [&declared](deck_file const& file)
-    {
-        auto const shown = file.relative.generic_string();
-
-        return std::ranges::any_of(
-            declared, [&shown](auto const& one) { return one.second == shown; }
-        );
-    };
-
-    std::vector<back_file> found;
-    for (auto const& file : ctx.files)
-    {
-        auto const where = locate_asset(file.relative);
-        if (!where || !where->card_back)
-            continue;
-
-        auto const name = file.relative.filename().string();
-        auto const stem = stem_of(name);
-
-        bool const ignored =
-            !is_declared_image(file) && (stem.contains('.') || !data::is_custom_name(stem) ||
-                                         !chain_admits(where->kind, extension_of(name)));
-
-        found.push_back(
-            {.file = &file, .stem = std::string{stem}, .kind = where->kind, .ignored = ignored}
-        );
-    }
-
-    return found;
-}
-
-// The design keys this deck has
-std::vector<std::string> designs(check_context const& ctx)
-{
-    std::vector<std::string> found;
-
-    for (auto const& back : card_back_files(ctx))
-        if (!back.ignored)
-            found.push_back(back.stem);
-
-    for (auto const& [key, image] : declared_images(ctx)) found.push_back(key);
-
-    std::ranges::sort(found);
-    auto const dupes = std::ranges::unique(found);
-    found.erase(dupes.begin(), dupes.end());
-
-    return found;
-}
-
-deck_file const* find_file(check_context const& ctx, std::string_view relative)
-{
-    auto const found = std::ranges::find_if(
-        ctx.files,
-        [relative](deck_file const& file) { return file.relative.generic_string() == relative; }
-    );
-
-    return found == ctx.files.end() ? nullptr : &*found;
-}
-
-constexpr std::size_t max_signature_bytes = 8;
-
-bool is_baseline_format(deck_file const& file)
-{
-    std::ifstream stream{file.absolute, std::ios::binary};
-    if (!stream)
-        return false;
-
-    std::array<std::byte, max_signature_bytes> head{};
-    stream.read(reinterpret_cast<char*>(head.data()), head.size());  // NOLINT(*-reinterpret-cast)
-
-    auto const got = static_cast<std::size_t>(stream.gcount());
-
-    return data::sniff_image_format(std::span{head}.first(got)) != data::image_format::unknown;
-}
-
-}  // namespace
-
 void check_bad_card_back_design_key(check_context const& ctx)
 {
-    auto const* designs = ctx.doc["card_backs"]["designs"].as_table();
+    auto const* designs = card_back_designs(ctx.doc, major_of(ctx.d));
     if (designs == nullptr)
         return;
 
@@ -176,12 +48,11 @@ void check_bad_card_back_design_key(check_context const& ctx)
 
 void check_missing_card_back_image(check_context const& ctx)
 {
-    auto const major = schema_major(ctx.d.metadata).value_or(2);
-    auto const* const table = major < 2 ? "variants" : "designs";
+    auto const table = card_back_designs_key(major_of(ctx.d));
 
-    for (auto const& [design, image] : declared_images(ctx))
+    for (auto const& [design, image] : ctx.facts.back_images)
     {
-        if (find_file(ctx, image) != nullptr)
+        if (ctx.facts.file_at(image) != nullptr)
             continue;
 
         ctx.report({
@@ -199,7 +70,7 @@ void check_unknown_default_card_back(check_context const& ctx)
         return;
 
     auto const& wanted = chosen->get();
-    if (std::ranges::contains(designs(ctx), wanted))
+    if (std::ranges::contains(ctx.facts.designs, wanted))
         return;
 
     ctx.report({
@@ -213,7 +84,7 @@ void check_card_back_default_by_collation(check_context const& ctx)
     if (ctx.doc["card_backs"]["default"])
         return;
 
-    auto const has = designs(ctx);
+    auto const& has = ctx.facts.designs;
     if (has.size() < 2 || std::ranges::contains(has, std::string_view{"default"}))
         return;
 
@@ -228,7 +99,7 @@ void check_card_back_default_by_collation(check_context const& ctx)
 
 void check_ignored_card_back_file(check_context const& ctx)
 {
-    for (auto const& back : card_back_files(ctx))
+    for (auto const& back : ctx.facts.back_files)
     {
         if (!back.ignored)
             continue;
@@ -245,15 +116,14 @@ void check_ignored_card_back_file(check_context const& ctx)
 
 void check_card_back_not_baseline_format(check_context const& ctx)
 {
-    auto const backs = card_back_files(ctx);
-    auto const declared = declared_images(ctx);
+    auto const& declared = ctx.facts.back_images;
 
-    for (auto const& design : designs(ctx))
+    for (auto const& design : ctx.facts.designs)
     {
         std::vector<deck_file const*> files;
         bool ansi_only = true;
 
-        for (auto const& back : backs)
+        for (auto const& back : ctx.facts.back_files)
         {
             if (back.ignored || back.stem != design)
                 continue;
@@ -263,7 +133,7 @@ void check_card_back_not_baseline_format(check_context const& ctx)
         }
 
         if (auto const named_by = declared.find(design); named_by != declared.end())
-            if (auto const* named = find_file(ctx, named_by->second))
+            if (auto const* named = ctx.facts.file_at(named_by->second))
             {
                 files.push_back(named);
                 ansi_only = false;
@@ -274,7 +144,7 @@ void check_card_back_not_baseline_format(check_context const& ctx)
             continue;
 
         if (std::ranges::any_of(
-                files, [](deck_file const* one) { return is_baseline_format(*one); }
+                files, [](deck_file const* one) { return is_baseline_image_format(one->absolute); }
             ))
             continue;
 
