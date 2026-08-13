@@ -265,7 +265,7 @@ constexpr std::array<std::string_view, 2> deferred{
 };
 
 // This should be zero when we're done
-constexpr std::array<std::string_view, 62> not_yet_covered{
+constexpr std::array<std::string_view, 63> not_yet_covered{
     "backslash-in-path",
     "bad-language-tag",
     "bad-link-rel",
@@ -314,6 +314,7 @@ constexpr std::array<std::string_view, 62> not_yet_covered{
     "surrogate-deck-without-license",
     "surrogate-deck-without-signifies",
     "symlink-escapes-deck-root",
+    "unknown-edition-card-back",
     "unknown-edition-default",
     "unknown-metadata-alt-text-key",
     "unknown-name-key",

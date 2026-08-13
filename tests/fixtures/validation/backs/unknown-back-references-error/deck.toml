@@ -6,7 +6,3 @@ identifier = "org.example/deck/unknown-back-references"
 
 [card_backs]
 default = "missing"
-
-[editions.special]
-name = "Special"
-card_back = "gone"

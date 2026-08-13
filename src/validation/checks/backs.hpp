@@ -22,6 +22,4 @@ void check_missing_card_back_image(check_context const& ctx);
 
 void check_unknown_default_card_back(check_context const& ctx);
 
-void check_unknown_edition_card_back(check_context const& ctx);
-
 }  // namespace arcana::validation

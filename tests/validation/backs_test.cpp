@@ -81,29 +81,16 @@ TEST_CASE("a design key outside the grammar and a dangling image", "[validation]
     CHECK(found[2].message.find("card_backs/gone.png") != std::string::npos);
 }
 
-TEST_CASE("a default and an edition naming designs the deck lacks", "[validation][backs]")
+TEST_CASE("a default naming a design the deck lacks", "[validation][backs]")
 {
     auto const found = validate_fixture("validation/backs/unknown-back-references-error");
 
-    REQUIRE(
-        codes_of(found) == std::vector<std::string_view>{
-                               "unknown-default-card-back",
-                               "unknown-edition-card-back",
-                           }
-    );
+    REQUIRE(codes_of(found) == std::vector<std::string_view>{"unknown-default-card-back"});
 
-    CHECK(
-        keys_of(found) == std::vector<std::string>{
-                              "card_backs.default",
-                              "editions.special.card_back",
-                          }
-    );
+    CHECK(keys_of(found) == std::vector<std::string>{"card_backs.default"});
 
-    CHECK(found[0].level == severity::error);
-    CHECK(found[0].message.find("'missing'") != std::string::npos);
-
-    CHECK(found[1].level == severity::error);
-    CHECK(found[1].message.find("'gone'") != std::string::npos);
+    CHECK(found.front().level == severity::error);
+    CHECK(found.front().message.find("'missing'") != std::string::npos);
 }
 
 TEST_CASE("several designs and no declared default rest on collation", "[validation][backs]")

@@ -36,7 +36,7 @@ struct path_parts
 {
     // The deepest a location for a file, for example:
     //    <deck-root>/minor_arcana/<suit>/<file>
-    constexpr std::size_t location_depth = 4;
+    static constexpr std::size_t location_depth = 4;
     std::array<std::string_view, location_depth> parts;
     std::size_t size = 0;
 

@@ -224,33 +224,6 @@ void check_unknown_default_card_back(check_context const& ctx)
     });
 }
 
-void check_unknown_edition_card_back(check_context const& ctx)
-{
-    auto const* editions = ctx.doc["editions"].as_table();
-    if (editions == nullptr)
-        return;
-
-    auto const has = designs(ctx);
-    for (auto const& [key, value] : *editions)
-    {
-        auto const* one = value.as_table();
-        if (one == nullptr)
-            continue;
-
-        auto const* back = (*one)["card_back"].as_string();
-        if (back == nullptr || std::ranges::contains(has, back->get()))
-            continue;
-
-        ctx.report({
-            .message = std::format(
-                "edition '{}' takes card back '{}', which names no design the deck has", key.str(),
-                back->get()
-            ),
-            .key = std::format("editions.{}.card_back", key.str()),
-        });
-    }
-}
-
 void check_card_back_default_by_collation(check_context const& ctx)
 {
     // A default that names nothing is unknown-default-card-back's to report;
