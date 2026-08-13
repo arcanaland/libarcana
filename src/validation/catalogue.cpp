@@ -290,7 +290,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.4; DECK.md#9.4",
         .explanation = "The pips field is not one of scenic, emblematic or unstated.",
-                           .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -594,7 +594,7 @@ constexpr std::array catalogue{
         .spec_ref = "DECK.md#4.1.3; DECK.md#9.4",
         .explanation =
             "The follows field cannot be this deck's own identifier or the deck it signifies.",
-                .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
