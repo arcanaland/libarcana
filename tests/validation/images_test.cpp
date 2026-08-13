@@ -1,9 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// The `images` area: five rules over where assets sit and what they are named.
-// `aspect-ratio-mismatch` is the sixth and is deferred — it needs a decoder.
-
 #include "fixture.hpp"
 
 #include <arcana/validation.hpp>
@@ -35,9 +32,6 @@ std::vector<std::string> paths_of(std::vector<diagnostic> const& found)
 
 TEST_CASE("assets in the places discovery looks fire nothing", "[validation][images]")
 {
-    // Also pins two negatives: an `icon` outside every root is named by
-    // deck.toml and is not misplaced, and `06.jpeg` beside `06.jpg` is one
-    // extension-chain format rather than two.
     CHECK(validate_fixture("validation/images/images-valid").empty());
 }
 

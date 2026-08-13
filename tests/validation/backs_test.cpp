@@ -1,10 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// The `backs` area: seven rules over card back designs and the files behind
-// them. Every assertion here is closed-world — the complete set of codes a
-// fixture produces, in catalogue order.
-
 #include "fixture.hpp"
 
 #include <arcana/validation.hpp>
@@ -43,10 +39,8 @@ std::vector<std::string> paths_of(std::vector<diagnostic> const& found)
 
 }  // namespace
 
-TEST_CASE("a deck whose backs are in order fires nothing", "[validation][backs]")
+TEST_CASE("a deck whose backs are fine", "[validation][backs]")
 {
-    // Two designs, one of them ANSI-only: the ANSI design is exempt from the
-    // baseline-format rule, and the declared default settles collation.
     CHECK(validate_fixture("validation/backs/backs-valid").empty());
 }
 
@@ -102,7 +96,6 @@ TEST_CASE("several designs and no declared default rest on collation", "[validat
     CHECK(found.front().level == severity::warning);
     CHECK(found.front().key == "card_backs.default");
 
-    // The design that wins on collation order is the one worth naming.
     CHECK(found.front().message.find("'classic'") != std::string::npos);
 }
 
@@ -121,10 +114,9 @@ TEST_CASE("files a card back directory ignores, and undecodable designs", "[vali
 
     CHECK(
         paths_of(found) == std::vector<std::string>{
-                               // Outside the chain, but an `image` path names it.
                                "card_backs/classic.tiff",
                                "scalable/card_backs/vector.svg",
-                               // A stem carrying a variant key, which backs have not.
+                               // A stem carrying a variant key
                                "card_backs/06.two_women.png",
                                // A stem that is not a custom name.
                                "card_backs/Fancy.png",
