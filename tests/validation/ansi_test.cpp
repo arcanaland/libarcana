@@ -17,7 +17,7 @@ using arcana::severity;
 using arcana_test::codes_of;
 using arcana_test::validate_fixture;
 
-TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
+TEST_CASE("ansi outside image root", "[validation][ansi]")
 {
     auto const found = validate_fixture("validation/ansi/ansi-outside-root-error");
 
@@ -26,6 +26,8 @@ TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
                                "ansi-outside-image-root",
                                "ansi-outside-image-root",
                                "ansi-outside-image-root",
+                               "ignored-image-root-lookalike",
+                               "ignored-image-root-lookalike",
                            }
     );
 
@@ -41,6 +43,8 @@ TEST_CASE("ansi-outside-image-root fires on its fixture", "[validation][ansi]")
                      "ansi/major_arcana/00.ans",
                      "ansi032/major_arcana/00.ans",
                      "previews/banner.ans",
+                     "ansi",
+                     "ansi032",
                  }
     );
 

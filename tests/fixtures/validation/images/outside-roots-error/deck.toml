@@ -1,0 +1,6 @@
+[deck]
+schema_version = "2.0"
+name = "Images Outside Roots"
+version = "1.0"
+identifier = "org.example/deck/images-outside-roots"
+icon = "icon.png"

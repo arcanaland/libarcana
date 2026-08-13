@@ -49,7 +49,7 @@ inline constexpr std::array checks{
     check_entry{.code = "aspect-ratio-mismatch", .run = deferred},
     check_entry{.code = "backslash-in-path", .run = pending},
     check_entry{.code = "bad-app-realm", .run = check_bad_app_realm},
-    check_entry{.code = "bad-card-back-design-key", .run = pending},
+    check_entry{.code = "bad-card-back-design-key", .run = check_bad_card_back_design_key},
     check_entry{.code = "bad-cards-table-key", .run = check_bad_cards_table_key},
     check_entry{.code = "bad-custom-name", .run = check_bad_custom_name},
     check_entry{.code = "bad-deck-identifier", .run = check_bad_deck_identifier},
@@ -65,27 +65,31 @@ inline constexpr std::array checks{
     check_entry{.code = "bad-signifies", .run = check_bad_signifies},
     check_entry{.code = "bad-spdx-expression", .run = pending},
     check_entry{.code = "bom-in-toml", .run = pending},
-    check_entry{.code = "card-back-default-by-collation", .run = pending},
-    check_entry{.code = "card-back-not-baseline-format", .run = pending},
+    check_entry{
+        .code = "card-back-default-by-collation", .run = check_card_back_default_by_collation
+    },
+    check_entry{
+        .code = "card-back-not-baseline-format", .run = check_card_back_not_baseline_format
+    },
     check_entry{.code = "deck-has-no-cards", .run = pending},
     check_entry{.code = "deck-identifier-path-shape", .run = check_deck_identifier_path_shape},
     check_entry{.code = "declared-card-without-image", .run = pending},
     check_entry{.code = "deprecated-1-0-key", .run = pending},
     check_entry{.code = "duplicate-card-position", .run = pending},
-    check_entry{.code = "duplicate-chain-extension", .run = pending},
+    check_entry{.code = "duplicate-chain-extension", .run = check_duplicate_chain_extension},
     check_entry{.code = "duplicate-deck-identifier", .run = deferred},
     check_entry{.code = "duplicate-rank-in-ranks", .run = pending},
     check_entry{.code = "empty-card-number", .run = pending},
     check_entry{.code = "excluded-card-also-declared", .run = pending},
     check_entry{.code = "excluded-card-has-image", .run = pending},
-    check_entry{.code = "ignored-card-back-file", .run = pending},
-    check_entry{.code = "ignored-image-root-lookalike", .run = pending},
+    check_entry{.code = "ignored-card-back-file", .run = check_ignored_card_back_file},
+    check_entry{.code = "ignored-image-root-lookalike", .run = check_ignored_image_root_lookalike},
     check_entry{.code = "language-tag-case-collision", .run = pending},
     check_entry{.code = "malformed-deck-toml", .run = pending},
     check_entry{.code = "malformed-name-file", .run = pending},
     check_entry{.code = "malformed-surrogate-file", .run = pending},
     check_entry{.code = "missing-alt-text", .run = pending},
-    check_entry{.code = "missing-card-back-image", .run = pending},
+    check_entry{.code = "missing-card-back-image", .run = check_missing_card_back_image},
     check_entry{.code = "missing-deck-identifier", .run = check_missing_deck_identifier},
     check_entry{.code = "missing-deck-toml", .run = pending},
     check_entry{.code = "missing-default-language-file", .run = pending},
@@ -104,19 +108,19 @@ inline constexpr std::array checks{
     check_entry{.code = "palette-snapped-length-mismatch", .run = pending},
     check_entry{.code = "position-on-minor-arcanum", .run = pending},
     check_entry{.code = "rank-without-image", .run = pending},
-    check_entry{.code = "raster-outside-image-root", .run = pending},
+    check_entry{.code = "raster-outside-image-root", .run = check_raster_outside_image_root},
     check_entry{.code = "redistribution-contradicts-rights-status", .run = pending},
     check_entry{.code = "redistribution-narrower-than-license", .run = pending},
     check_entry{.code = "reserved-custom-name", .run = check_reserved_custom_name},
     check_entry{.code = "signifies-self", .run = check_signifies_self},
-    check_entry{.code = "stem-case-collision", .run = pending},
+    check_entry{.code = "stem-case-collision", .run = check_stem_case_collision},
     check_entry{.code = "surrogate-deck-redistribution-full", .run = pending},
     check_entry{.code = "surrogate-deck-without-buy-link", .run = pending},
     check_entry{.code = "surrogate-deck-without-license", .run = pending},
     check_entry{.code = "surrogate-deck-without-signifies", .run = pending},
-    check_entry{.code = "svg-outside-scalable", .run = pending},
+    check_entry{.code = "svg-outside-scalable", .run = check_svg_outside_scalable},
     check_entry{.code = "symlink-escapes-deck-root", .run = pending},
-    check_entry{.code = "unknown-default-card-back", .run = pending},
+    check_entry{.code = "unknown-default-card-back", .run = check_unknown_default_card_back},
     check_entry{.code = "unknown-edition-card-back", .run = pending},
     check_entry{.code = "unknown-edition-default", .run = pending},
     check_entry{.code = "unknown-metadata-alt-text-key", .run = pending},
@@ -156,7 +160,7 @@ inline constexpr std::array checks{
     return count;
 }
 
-static_assert(pending_checks() == 74, "work landed without the checks it required");
+static_assert(pending_checks() == 63, "work landed without the checks it required");
 
 static_assert(deferred_checks() == 2, "only two punted checks");
 

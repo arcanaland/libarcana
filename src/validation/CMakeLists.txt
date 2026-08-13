@@ -18,6 +18,7 @@ target_sources(
         FILE_SET HEADERS
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
+            assets.hpp
             catalogue.hpp
             context.hpp
             registry.hpp
@@ -30,6 +31,7 @@ target_sources(
             checks/names.hpp
             checks/surrogate.hpp
     PRIVATE
+        assets.cpp
         catalogue.cpp
         context.cpp
         registry.cpp
