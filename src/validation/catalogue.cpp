@@ -155,9 +155,8 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#3.2; DECK.md#3.5; DECK.md#9.4",
-        .explanation =
-            "A key custom key deck does not match the custom-name grammar: lowercase "
-            "ASCII letters, digits and underscores, never starting with a digit.,
+        .explanation = "A key custom key deck does not match the custom-name grammar: lowercase "
+                       "ASCII letters, digits and underscores, never starting with a digit.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -448,9 +447,8 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#7.6; DECK.md#9.4",
-        .explanation =
-            "The creator and artist fields are the same. Keep artist "
-            "and drop creator.",
+        .explanation = "The creator and artist fields are the same. Keep artist "
+                       "and drop creator.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
