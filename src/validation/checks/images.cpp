@@ -23,8 +23,7 @@ namespace arcana::validation
 namespace
 {
 
-// A directory and a stem, which is what "two files in one directory sharing a
-// stem" is keyed on.
+// A directory and a stem
 using stem_key = std::pair<std::string, std::string>;
 
 std::string lowered(std::string_view s)
@@ -35,9 +34,7 @@ std::string lowered(std::string_view s)
     return folded;
 }
 
-// The files of a deck grouped by directory and stem, each group in the sorted
-// order `walk_deck` produced. `fold_case` keys on the stem an application
-// compares (DECK.md 2.3) rather than the stem as written.
+// The files of a deck grouped by directory and stem
 std::map<stem_key, std::vector<deck_file const*>> group_by_stem(
     check_context const& ctx, bool fold_case
 )
@@ -59,8 +56,7 @@ std::map<stem_key, std::vector<deck_file const*>> group_by_stem(
     return groups;
 }
 
-// True where discovery would pick this file up, or where deck.toml names it
-// outright and discovery therefore never has to.
+// file is in the manifest or discovery would pick it up
 bool is_reachable(deck_file const& file, std::vector<std::string> const& declared, root_kind wanted)
 {
     auto const where = locate_asset(file.relative);
@@ -99,19 +95,17 @@ void report_misplaced(
 
 void check_raster_outside_image_root(check_context const& ctx)
 {
-    // Every raster format of the extension chain, since discovery considers
-    // all four and ignores all four in the wrong place.
     for (auto const format :
          {chain_format::png, chain_format::webp, chain_format::avif, chain_format::jpeg})
         report_misplaced(
-            ctx, root_kind::raster, format, "is a raster image under no h<height>/ root"
+            ctx, root_kind::raster, format, "is an image not in a h<height>/ directory"
         );
 }
 
 void check_svg_outside_scalable(check_context const& ctx)
 {
     report_misplaced(
-        ctx, root_kind::scalable, chain_format::svg, "is an SVG outside the scalable/ root"
+        ctx, root_kind::scalable, chain_format::svg, "is an SVG outside the scalable/ directory"
     );
 }
 
@@ -134,8 +128,7 @@ void check_stem_case_collision(check_context const& ctx)
             reported.push_back(stem);
             ctx.report({
                 .message = std::format(
-                    "'{}' and '{}' have stems differing only in case, which applications compare "
-                    "case-insensitively",
+                    "'{}' and '{}' have stems differing only in case",
                     file->relative.generic_string(), group.front()->relative.generic_string()
                 ),
                 .path = file->relative,
@@ -182,7 +175,7 @@ void check_duplicate_chain_extension(check_context const& ctx)
 
             ctx.report({
                 .message = std::format(
-                    "'{}' and '{}' are one stem in two extension-chain formats",
+                    "'{}' and '{}' have the same name with different extensions, is that intentional?",
                     file->relative.generic_string(), first->relative.generic_string()
                 ),
                 .path = file->relative,
@@ -215,7 +208,7 @@ void check_ignored_image_root_lookalike(check_context const& ctx)
         reported.push_back(parts[0]);
         ctx.report({
             .message = std::format(
-                "'{}' holds a {} subtree but is not an image root, so discovery ignores it",
+                "'{}' contains a {} subtree but is not an image root, so discovery ignores it",
                 parts[0], parts[1]
             ),
             .path = std::filesystem::path{parts[0]},

@@ -30,9 +30,6 @@ namespace arcana::validation
 namespace
 {
 
-// The table that names card back designs. 1.0 spelled it `variants`; 2.0
-// spells it `designs`, and the two rules that reach 1.0 decks read whichever
-// this deck's schema version defines.
 toml::table const* designs_table(check_context const& ctx)
 {
     auto const major = schema_major(ctx.d.metadata).value_or(2);
@@ -40,10 +37,6 @@ toml::table const* designs_table(check_context const& ctx)
     return ctx.doc["card_backs"][major < 2 ? "variants" : "designs"].as_table();
 }
 
-// The design keys deck.toml declares an `image` path for, with that path.
-//
-// A key declared without one creates no design: DECK.md 4.2 says declaring a
-// design does not create it.
 std::map<std::string, std::string> declared_images(check_context const& ctx)
 {
     std::map<std::string, std::string> found;
@@ -72,7 +65,7 @@ struct back_file
     std::string stem;
     std::optional<root_kind> kind;
 
-    // True where discovery passes the file over, so that it defines no design.
+    // True where discovery passes the file over
     bool ignored;
 };
 
@@ -99,10 +92,6 @@ std::vector<back_file> card_back_files(check_context const& ctx)
         auto const name = file.relative.filename().string();
         auto const stem = stem_of(name);
 
-        // DECK.md 5.5: the whole stem is the design key, card backs have no
-        // variants, and the extension chain applies. A file deck.toml points
-        // an `image` at is shown whatever it is named, so none of the three
-        // makes it ignored.
         bool const ignored =
             !is_declared_image(file) && (stem.contains('.') || !data::is_custom_name(stem) ||
                                          !chain_admits(where->kind, extension_of(name)));
@@ -115,8 +104,7 @@ std::vector<back_file> card_back_files(check_context const& ctx)
     return found;
 }
 
-// The design keys this deck has: the stems discovery finds across every card
-// back directory, plus every declared key carrying an `image` path.
+// The design keys this deck has
 std::vector<std::string> designs(check_context const& ctx)
 {
     std::vector<std::string> found;
@@ -134,21 +122,17 @@ std::vector<std::string> designs(check_context const& ctx)
     return found;
 }
 
-// The file a deck-relative path names, or nothing where the deck has no such
-// file. Reads `ctx.files` rather than the filesystem, so a path that escapes
-// the deck root resolves to nothing here.
 deck_file const* find_file(check_context const& ctx, std::string_view relative)
 {
     auto const found = std::ranges::find_if(
         ctx.files,
-        [relative](deck_file const& one) { return one.relative.generic_string() == relative; }
+        [relative](deck_file const& file) { return file.relative.generic_string() == relative; }
     );
 
     return found == ctx.files.end() ? nullptr : &*found;
 }
 
-// How many bytes the longest signature `sniff_image_format` knows needs.
-constexpr std::size_t signature_bytes = 8;
+constexpr std::size_t max_signature_bytes = 8;
 
 bool is_baseline_format(deck_file const& file)
 {
@@ -156,7 +140,7 @@ bool is_baseline_format(deck_file const& file)
     if (!stream)
         return false;
 
-    std::array<std::byte, signature_bytes> head{};
+    std::array<std::byte, max_signature_bytes> head{};
     stream.read(reinterpret_cast<char*>(head.data()), head.size());  // NOLINT(*-reinterpret-cast)
 
     auto const got = static_cast<std::size_t>(stream.gcount());
@@ -180,8 +164,8 @@ void check_bad_card_back_design_key(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "card back design key '{}' is not a custom name: lowercase ASCII letters, digits "
-                "and underscores, never starting with a digit",
+                "card back design key '{}' does not conform to the custom name grammar: lowercase ASCII letters, digits "
+                "and underscores (not starting with a digit)",
                 design
             ),
             .key = std::format("card_backs.designs.{}", design),
@@ -201,7 +185,7 @@ void check_missing_card_back_image(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "card back design '{}' points at '{}', which the deck does not have", design, image
+                "card back design '{}' refers to missing image '{}'", design, image
             ),
             .key = std::format("card_backs.{}.{}.image", table, design),
         });
@@ -219,15 +203,13 @@ void check_unknown_default_card_back(check_context const& ctx)
         return;
 
     ctx.report({
-        .message = std::format("default card back '{}' names no design the deck has", wanted),
+        .message = std::format("default card back '{}' does not exist", wanted),
         .key = "card_backs.default",
     });
 }
 
 void check_card_back_default_by_collation(check_context const& ctx)
 {
-    // A default that names nothing is unknown-default-card-back's to report;
-    // this rule is about the deck that declares none at all.
     if (ctx.doc["card_backs"]["default"])
         return;
 
@@ -237,8 +219,7 @@ void check_card_back_default_by_collation(check_context const& ctx)
 
     ctx.report({
         .message = std::format(
-            "the deck has {} card back designs and declares no default, so '{}' wins on collation "
-            "order alone",
+            "the deck has {} card back designs but no default, so we chose '{}'",
             has.size(), has.front()
         ),
         .key = "card_backs.default",
@@ -288,9 +269,7 @@ void check_card_back_not_baseline_format(check_context const& ctx)
                 ansi_only = false;
             }
 
-        // A design with no file at all is a resolution failure rather than a
-        // format problem, and ANSI art is not an image the extension chain
-        // governs (DECK.md 5.4).
+        // A design with no file at all is a resolution failure.
         if (files.empty() || ansi_only)
             continue;
 
