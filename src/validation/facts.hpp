@@ -37,9 +37,7 @@ struct back_file
 
 struct deck_facts
 {
-    deck_facts(
-      std::span<deck_file const> files, toml::table const& doc, std::uint8_t major
-    );
+    deck_facts(std::span<deck_file const> files, toml::table const& doc, std::uint8_t major);
 
     // Deck-relative path -> file.
     std::map<std::string, deck_file const*, std::less<>> by_path;

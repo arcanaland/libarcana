@@ -24,6 +24,8 @@ constexpr std::uint8_t current_schema_major = 2;
 //   for 1.0, it's "variants"
 [[nodiscard]] std::string_view card_back_designs_key(std::uint8_t major) noexcept;
 
-[[nodiscard]] toml::table const* card_back_designs_table(toml::table const& doc, std::uint8_t major);
+[[nodiscard]] toml::table const* card_back_designs_table(
+    toml::table const& doc, std::uint8_t major
+);
 
 }  // namespace arcana::validation
