@@ -47,7 +47,7 @@ struct check_context
     // deck.toml as parsed
     toml::table const& doc;
 
-    // The tree and the document, indexed once per deck
+    // The document and tree
     deck_facts const& facts;
 
     // The rule being run.

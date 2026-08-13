@@ -36,8 +36,7 @@ void run_all(
     toml::table const empty;
     toml::table const& doc = parsed ? parsed.table() : empty;
 
-    // Derived once, for every check rather than per check.
-    auto const facts = derive(files, doc, major);
+    deck_facts facts(files, doc, major);
 
     for (std::size_t i = 0; i < catalogue.size(); ++i)
     {

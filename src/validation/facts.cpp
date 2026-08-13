@@ -35,14 +35,14 @@ std::string lowered(std::string_view s)
     return folded;
 }
 
-// The `image` path declared for each key of the card back designs table.
+// The path declared for each key of the card back designs table.
 std::map<std::string, std::string, std::less<>> declared_back_images(
     toml::table const& doc, std::uint8_t major
 )
 {
     std::map<std::string, std::string, std::less<>> found;
 
-    auto const* designs = card_back_designs(doc, major);
+    auto const* designs = card_back_designs_table(doc, major);
     if (designs == nullptr)
         return found;
 
@@ -95,7 +95,7 @@ std::vector<back_file> classify_back_files(
     return found;
 }
 
-// The design keys this deck has, from both the tree and the document.
+// The design keys this deck has
 std::vector<std::string> design_keys(
     std::vector<back_file> const& backs,
     std::map<std::string, std::string, std::less<>> const& declared
@@ -136,28 +136,24 @@ bool deck_facts::reachable(deck_file const& file, root_kind wanted) const
     return std::ranges::contains(declared, file.relative.generic_string());
 }
 
-deck_facts derive(std::span<deck_file const> files, toml::table const& doc, std::uint8_t major)
+deck_facts::deck_facts(std::span<deck_file const> files, toml::table const& doc, std::uint8_t major)
 {
-    deck_facts facts;
-
     for (auto const& file : files)
     {
-        facts.by_path.try_emplace(file.relative.generic_string(), &file);
+        this->by_path.try_emplace(file.relative.generic_string(), &file);
 
         auto const directory = file.relative.parent_path().generic_string();
         auto const name = file.relative.filename().string();
         auto const stem = stem_of(name);
 
-        facts.by_stem[stem_key{directory, std::string{stem}}].push_back(&file);
-        facts.by_folded_stem[stem_key{directory, lowered(stem)}].push_back(&file);
+        this->by_stem[stem_key{directory, std::string{stem}}].push_back(&file);
+        this->by_folded_stem[stem_key{directory, lowered(stem)}].push_back(&file);
     }
 
-    facts.back_images = declared_back_images(doc, major);
-    facts.back_files = classify_back_files(files, facts.back_images);
-    facts.designs = design_keys(facts.back_files, facts.back_images);
-    facts.declared = declared_paths(doc);
-
-    return facts;
+    this->back_images = declared_back_images(doc, major);
+    this->back_files = classify_back_files(files, this->back_images);
+    this->designs = design_keys(this->back_files, this->back_images);
+    this->declared = declared_paths(doc);
 }
 
 }  // namespace arcana::validation

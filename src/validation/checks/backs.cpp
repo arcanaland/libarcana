@@ -24,7 +24,7 @@ namespace arcana::validation
 
 void check_bad_card_back_design_key(check_context const& ctx)
 {
-    auto const* designs = card_back_designs(ctx.doc, major_of(ctx.d));
+    auto const* designs = card_back_designs_table(ctx.doc, major_of(ctx.d));
     if (designs == nullptr)
         return;
 

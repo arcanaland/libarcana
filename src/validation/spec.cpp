@@ -23,7 +23,7 @@ std::string_view card_back_designs_key(std::uint8_t major) noexcept
     return major < 2 ? "variants" : "designs";
 }
 
-toml::table const* card_back_designs(toml::table const& doc, std::uint8_t major)
+toml::table const* card_back_designs_table(toml::table const& doc, std::uint8_t major)
 {
     return doc["card_backs"][card_back_designs_key(major)].as_table();
 }
