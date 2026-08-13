@@ -201,6 +201,8 @@ std::vector<std::string> declared_paths(toml::table const& doc)
 {
     std::vector<std::string> found;
 
+    add_image_paths(found, doc["cards"]);
+
     add_path(found, doc["deck"]["icon"]);
 
     if (auto const* licenses = doc["deck"]["license_files"].as_array())
@@ -212,10 +214,6 @@ std::vector<std::string> declared_paths(toml::table const& doc)
     add_image_paths(found, doc["card_backs"]["designs"]);
     add_image_paths(found, doc["card_backs"]["variants"]);
 
-    if (auto const* variants_of = doc["card_variants"].as_table())
-        for (auto const& [card, value] : *variants_of)
-            if (auto const* one = value.as_table())
-                add_image_paths(found, (*one)["variants"]);
 
     std::ranges::sort(found);
     auto const dupes = std::ranges::unique(found);

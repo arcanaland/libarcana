@@ -3,18 +3,16 @@
 //
 // SPDX-FileCopyrightText: Linux Foundation and SPDX contributors
 // SPDX-License-Identifier: CC-BY-3.0
-
+//
 // GENERATED FILE. DO NOT EDIT.
 //
-// Regenerate with `just generate-spdx`, which runs tools/generate_spdx_data.py.
+// Regenerate with generate_spdx_data.py.
 //
-// Source: the SPDX License List, release 3.28.0 of 2026-02-20, taken from
-// https://github.com/spdx/license-list-data at tag v3.28.0. The list data is CC-BY-3.0; see
-// LICENSES/CC-BY-3.0.txt.
+// Source: The SPDX License List
+//   - https://github.com/spdx/license-list-data at tag v3.28.0
+//   - release 3.28.0 of 2026-02-20
 //
-// The pin is deliberate. An identifier added upstream after this release is not
-// known here and draws a spurious finding, which is why bad-spdx-expression is a
-// warning rather than an error (DECK.md section 7.1).
+// The list data is CC-BY-3.0 (see LICENSES/CC-BY-3.0.txt)
 
 #include "spdx_licenses.hpp"
 
@@ -28,8 +26,6 @@ namespace arcana::data
 namespace
 {
 
-// Sorted ascending bytewise. Deprecated identifiers are included: they are on
-// the list, so a deck naming one satisfies DECK.md section 7.1.
 constexpr std::array<std::string_view, 727> license_ids{
     "0BSD",
     "3D-Slicer-1.0",
@@ -760,7 +756,6 @@ constexpr std::array<std::string_view, 727> license_ids{
     "zlib-acknowledgement",
 };
 
-// The exception identifiers usable to the right of a WITH operator.
 constexpr std::array<std::string_view, 84> exception_ids{
     "389-exception",
     "Asterisk-exception",
