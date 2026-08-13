@@ -143,10 +143,11 @@ TEST_CASE("every code is flat kebab-case", "[validation]")
     }
 }
 
-TEST_CASE("every area is one of the eight", "[validation]")
+TEST_CASE("every area is one of the nine", "[validation]")
 {
-    constexpr std::array<std::string_view, 8> areas{"deck",  "ids",   "images", "backs",
-                                                    "cards", "names", "ansi",   "surrogate"};
+    constexpr std::array<std::string_view, 9> areas{
+        "deck", "ids", "images", "backs", "cards", "names", "ansi", "surrogate", "container"
+    };
 
     for (auto const& r : rules())
     {
@@ -212,15 +213,24 @@ TEST_CASE("no rule ships experimental", "[validation]")
 }
 
 
-TEST_CASE("exactly one rule needs a whole library", "[validation]")
+TEST_CASE("every rule beyond a single deck is named", "[validation]")
 {
+    // `phase::library` carries the rules `validate(deck const&)` structurally
+    // cannot reach. One needs sibling decks; the four `container` rules judge a
+    // zip a validator is handed before any deck exists (DECK.md#2.4). The phase
+    // enum is public API and gained no `container` member for them.
+    constexpr std::array<std::string_view, 5> beyond_one_deck{
+        "bad-container-entry-type", "bad-container-layout", "duplicate-deck-identifier",
+        "missing-container-mimetype", "unsafe-container-entry-name"
+    };
+
     std::vector<std::string_view> library_wide;
     for (auto const& r : rules())
         if (r.needs == phase::library)
             library_wide.push_back(r.code);
 
-    REQUIRE(library_wide.size() == 1);
-    CHECK(library_wide.front() == "duplicate-deck-identifier");
+    std::ranges::sort(library_wide);
+    CHECK(std::ranges::equal(library_wide, beyond_one_deck));
 }
 
 TEST_CASE("schema_major", "[validation]")
@@ -256,29 +266,50 @@ namespace
 {
 
 // TODO: need to figure out what to do with these
-constexpr std::array<std::string_view, 2> deferred{
+constexpr std::array<std::string_view, 6> deferred{
     // Needs an image decoder
     "aspect-ratio-mismatch",
 
     // The only phase::library rule
     "duplicate-deck-identifier",
+
+    // A container is a zip a validator is handed before any deck exists, so
+    // validate(deck const&) is never given one (DECK.md#2.4).
+    "bad-container-entry-type",
+    "bad-container-layout",
+    "missing-container-mimetype",
+    "unsafe-container-entry-name",
 };
 
 // This should be zero when we're done
-constexpr std::array<std::string_view, 63> not_yet_covered{
+constexpr std::array<std::string_view, 83> not_yet_covered{
+    "artwork-rating-exceeds-deck",
     "backslash-in-path",
+    "bad-card-size-mm",
+    "bad-content-rating-key",
+    "bad-follows",
+    "bad-gtin",
+    "bad-isbn",
     "bad-language-tag",
     "bad-link-rel",
     "bad-link-url",
     "bad-name-template-placeholder",
+    "bad-oars-descriptor",
     "bad-palette-color",
     "bad-palette-snapped-color",
+    "bad-pips-value",
+    "bad-product-id-key",
+    "bad-published-date",
     "bad-rights-field-value",
     "bad-rights-status-uri",
     "bad-schema-version",
     "bad-spdx-expression",
     "bom-in-toml",
+    "card-not-baseline-format",
+    "card-size-aspect-mismatch",
+    "cards-key-path",
     "deck-has-no-cards",
+    "deck-rating-exceeds-artwork",
     "declared-card-without-image",
     "deprecated-1-0-key",
     "duplicate-card-position",
@@ -286,14 +317,16 @@ constexpr std::array<std::string_view, 63> not_yet_covered{
     "empty-card-number",
     "excluded-card-also-declared",
     "excluded-card-has-image",
+    "follows-self",
+    "ignored-key-on-variant",
     "language-tag-case-collision",
     "malformed-deck-toml",
     "malformed-name-file",
     "malformed-surrogate-file",
     "missing-alt-text",
+    "missing-artwork-complete",
     "missing-deck-toml",
     "missing-default-language-file",
-    "missing-edition-default",
     "missing-license-file",
     "missing-license-text",
     "missing-packager",
@@ -305,6 +338,7 @@ constexpr std::array<std::string_view, 63> not_yet_covered{
     "non-utf8-toml",
     "packager-equals-author",
     "palette-snapped-length-mismatch",
+    "partial-alt-text-in-facet",
     "position-on-minor-arcanum",
     "rank-without-image",
     "redistribution-contradicts-rights-status",
@@ -314,20 +348,23 @@ constexpr std::array<std::string_view, 63> not_yet_covered{
     "surrogate-deck-without-license",
     "surrogate-deck-without-signifies",
     "symlink-escapes-deck-root",
-    "unknown-edition-card-back",
-    "unknown-edition-default",
+    "unknown-artwork-rating-system",
     "unknown-metadata-alt-text-key",
+    "unknown-name-entity-kind",
+    "unknown-name-facet",
     "unknown-name-key",
     "unknown-surrogate-key",
     "unknown-table",
     "unknown-variant-default",
     "unlocalized-fallback-string",
     "unnamed-extended-major",
+    "unregistered-content-rating-system",
     "unregistered-link-rel",
+    "unregistered-product-id-scheme",
     "unsafe-path",
+    "unused-artwork-complete",
     "variant-card-without-default",
     "variant-for-unknown-card",
-    "variant-missing-alt-text",
     "wrong-value-type",
 };
 

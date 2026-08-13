@@ -40,6 +40,20 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "artwork-rating-exceeds-deck",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
+        .explanation = "An artwork declares a content rating descriptor above the value the deck "
+                       "declares for the "
+                       "same system and descriptor. The deck level states the ceiling, so raise it "
+                       "or lower the "
+                       "artwork.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "aspect-ratio-mismatch",
         .default_level = severity::warning,
         .area = "images",
@@ -88,14 +102,66 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "bad-card-size-mm",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1; DECK.md#9.4",
+        .explanation = "card_size_mm does not hold exactly two numbers greater than zero. It is "
+                       "the physical width "
+                       "then the height in millimetres.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "bad-cards-table-key",
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .spec_ref = "DECK.md#3.1; DECK.md#4.3; DECK.md#9.4",
+        .spec_ref = "DECK.md#3.1.2; DECK.md#4.3; DECK.md#9.4",
+        .explanation = "A key in the cards table is not a well-formed card reference. A major "
+                       "arcanum's key carries "
+                       "both of its digits, and a variant reference's suffix is a custom name.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-container-entry-type",
+        .default_level = severity::error,
+        .area = "container",
+        .needs = phase::library,
+        .spec_ref = "DECK.md#2.4; DECK.md#9.4",
+        .explanation = "A container entry is a symbolic link, a hard link, an encrypted entry, or "
+                       "something other "
+                       "than a regular file or directory, or it uses a compression method other "
+                       "than stored or "
+                       "deflate.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-container-layout",
+        .default_level = severity::error,
+        .area = "container",
+        .needs = phase::library,
+        .spec_ref = "DECK.md#2.4; DECK.md#9.4",
+        .explanation = "A container does not carry deck.toml at the root of the archive. A deck "
+                       "sitting inside a "
+                       "wrapping directory is not a container.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-content-rating-key",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
         .explanation =
-            "A key in the cards table is not a canonical ID. A major arcanum's key carries both of "
-            "its digits, and a variant reference belongs in the card variants table instead.",
+            "A content rating system key or descriptor key is not a well-formed custom name, or a "
+            "descriptor carries no non-empty string, or artwork_complete is not a boolean or "
+            "appears "
+            "somewhere other than the deck level.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -120,6 +186,46 @@ constexpr std::array catalogue{
         .explanation = "The deck's identifier is not a well-formed qualified identifier: a realm, "
                        "a slash, and one or more path segments. It names the deck as a whole, so "
                        "it carries no fragment.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-follows",
+        .default_level = severity::error,
+        .area = "ids",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.3; DECK.md#9.4",
+        .explanation =
+            "The follows field is not a well-formed qualified identifier, or it carries a "
+            "fragment. It "
+            "names the deck this one is patterned on, as a whole, so it carries no fragment.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-gtin",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
+        .explanation = "A gtin is not eight, twelve, thirteen or fourteen digits, contains a "
+                       "character other than a "
+                       "digit, or fails its check digit. Box copy is transcribed by hand and this "
+                       "is the error that "
+                       "transcription makes.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-isbn",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
+        .explanation = "An isbn is not ten or thirteen characters once hyphens and spaces are "
+                       "removed, or fails its "
+                       "check digit. Box copy is transcribed by hand and this is the error that "
+                       "transcription makes.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -170,6 +276,19 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "bad-oars-descriptor",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
+        .explanation =
+            "A descriptor under an oars-1.1 subtable is not one of the twenty-two OARS 1.1 "
+            "attribute ids "
+            "written with underscores, or its value is not one of none, mild, moderate or intense.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "bad-palette-color",
         .default_level = severity::error,
         .area = "surrogate",
@@ -189,6 +308,44 @@ constexpr std::array catalogue{
         .explanation = "A snapped palette entry is not a CSS Color 4 named colour. The field "
                        "exists so that an application with no colour arithmetic can render a "
                        "placeholder from the name alone.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-pips-value",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.4; DECK.md#9.4",
+        .explanation = "The pips field is not one of scenic, emblematic or unstated. A deck whose "
+                       "suits differ among "
+                       "themselves declares nothing rather than coining a fourth value.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-product-id-key",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
+        .explanation = "A product_ids key is not a well-formed custom name, or its value is not a "
+                       "non-empty string. "
+                       "The key names the identifier scheme and the value is the identifier.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "bad-published-date",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#3.5; DECK.md#4.1.7; DECK.md#9.4",
+        .explanation = "published_date is not a year, a year and month, or a full date denoting a "
+                       "real calendar "
+                       "date. State no precision you do not have: the year alone is the correct "
+                       "value where the day "
+                       "is unknown.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -281,10 +438,51 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "backs",
         .needs = phase::filesystem,
-        .spec_ref = "DECK.md#5.5; DECK.md#9.4",
+        .spec_ref = "DECK.md#5.5; DECK.md#5.7.4; DECK.md#9.4",
         .explanation = "A card back design is supplied in neither PNG nor JPEG. Backs have no "
                        "reference deck to fall back on, so an application that cannot decode the "
                        "design substitutes a generic back.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "card-not-baseline-format",
+        .default_level = severity::warning,
+        .area = "images",
+        .needs = phase::filesystem,
+        .spec_ref = "DECK.md#5.7.4; DECK.md#9.4",
+        .explanation =
+            "Every raster asset this card has, across all image roots, is in a format outside the "
+            "baseline of PNG, JPEG and WebP, so an application that decodes only the baseline "
+            "falls back "
+            "to a reference deck or shows nothing.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "card-size-aspect-mismatch",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1; DECK.md#5.6; DECK.md#9.4",
+        .explanation = "The width-to-height ratio of card_size_mm differs from the declared "
+                       "aspect_ratio by more "
+                       "than a tenth. One of the two is likely a transcription error, though "
+                       "aspect_ratio governs "
+                       "either way.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "cards-key-path",
+        .default_level = severity::error,
+        .area = "ids",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#3.6; DECK.md#4.3; DECK.md#9.4",
+        .explanation = "A cards entry is written as a key path rather than a single key, so it "
+                       "declares a table "
+                       "named for the card's first segment rather than the card. Quote the whole "
+                       "card reference.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -313,6 +511,20 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "deck-rating-exceeds-artwork",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
+        .explanation = "Under artwork_complete, a deck level descriptor is above every value the "
+                       "deck's artwork "
+                       "carries for it. The deck says the content is somewhere in it and the "
+                       "annotation says it is "
+                       "nowhere, so one of the two is unfinished.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "declared-card-without-image",
         .default_level = severity::error,
         .area = "cards",
@@ -329,7 +541,7 @@ constexpr std::array catalogue{
         .default_level = severity::info,
         .area = "deck",
         .needs = phase::document,
-        .spec_ref = "DECK.md#appendix-b; DECK.md#appendix-d",
+        .spec_ref = "DECK.md#appendix-b; DECK.md#appendix-e",
         .explanation =
             "This key was defined by schema 1.0 and is not defined by 2.0, so applications ignore "
             "it and whatever it meant is silently lost. Appendix B names its 2.0 replacement.",
@@ -421,6 +633,19 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "follows-self",
+        .default_level = severity::error,
+        .area = "ids",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.3; DECK.md#9.4",
+        .explanation =
+            "The follows field names this deck's own identifier or the deck it signifies. A deck "
+            "is not "
+            "patterned on itself, and following carries none of signifies' merge semantics.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "ignored-card-back-file",
         .default_level = severity::warning,
         .area = "backs",
@@ -441,6 +666,19 @@ constexpr std::array catalogue{
         .explanation = "This top-level directory nearly matches the image root pattern but is not "
                        "one, so discovery ignores it and its contents are not cards. It holds a "
                        "major or minor arcana subtree.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "ignored-key-on-variant",
+        .default_level = severity::warning,
+        .area = "cards",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.3; DECK.md#9.4",
+        .explanation = "A number, position or default_variant is declared on a variant reference "
+                       "key, where an "
+                       "application ignores all three. They belong to the card rather than to one "
+                       "of its artworks.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -499,6 +737,20 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "missing-artwork-complete",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
+        .explanation = "An artwork declares a content rating descriptor for a system whose deck "
+                       "level subtable "
+                       "carries no artwork_complete. Without it an application cannot tell an "
+                       "unannotated artwork "
+                       "from an unrated one.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "missing-card-back-image",
         .default_level = severity::error,
         .area = "backs",
@@ -508,6 +760,20 @@ constexpr std::array catalogue{
             "A card back design's image path points at no file. The path overrides discovery for "
             "that design in every kind and size, so the design has no image at all.",
         .applies_to = {.min = 1, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "missing-container-mimetype",
+        .default_level = severity::warning,
+        .area = "container",
+        .needs = phase::library,
+        .spec_ref = "DECK.md#2.4; DECK.md#9.4",
+        .explanation = "A container's first entry is not an uncompressed mimetype file carrying "
+                       "the media type. "
+                       "Applications still read it, but it cannot be recognised by its leading "
+                       "bytes and presents as "
+                       "a plain archive.",
+        .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -540,18 +806,6 @@ constexpr std::array catalogue{
         .explanation = "The default_language field names a name file the deck does not ship. That "
                        "file is language resolution's last resort, so any string the requested tag "
                        "does not supply is lost.",
-        .applies_to = {.min = 2, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "missing-edition-default",
-        .default_level = severity::error,
-        .area = "cards",
-        .needs = phase::document,
-        .spec_ref = "DECK.md#4.6; DECK.md#9.4",
-        .explanation =
-            "The deck defines more than one edition and the editions table declares no default. "
-            "The field may be omitted only where exactly one edition is defined.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -606,10 +860,10 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "cards",
         .needs = phase::filesystem,
-        .spec_ref = "DECK.md#4.7; DECK.md#9.4",
+        .spec_ref = "DECK.md#4.3; DECK.md#9.4",
         .explanation =
-            "A card variant's image path points at no file, which leaves the variant unresolvable. "
-            "Correct the path, or drop it and name the file by the convention.",
+            "A variant's image path in the cards table points at no file, which leaves the variant "
+            "unresolvable. Correct the path, or drop it and name the file by the convention.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -629,7 +883,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .spec_ref = "DECK.md#3.1",
+        .spec_ref = "DECK.md#3.1.2; DECK.md#4.5",
         .explanation = "This card reference is not a canonical ID. Where a card is named rather "
                        "than a variant of one, a variant suffix is not accepted.",
         .applies_to = {.min = 2, .max = 2},
@@ -688,6 +942,20 @@ constexpr std::array catalogue{
         .explanation =
             "A surrogate's palette and snapped palette hold different numbers of entries, so an "
             "application pairing them by position pairs the wrong colours. Regenerate the file.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "partial-alt-text-in-facet",
+        .default_level = severity::warning,
+        .area = "names",
+        .needs = phase::filesystem,
+        .spec_ref = "DECK.md#6.2; DECK.md#6.4; DECK.md#9.4",
+        .explanation = "This name file gives alt text to some entities of a kind and not to this "
+                       "one. The two facets "
+                       "are written as separate blocks, so an entity missed out of one is "
+                       "invisible to a reader "
+                       "checking the other.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -858,6 +1126,19 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "unknown-artwork-rating-system",
+        .default_level = severity::error,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
+        .explanation =
+            "An artwork is rated under a system the deck level content rating table does not "
+            "declare. An "
+            "artwork refines the deck's declaration and cannot introduce a system of its own.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "unknown-default-card-back",
         .default_level = severity::error,
         .area = "backs",
@@ -867,30 +1148,6 @@ constexpr std::array catalogue{
                        "has. Designs are the stems found across the card back directories plus "
                        "every key with an explicit image path.",
         .applies_to = {.min = 1, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "unknown-edition-card-back",
-        .default_level = severity::error,
-        .area = "backs",
-        .needs = phase::filesystem,
-        .spec_ref = "DECK.md#4.6; DECK.md#9.4",
-        .explanation = "An edition's card_back names no design the deck has, which leaves the "
-                       "edition indistinguishable from the default printing. Omit the field to "
-                       "take the deck's own default.",
-        .applies_to = {.min = 2, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "unknown-edition-default",
-        .default_level = severity::error,
-        .area = "cards",
-        .needs = phase::document,
-        .spec_ref = "DECK.md#4.6; DECK.md#9.4",
-        .explanation =
-            "The default declared under the editions table names no edition the deck defines, so "
-            "the edition an application presents where the user has not chosen is undefined.",
-        .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -906,11 +1163,38 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
-        .code = "unknown-name-key",
+        .code = "unknown-name-entity-kind",
         .default_level = severity::error,
         .area = "names",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#6.2; DECK.md#9.4",
+        .explanation = "A table below a name file's facet names no entity kind this specification "
+                       "defines. The kinds "
+                       "are closed: card, suit, rank, card_back, variant and group, each written "
+                       "in the singular.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "unknown-name-facet",
+        .default_level = severity::error,
+        .area = "names",
+        .needs = phase::filesystem,
+        .spec_ref = "DECK.md#6.2; DECK.md#9.4",
+        .explanation =
+            "A top-level table in this name file is neither the name facet, the alt_text facet nor "
+            "the "
+            "reserved metadata table. An unrecognised facet supplies no strings at all, so a fully "
+            "translated deck would present as an untranslated one.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "unknown-name-key",
+        .default_level = severity::error,
+        .area = "names",
+        .needs = phase::filesystem,
+        .spec_ref = "DECK.md#6.2; DECK.md#6.2.2; DECK.md#9.4",
         .explanation = "A key in this name file corresponds to nothing the deck has, so the string "
                        "it carries will never be shown. The card was probably renamed, misspelled, "
                        "or copied from another deck.",
@@ -946,7 +1230,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "cards",
         .needs = phase::filesystem,
-        .spec_ref = "DECK.md#4.7; DECK.md#9.4",
+        .spec_ref = "DECK.md#4.3; DECK.md#9.4",
         .explanation = "A card's declared default variant names no variant that card has, which "
                        "leaves a reference carrying no variant suffix unresolvable.",
         .applies_to = {.min = 2, .max = 2},
@@ -976,6 +1260,19 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "unregistered-content-rating-system",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
+        .explanation =
+            "A content rating system is outside the registry and is not prefixed. Applications "
+            "ignore it, "
+            "and a later version of the specification may claim the name. Prefix it with x_.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "unregistered-link-rel",
         .default_level = severity::warning,
         .area = "deck",
@@ -984,6 +1281,34 @@ constexpr std::array catalogue{
         .explanation = "This link relation is not in the registry. The registry is open and "
                        "applications ignore what they do not recognise, but a later version may "
                        "claim the name. Prefix your own, as in x_kickstarter.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "unregistered-product-id-scheme",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.5; DECK.md#9.4",
+        .explanation = "A product_ids scheme is outside the registry of isbn, gtin and "
+                       "publisher_sku and is not "
+                       "prefixed. Applications ignore it, and a later version of the specification "
+                       "may claim the "
+                       "name. Prefix it with x_.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "unsafe-container-entry-name",
+        .default_level = severity::error,
+        .area = "container",
+        .needs = phase::library,
+        .spec_ref = "DECK.md#2.4; DECK.md#9.4",
+        .explanation = "A container entry name is absolute, names a drive, carries a dot-dot, dot "
+                       "or empty segment, "
+                       "or repeats another entry. A validator checks entry names itself, because "
+                       "archive libraries "
+                       "repair them by default.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1000,11 +1325,23 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "unused-artwork-complete",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .spec_ref = "DECK.md#4.1.6; DECK.md#9.4",
+        .explanation = "An artwork_complete is declared on a system no artwork carries a "
+                       "descriptor for, so the key "
+                       "describes an annotation that does not exist.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "variant-card-without-default",
         .default_level = severity::error,
         .area = "cards",
         .needs = phase::filesystem,
-        .spec_ref = "DECK.md#4.7; DECK.md#5.7.6; DECK.md#9.4",
+        .spec_ref = "DECK.md#4.3; DECK.md#5.7.5; DECK.md#9.4",
         .explanation = "A card has variant files, no unsuffixed file, and no declared default "
                        "variant, so a reference carrying no variant suffix names nothing.",
         .applies_to = {.min = 2, .max = 2},
@@ -1015,20 +1352,9 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "cards",
         .needs = phase::filesystem,
-        .spec_ref = "DECK.md#4.7; DECK.md#9.4",
+        .spec_ref = "DECK.md#4.3; DECK.md#9.4",
         .explanation = "A card variants table is keyed on a card the deck does not have, so it "
                        "annotates nothing. A card exists because the deck ships an asset for it.",
-        .applies_to = {.min = 2, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "variant-missing-alt-text",
-        .default_level = severity::warning,
-        .area = "names",
-        .needs = phase::filesystem,
-        .spec_ref = "DECK.md#4.7; DECK.md#6.4",
-        .explanation = "A card variant carries no alt text of its own and falls back to the "
-                       "card's, which omits the very difference the variant exists for.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },

@@ -21,16 +21,10 @@ ranks = ["ace", "knave"]
 [card_backs.designs.classic]
 name = "Classic"
 
-[editions]
-default = "standard"
+[cards."major_arcana.06"]
+default_variant = "two_women"
 
-[editions.standard]
-name = "Standard"
-
-[card_variants."major_arcana.06"]
-default = "two_women"
-
-[card_variants."major_arcana.06".variants.two_women]
+[cards."major_arcana.06:two_women"]
 name = "The Lovers"
 
 [excluded_cards]

@@ -133,7 +133,7 @@ TEST_CASE("coined names outside the grammar and reserved ones are reported", "[v
 
     CHECK(
         keys_of(found) == std::vector<std::string>{
-                              "editions.first-edition",
+                              R"(cards."major_arcana.06".default_variant)",
                               "suits.Stars",
                               "suits.Stars.ranks",
                               "<none>",
@@ -176,34 +176,31 @@ TEST_CASE("card references outside the canonical grammar are reported", "[valida
 {
     auto const found = validate_fixture("validation/ids/card-references-error");
 
+    // `cc9081e` legalised a variant reference as a `[cards]` key and deleted the
+    // `[card_variants]` table, so the fixture's `major_arcana.06:two_women` entry is
+    // now clean and `[excluded_cards]` is the one site left to `non-canonical-*`.
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "bad-cards-table-key",
-                               "bad-cards-table-key",
-                               "non-canonical-card-reference",
                                "non-canonical-card-reference",
                            }
     );
 
     CHECK(
         cards_of(found) == std::vector<std::string>{
-                               "major_arcana.06:two_women",
                                "major_arcana.6",
-                               "major_arcana.06:two_women",
                                "minor_arcana.Pentacles.page",
                            }
     );
 
     CHECK(
         keys_of(found) == std::vector<std::string>{
-                              R"(cards."major_arcana.06:two_women")",
                               R"(cards."major_arcana.6")",
-                              R"(card_variants."major_arcana.06:two_women")",
                               "excluded_cards.cards",
                           }
     );
 
-    CHECK(found[0].message.find("is a variant reference") != std::string::npos);
+    CHECK(found[0].message.find("is not a card reference") != std::string::npos);
     CHECK(found[1].message.find("is not a canonical ID") != std::string::npos);
 
     for (auto const& one : found)

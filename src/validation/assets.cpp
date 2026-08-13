@@ -212,6 +212,10 @@ std::vector<std::string> declared_paths(toml::table const& doc)
     add_image_paths(found, doc["card_backs"]["designs"]);
     add_image_paths(found, doc["card_backs"]["variants"]);
 
+    // 2.0 hangs a card's and a variant's `image` off `[cards]` directly; 1.0 kept
+    // variants in their own table, whose shape `cc9081e` deleted.
+    add_image_paths(found, doc["cards"]);
+
     if (auto const* variants_of = doc["card_variants"].as_table())
         for (auto const& [card, value] : *variants_of)
             if (auto const* one = value.as_table())

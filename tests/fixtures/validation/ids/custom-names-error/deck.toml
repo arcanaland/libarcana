@@ -14,5 +14,5 @@ ranks = ["ace", "2nd", "wands"]
 [card_backs.designs.major_arcana]
 name = "Nope"
 
-[editions.first-edition]
-name = "First"
+[cards."major_arcana.06"]
+default_variant = "first-edition"

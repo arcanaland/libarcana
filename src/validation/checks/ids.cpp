@@ -91,33 +91,31 @@ void collect_suit_names(toml::table const& doc, std::vector<coined_name>& found)
     }
 }
 
-// The variant keys under each `[card_variants."<id>"]`
+// Variant names, which `cc9081e` moved off the deleted `[card_variants]` table and
+// onto `[cards]`: the suffix of a variant-reference key, and each `default_variant`.
 void collect_variant_names(toml::table const& doc, std::vector<coined_name>& found)
 {
-    auto const* variants_of = doc["card_variants"].as_table();
-    if (variants_of == nullptr)
+    auto const* cards = doc["cards"].as_table();
+    if (cards == nullptr)
         return;
 
-    for (auto const& [card, value] : *variants_of)
+    for (auto const& [card, value] : *cards)
     {
+        auto const key = std::string_view{card.str()};
+
+        if (auto const colon = key.find(':'); colon != std::string_view::npos)
+            add_declared(
+                found, key.substr(colon + 1), name_site::other, std::format(R"(cards."{}")", key)
+            );
+
         auto const* t = value.as_table();
         if (t == nullptr)
             continue;
 
-        if (auto const* fallback = (*t)["default"].as_string())
+        if (auto const* fallback = (*t)["default_variant"].as_string())
             add_declared(
                 found, fallback->get(), name_site::other,
-                std::format(R"(card_variants."{}".default)", card.str())
-            );
-
-        auto const* variants = (*t)["variants"].as_table();
-        if (variants == nullptr)
-            continue;
-
-        for (auto const& [variant_key, unused] : *variants)
-            add_declared(
-                found, variant_key.str(), name_site::other,
-                std::format(R"(card_variants."{}".variants.{})", card.str(), variant_key.str())
+                std::format(R"(cards."{}".default_variant)", key)
             );
     }
 }
@@ -132,13 +130,6 @@ void collect_declared(toml::table const& doc, std::vector<coined_name>& found)
             add_declared(
                 found, key.str(), name_site::other, std::format("card_backs.designs.{}", key.str())
             );
-
-    if (auto const* editions = doc["editions"].as_table())
-        for (auto const& [key, value] : *editions)
-            if (value.is_table())
-                add_declared(
-                    found, key.str(), name_site::other, std::format("editions.{}", key.str())
-                );
 
     collect_variant_names(doc, found);
 }
@@ -403,16 +394,14 @@ void check_bad_cards_table_key(check_context const& ctx)
 
     for (auto const& [key, value] : *cards)
     {
+        // `cc9081e` moved variants onto this table, so a variant reference is now a
+        // legal key here rather than one belonging in `[card_variants]`.
         auto const card = std::string_view{key.str()};
-        if (data::is_canonical_id(card))
+        if (data::is_canonical_id(card) || data::is_variant_reference(card))
             continue;
 
-        auto message = data::is_variant_reference(card)
-                           ? std::format("[cards] key '{}' is a variant reference", card)
-                           : std::format("[cards] key '{}' is not a canonical ID", card);
-
         ctx.report({
-            .message = std::move(message),
+            .message = std::format("[cards] key '{}' is not a card reference", card),
             .card = std::string{card},
             .key = std::format(R"(cards."{}")", card),
         });
@@ -421,22 +410,9 @@ void check_bad_cards_table_key(check_context const& ctx)
 
 void check_non_canonical_card_reference(check_context const& ctx)
 {
-    if (auto const* variants_of = ctx.doc["card_variants"].as_table())
-    {
-        for (auto const& [key, value] : *variants_of)
-        {
-            auto const card = std::string_view{key.str()};
-            if (data::is_canonical_id(card))
-                continue;
-
-            ctx.report({
-                .message = std::format("[card_variants] key '{}' is not a canonical ID", card),
-                .card = std::string{card},
-                .key = std::format(R"(card_variants."{}")", card),
-            });
-        }
-    }
-
+    // `[excluded_cards].cards` is the one site left. The `[card_variants]` keys this
+    // check also read are gone with the table (`cc9081e`), and a `[cards]` key may now
+    // legally be a variant reference, which `bad-cards-table-key` judges instead.
     if (auto const* excluded = ctx.doc["excluded_cards"]["cards"].as_array())
     {
         for (auto const& element : *excluded)

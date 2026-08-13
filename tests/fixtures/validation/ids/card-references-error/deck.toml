@@ -1,7 +1,6 @@
 # Few problems:
 # - A one-digit major key
-# - A variant reference where a canonical ID belongs
-# - An uppercase suit in an exclusion
+# - An uppercase suit in an exclusion, where only a canonical ID is accepted
 
 [deck]
 schema_version = "2.0"
@@ -14,9 +13,6 @@ number = "VI"
 
 [cards."major_arcana.06:two_women"]
 name = "The Lovers"
-
-[card_variants."major_arcana.06:two_women"]
-default = "two_women"
 
 [excluded_cards]
 cards = ["minor_arcana.Pentacles.page"]
