@@ -93,26 +93,6 @@ bool is_variant_reference(std::string_view s) noexcept
 namespace
 {
 
-// label = lcalpha [ *61( lcalpha / DIGIT / "-" ) ( lcalpha / DIGIT ) ]
-bool is_label(std::string_view label) noexcept
-{
-    constexpr std::size_t max_label = 63;
-
-    if (label.empty() || label.size() > max_label || !is_lcalpha(label.front()))
-        return false;
-
-    if (label.size() == 1)
-        return true;
-
-    if (!is_lcalpha(label.back()) && !is_digit(label.back()))
-        return false;
-
-    auto const middle = label.substr(1, label.size() - 2);
-    return std::ranges::all_of(
-        middle, [](char c) { return is_lcalpha(c) || is_digit(c) || c == '-'; }
-    );
-}
-
 bool is_path_segment(std::string_view segment) noexcept
 {
     return !segment.empty() &&
@@ -137,6 +117,27 @@ bool is_fragment(std::string_view fragment) noexcept
 
 bool is_realm(std::string_view s) noexcept
 {
+    // label = lcalpha [ *61( lcalpha / DIGIT / "-" ) ( lcalpha / DIGIT ) ]
+    auto is_label = [](std::string_view label)
+    {
+        constexpr std::size_t max_label = 63;
+
+        if (label.empty() || label.size() > max_label || !is_lcalpha(label.front()))
+            return false;
+
+        if (label.size() == 1)
+            return true;
+
+        if (!is_lcalpha(label.back()) && !is_digit(label.back()))
+            return false;
+
+        auto const middle = label.substr(1, label.size() - 2);
+
+        return std::ranges::all_of(
+            middle, [](char c) { return is_lcalpha(c) || is_digit(c) || c == '-'; }
+        );
+    };
+
     // A realm has two labels or more
     return count_pieces(s, '.', is_label) >= 2;
 }

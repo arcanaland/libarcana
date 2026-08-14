@@ -1,12 +1,10 @@
-# `[cards.major_arcana.00]` declares a table named `major_arcana` rather than
-# the card `major_arcana.00` (DECK.md#3.6). The quoted entry below it is well
-# formed, and a subtable written beneath a quoted card reference is unaffected.
 [deck]
 schema_version = "2.0"
 name = "Cards Key Path"
 version = "1.0"
 identifier = "org.example/deck/cards-key-path"
 
+# declares a table named "major_arcana" instead of a card ref
 [cards.major_arcana.00]
 number = "0"
 
