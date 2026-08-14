@@ -257,7 +257,7 @@ TEST_CASE("a deck that follows itself is reported", "[validation][ids]")
     CHECK_FALSE(found[0].card.has_value());
     CHECK_FALSE(found[0].path.has_value());
     REQUIRE_THAT(found[0].message, ContainsSubstring("org.example/deck/follows-itself"));
-    REQUIRE_THAT(found[0].message, ContainsSubstring("identifier"));
+    REQUIRE_THAT(found[0].message, ContainsSubstring("should not follow itself"));
 }
 
 TEST_CASE("a [cards] key path is reported as one, not as a bad key", "[validation][ids]")
