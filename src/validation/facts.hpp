@@ -9,6 +9,7 @@
 #include <toml++/toml.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <optional>
@@ -23,6 +24,26 @@ namespace arcana::validation
 
 // A directory and a stem
 using stem_key = std::pair<std::string, std::string>;
+
+// Where a name the deck creator coined was written.
+enum class name_site : std::uint8_t
+{
+    suit,
+    rank,
+
+    // A card back design key, a variant suffix, a default_variant or a custom
+    // major arcanum
+    other,
+};
+
+// One key the deck creator coined
+struct coined_name
+{
+    std::string name;
+    name_site site;
+    std::optional<std::string> key;
+    std::optional<std::filesystem::path> path;
+};
 
 // One file sitting in a card back directory.
 struct back_file
@@ -59,6 +80,9 @@ struct deck_facts
 
     // Every path that deck.toml declares
     std::vector<std::string> declared;
+
+    // Every name the deck creator coined, declared or discovered
+    std::vector<coined_name> coined;
 
     // The file at a deck-relative path or nothing where the deck has none.
     [[nodiscard]] deck_file const* file_at(std::string_view relative) const;

@@ -1,0 +1,6 @@
+# Every raster asset for major_arcana.00 is AVIF (unsupported)
+[deck]
+schema_version = "2.0"
+name = "Off Baseline"
+version = "1.0"
+identifier = "org.example/deck/off-baseline"

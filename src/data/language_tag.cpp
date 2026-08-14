@@ -5,10 +5,12 @@
 
 #include "ascii.hpp"
 #include "tables.hpp"
+#include "text.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
@@ -51,22 +53,18 @@ constexpr std::size_t min_variant_length = 5;
 //          constraint every RFC 5646 production shares.
 std::vector<std::string_view> split_subtags(std::string_view tag)
 {
-    std::vector<std::string_view> subtags;
+    auto subtags = pieces(tag, '-');
 
-    while (true)
+    auto const well_formed = [](std::string_view piece)
     {
-        auto const dash = tag.find('-');
-        auto const piece = tag.substr(0, dash);
-        if (piece.empty() || piece.size() > max_subtag_length ||
-            !std::ranges::all_of(piece, is_alnum))
-            return {};
+        return !piece.empty() && piece.size() <= max_subtag_length &&
+               std::ranges::all_of(piece, is_alnum);
+    };
 
-        subtags.push_back(piece);
-        if (dash == std::string_view::npos)
-            return subtags;
+    if (!std::ranges::all_of(subtags, well_formed))
+        return {};
 
-        tag.remove_prefix(dash + 1);
-    }
+    return subtags | std::ranges::to<std::vector>();
 }
 
 bool is_all_alpha(std::string_view subtag) noexcept

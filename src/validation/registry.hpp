@@ -60,7 +60,7 @@ inline constexpr std::array checks{
     check_entry{.code = "bad-content-rating-key", .run = pending},
     check_entry{.code = "bad-custom-name", .run = check_bad_custom_name},
     check_entry{.code = "bad-deck-identifier", .run = check_bad_deck_identifier},
-    check_entry{.code = "bad-follows", .run = pending},
+    check_entry{.code = "bad-follows", .run = check_bad_follows},
     check_entry{.code = "bad-gtin", .run = pending},
     check_entry{.code = "bad-isbn", .run = pending},
     check_entry{.code = "bad-language-tag", .run = pending},
@@ -85,9 +85,9 @@ inline constexpr std::array checks{
     check_entry{
         .code = "card-back-not-baseline-format", .run = check_card_back_not_baseline_format
     },
-    check_entry{.code = "card-not-baseline-format", .run = pending},
+    check_entry{.code = "card-not-baseline-format", .run = check_card_not_baseline_format},
     check_entry{.code = "card-size-aspect-mismatch", .run = pending},
-    check_entry{.code = "cards-key-path", .run = pending},
+    check_entry{.code = "cards-key-path", .run = check_cards_key_path},
     check_entry{.code = "creator-equals-artist", .run = pending},
     check_entry{.code = "deck-has-no-cards", .run = pending},
     check_entry{.code = "deck-identifier-path-shape", .run = check_deck_identifier_path_shape},
@@ -101,7 +101,7 @@ inline constexpr std::array checks{
     check_entry{.code = "empty-card-number", .run = pending},
     check_entry{.code = "excluded-card-also-declared", .run = pending},
     check_entry{.code = "excluded-card-has-image", .run = pending},
-    check_entry{.code = "follows-self", .run = pending},
+    check_entry{.code = "follows-self", .run = check_follows_self},
     check_entry{.code = "ignored-card-back-file", .run = check_ignored_card_back_file},
     check_entry{.code = "ignored-image-root-lookalike", .run = check_ignored_image_root_lookalike},
     check_entry{.code = "ignored-key-on-variant", .run = pending},
@@ -187,7 +187,7 @@ inline constexpr std::array checks{
     return count;
 }
 
-static_assert(pending_checks() == 84, "work landed without the checks it required");
+static_assert(pending_checks() == 80, "work landed without the checks it required");
 
 static_assert(deferred_checks() == 6, "six punted checks");
 

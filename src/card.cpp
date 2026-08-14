@@ -3,6 +3,8 @@
 
 #include <arcana/card.hpp>
 
+#include "data/text.hpp"
+
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -58,13 +60,6 @@ std::optional<rank> rank_from_string(std::string_view text) noexcept
 
 namespace
 {
-
-std::vector<std::string_view> split(std::string_view text, char delim)
-{
-    return text | std::views::split(delim) |
-           std::views::transform([](auto part) { return std::string_view(part); }) |
-           std::ranges::to<std::vector>();
-}
 
 std::expected<int, error> parse_major_number(std::string_view text)
 {
@@ -166,7 +161,7 @@ bool is_valid_identifier(std::string_view text) noexcept
 
 std::expected<card_id, error> card_id::parse(std::string_view canonical_id)
 {
-    auto const parts = split(canonical_id, '.');
+    auto const parts = pieces(canonical_id, '.') | std::ranges::to<std::vector>();
 
     auto const parse_error_for = [canonical_id](std::string_view what)
     {

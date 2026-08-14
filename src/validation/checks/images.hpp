@@ -8,6 +8,8 @@
 namespace arcana::validation
 {
 
+void check_card_not_baseline_format(check_context const& ctx);
+
 void check_duplicate_chain_extension(check_context const& ctx);
 
 void check_ignored_image_root_lookalike(check_context const& ctx);

@@ -277,12 +277,11 @@ constexpr std::array<std::string_view, 6> deferred{
 };
 
 // This should be zero when we're done
-constexpr std::array<std::string_view, 84> not_yet_covered{
+constexpr std::array<std::string_view, 80> not_yet_covered{
     "artwork-rating-exceeds-deck",
     "backslash-in-path",
     "bad-card-size-mm",
     "bad-content-rating-key",
-    "bad-follows",
     "bad-gtin",
     "bad-isbn",
     "bad-language-tag",
@@ -300,9 +299,7 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "bad-schema-version",
     "bad-spdx-expression",
     "bom-in-toml",
-    "card-not-baseline-format",
     "card-size-aspect-mismatch",
-    "cards-key-path",
     "creator-equals-artist",
     "deck-has-no-cards",
     "deck-rating-exceeds-artwork",
@@ -313,7 +310,6 @@ constexpr std::array<std::string_view, 84> not_yet_covered{
     "empty-card-number",
     "excluded-card-also-declared",
     "excluded-card-has-image",
-    "follows-self",
     "ignored-key-on-variant",
     "language-tag-case-collision",
     "malformed-deck-toml",

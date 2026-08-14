@@ -54,6 +54,7 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
         codes_of(found) == std::vector<std::string_view>{
                                "bad-app-realm",
                                "bad-deck-identifier",
+                               "bad-follows",
                                "bad-signifies",
                            }
     );
@@ -62,6 +63,7 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
         keys_of(found) == std::vector<std::string>{
                               "app.land",
                               "deck.identifier",
+                              "deck.follows",
                               "deck.signifies",
                           }
     );
@@ -76,7 +78,8 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
 
     CHECK(found[0].message.find("'land'") != std::string::npos);
     CHECK(found[1].message.find("notarealm/deck/bad-identifiers") != std::string::npos);
-    CHECK(found[2].message.find("also_bad") != std::string::npos);
+    CHECK(found[2].message.find("rider-waite-smith") != std::string::npos);
+    CHECK(found[3].message.find("also_bad") != std::string::npos);
 }
 
 TEST_CASE("a deck with no identifier is warned about", "[validation][ids]")
@@ -214,6 +217,7 @@ TEST_CASE("a fragment on a field that names a deck is reported", "[validation][i
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "bad-deck-identifier",
+                               "bad-follows",
                                "bad-signifies",
                            }
     );
@@ -221,6 +225,7 @@ TEST_CASE("a fragment on a field that names a deck is reported", "[validation][i
     CHECK(
         keys_of(found) == std::vector<std::string>{
                               "deck.identifier",
+                              "deck.follows",
                               "deck.signifies",
                           }
     );
@@ -228,12 +233,67 @@ TEST_CASE("a fragment on a field that names a deck is reported", "[validation][i
     using Catch::Matchers::ContainsSubstring;
 
     REQUIRE_THAT(found[0].message, ContainsSubstring("major_arcana.00"));
-    REQUIRE_THAT(found[1].message, ContainsSubstring("major_arcana.06:two_enbys"));
+    REQUIRE_THAT(found[1].message, ContainsSubstring("major_arcana.00"));
+    REQUIRE_THAT(found[2].message, ContainsSubstring("major_arcana.06:two_enbys"));
 
     for (auto const& one : found)
     {
         INFO("code: " << one.code);
         CHECK(one.level == severity::error);
         CHECK_FALSE(one.card.has_value());
+    }
+}
+
+TEST_CASE("a deck that follows itself is reported", "[validation][ids]")
+{
+    auto const found = validate_fixture("validation/ids/follows-self-error");
+
+    REQUIRE(codes_of(found) == std::vector<std::string_view>{"follows-self"});
+    CHECK(keys_of(found) == std::vector<std::string>{"deck.follows"});
+
+    using Catch::Matchers::ContainsSubstring;
+
+    CHECK(found[0].level == severity::error);
+    CHECK_FALSE(found[0].card.has_value());
+    CHECK_FALSE(found[0].path.has_value());
+    REQUIRE_THAT(found[0].message, ContainsSubstring("org.example/deck/follows-itself"));
+    REQUIRE_THAT(found[0].message, ContainsSubstring("should not follow itself"));
+}
+
+TEST_CASE("a [cards] key path is reported as one, not as a bad key", "[validation][ids]")
+{
+    auto const found = validate_fixture("validation/ids/cards-key-path-error");
+
+    REQUIRE(
+        codes_of(found) == std::vector<std::string_view>{
+                               "cards-key-path",
+                               "cards-key-path",
+                           }
+    );
+
+    CHECK(
+        keys_of(found) == std::vector<std::string>{
+                              "cards.major_arcana",
+                              "cards.minor_arcana",
+                          }
+    );
+
+    // The reconstructed card reference stops at the card and does not run on
+    // into the card's own fields.
+    CHECK(
+        cards_of(found) == std::vector<std::string>{
+                               "major_arcana.00",
+                               "minor_arcana.wands.ace",
+                           }
+    );
+
+    using Catch::Matchers::ContainsSubstring;
+
+    for (auto const& one : found)
+    {
+        INFO("card: " << one.card.value_or("<none>"));
+        CHECK(one.level == severity::error);
+        CHECK_FALSE(one.path.has_value());
+        REQUIRE_THAT(one.message, ContainsSubstring("[cards.\""));
     }
 }

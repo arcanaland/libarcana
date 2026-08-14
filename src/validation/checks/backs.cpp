@@ -151,7 +151,7 @@ void check_card_back_not_baseline_format(check_context const& ctx)
         std::ranges::sort(files, {}, &deck_file::relative);
         ctx.report({
             .message = std::format(
-                "card back design '{}' is supplied in neither PNG nor JPEG, so an application that "
+                "card back design '{}' is in no baseline format, so an application that "
                 "cannot decode it shows a generic back",
                 design
             ),

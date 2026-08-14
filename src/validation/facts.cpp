@@ -5,6 +5,7 @@
 
 #include "../data/ascii.hpp"
 #include "../data/identifiers.hpp"
+#include "../data/text.hpp"
 #include "assets.hpp"
 #include "context.hpp"
 #include "spec.hpp"
@@ -12,13 +13,16 @@
 #include <toml++/toml.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <map>
 #include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace arcana::validation
@@ -116,6 +120,150 @@ std::vector<std::string> design_keys(
     return found;
 }
 
+void add_declared(
+    std::vector<coined_name>& found, std::string_view name, name_site site, std::string key
+)
+{
+    found.push_back({.name = std::string{name}, .site = site, .key = std::move(key), .path = {}});
+}
+
+// `[suits.<key>]` keys and the rank keys in their `ranks` lists.
+void collect_suit_names(toml::table const& doc, std::vector<coined_name>& found)
+{
+    auto const* suits = doc["suits"].as_table();
+    if (suits == nullptr)
+        return;
+
+    for (auto const& [key, value] : *suits)
+    {
+        auto const suit_key = std::string_view{key.str()};
+        add_declared(found, suit_key, name_site::suit, std::format("suits.{}", suit_key));
+
+        auto const* t = value.as_table();
+        if (t == nullptr)
+            continue;
+
+        auto const* ranks = (*t)["ranks"].as_array();
+        if (ranks == nullptr)
+            continue;
+
+        for (auto const& element : *ranks)
+            if (auto const* rank_key = element.as_string())
+                add_declared(
+                    found, rank_key->get(), name_site::rank, std::format("suits.{}.ranks", suit_key)
+                );
+    }
+}
+
+void collect_variant_names(toml::table const& doc, std::vector<coined_name>& found)
+{
+    auto const* cards = doc["cards"].as_table();
+    if (cards == nullptr)
+        return;
+
+    for (auto const& [card, value] : *cards)
+    {
+        auto const key = std::string_view{card.str()};
+
+        if (auto const split = cut(key, ':'))
+            add_declared(found, split->second, name_site::other, std::format(R"(cards."{}")", key));
+
+        auto const* t = value.as_table();
+        if (t == nullptr)
+            continue;
+
+        if (auto const* fallback = (*t)["default_variant"].as_string())
+            add_declared(
+                found, fallback->get(), name_site::other,
+                std::format(R"(cards."{}".default_variant)", key)
+            );
+    }
+}
+
+// Every custom name deck.toml declares
+void collect_declared(toml::table const& doc, std::vector<coined_name>& found)
+{
+    collect_suit_names(doc, found);
+
+    if (auto const* designs = doc["card_backs"]["designs"].as_table())
+        for (auto const& [key, value] : *designs)
+            add_declared(
+                found, key.str(), name_site::other, std::format("card_backs.designs.{}", key.str())
+            );
+
+    collect_variant_names(doc, found);
+}
+
+bool is_canonical_major_key(std::string_view base)
+{
+    return base.size() == 2 && base.find_first_not_of("0123456789") == std::string_view::npos;
+}
+
+bool already_collected(std::vector<coined_name> const& found, std::string_view name, name_site site)
+{
+    return std::ranges::any_of(
+        found, [&](coined_name const& one) { return one.name == name && one.site == site; }
+    );
+}
+
+// The names that can be inferred from a file's path
+void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
+{
+    std::vector<std::string> parts;
+    for (auto const& component : file.relative) parts.push_back(component.string());
+
+    if (parts.empty())
+        return;
+
+    auto const add = [&](std::string_view name, name_site site)
+    {
+        if (name.empty() || already_collected(found, name, site))
+            return;
+
+        found.push_back(
+            {.name = std::string{name}, .site = site, .key = {}, .path = file.relative}
+        );
+    };
+
+    // The last component is the file
+    auto const last = parts.size() - 1;
+
+    for (std::size_t at = 0; at < last; ++at)
+    {
+        // major_arcana/<base>.<ext>
+        if (parts[at] == "major_arcana" && at + 1 == last)
+        {
+            auto const base = before(parts[last], '.');
+
+            // A two-digit base is a canonical major arcanum
+            if (!is_canonical_major_key(base))
+                add(base, name_site::other);
+
+            continue;
+        }
+
+        // minor_arcana/<suit>/<rank>.<ext>.
+        if (parts[at] != "minor_arcana" || at + 1 >= last)
+            continue;
+
+        add(parts[at + 1], name_site::suit);
+
+        if (at + 2 == last)
+            add(before(parts[last], '.'), name_site::rank);
+    }
+}
+
+std::vector<coined_name> coined_names(std::span<deck_file const> files, toml::table const& doc)
+{
+    std::vector<coined_name> found;
+    collect_declared(doc, found);
+
+    // The suits, ranks and custom majors discovered from the file tree
+    for (auto const& file : files) collect_from_file(file, found);
+
+    return found;
+}
+
 }  // namespace
 
 deck_file const* deck_facts::file_at(std::string_view relative) const
@@ -154,6 +302,7 @@ deck_facts::deck_facts(std::span<deck_file const> files, toml::table const& doc,
     this->back_files = classify_back_files(files, this->back_images);
     this->designs = design_keys(this->back_files, this->back_images);
     this->declared = declared_paths(doc);
+    this->coined = coined_names(files, doc);
 }
 
 }  // namespace arcana::validation

@@ -25,6 +25,7 @@ target_sources(
             spdx_expression.hpp
             spdx_licenses.hpp
             tables.hpp
+            text.hpp
             uri.hpp
     PRIVATE
         # ascii.hpp is internal

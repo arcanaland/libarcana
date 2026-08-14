@@ -3,6 +3,8 @@
 
 #include <arcana/deck.hpp>
 
+#include "data/text.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -47,19 +49,21 @@ std::optional<std::uint8_t> schema_major(deck_metadata const& metadata) noexcept
 {
     auto const& text = metadata.schema_version;
 
-    auto const dot = text.find('.');
-    if (dot == std::string::npos || dot == 0 || dot + 1 == text.size())
+    auto const split = cut(text, '.');
+    if (!split)
         return std::nullopt;
 
     auto const all_digits = [](std::string_view part)
-    { return std::ranges::all_of(part, [](char const c) { return c >= '0' && c <= '9'; }); };
+    {
+        return !part.empty() &&
+               std::ranges::all_of(part, [](char const c) { return c >= '0' && c <= '9'; });
+    };
 
-    std::string_view const whole{text};
-    if (!all_digits(whole.substr(0, dot)) || !all_digits(whole.substr(dot + 1)))
+    if (!all_digits(split->first) || !all_digits(split->second))
         return std::nullopt;
 
     unsigned major = 0;
-    auto const major_text = whole.substr(0, dot);
+    auto const major_text = split->first;
     auto const [_, ec] =
         std::from_chars(major_text.data(), major_text.data() + major_text.size(), major);
     if (ec != std::errc{} || major > std::numeric_limits<std::uint8_t>::max())

@@ -3,12 +3,17 @@
 
 #include "images.hpp"
 
+#include "../../data/text.hpp"
 #include "../assets.hpp"
 #include "../facts.hpp"
+#include "../probe.hpp"
 
 #include <algorithm>
 #include <filesystem>
 #include <format>
+#include <functional>
+#include <map>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -41,7 +46,56 @@ void report_misplaced(
     }
 }
 
+// The card a raster asset belongs to, or nothing if the file is not a raster
+std::optional<std::string> card_of_raster(deck_file const& file)
+{
+    auto const where = locate_asset(file.relative);
+    if (!where || where->card_back || where->kind != root_kind::raster)
+        return std::nullopt;
+
+    std::vector<std::string> parts;
+    for (auto const& one : file.relative) parts.push_back(one.string());
+
+    auto const base = before(stem_of(parts.back()), '.');
+    if (base.empty())
+        return std::nullopt;
+
+    // locate_asset has already vouched for the shape, so the group is parts[1].
+    auto const between = parts.size() == 4 ? std::format("{}.", parts[2]) : std::string{};
+
+    return std::format("{}.{}{}", parts[1], between, base);
+}
+
 }  // namespace
+
+void check_card_not_baseline_format(check_context const& ctx)
+{
+    std::map<std::string, std::vector<deck_file const*>, std::less<>> rasters_by_card;
+
+    for (auto const& file : ctx.files)
+        if (auto const card = card_of_raster(file))
+            rasters_by_card[*card].push_back(&file);
+
+    for (auto const& [card, files] : rasters_by_card)
+    {
+        if (std::ranges::any_of(
+                files, [](deck_file const* one) { return is_baseline_image_format(one->absolute); }
+            ))
+            continue;
+
+        auto const* first = std::ranges::min(files, {}, &deck_file::relative);
+
+        ctx.report({
+            .message = std::format(
+                "no raster asset for '{}' is in a baseline format, so an application that decodes "
+                "only PNG, JPEG and WebP cannot display it",
+                card
+            ),
+            .card = card,
+            .path = first->relative,
+        });
+    }
+}
 
 void check_raster_outside_image_root(check_context const& ctx)
 {
