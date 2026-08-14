@@ -56,30 +56,21 @@ bool reserved_is_legal_here(std::string_view name, name_site site)
     return false;
 }
 
-// The two prefixes a canonical ID generalizes over. A `[cards]` key equal to
-// one of these is a key path (DECK.md#3.6) rather than a card that is merely
-// misnamed, so `cards-key-path` reports it and `bad-cards-table-key` stands
-// aside.
-constexpr std::array<std::string_view, 2> card_group_prefixes{"major_arcana", "minor_arcana"};
 
-bool is_card_group_prefix(std::string_view key) noexcept
+constexpr bool is_card_group_prefix(std::string_view const key) noexcept
 {
+    constexpr std::array<std::string_view, 2> card_group_prefixes{"major_arcana", "minor_arcana"};
     return std::ranges::contains(card_group_prefixes, key);
 }
 
-// Walks down the first subtable at each level, joining the keys with dots, so
-// `[cards.major_arcana.00]` reads back as the card reference it meant to write.
-// A minor arcanum needs the suit as well as the rank, so the descent runs until
-// the path names a card, and no further: the keys below that are the card's own
-// fields rather than more of its identifier.
+// Walk down the first subtable at each level, joining the keys with dots
+//   [cards.major_arcana.00] -> major_arcana.00
 std::string joined_key_path(std::string_view head, toml::node const& below)
 {
     constexpr std::size_t deepest = 2;
 
     std::string path{head};
 
-    // toml++'s iterator hands back a reference into itself, so it has to
-    // outlive the dereference.
     auto const* t = below.as_table();
     for (std::size_t depth = 0; depth < deepest && t != nullptr && !t->empty(); ++depth)
     {
@@ -134,7 +125,7 @@ void check_bad_deck_identifier(check_context const& ctx)
     // fragments can't be in qualified ids
     ctx.report({
         .message = std::format(
-            "deck identifier has a fragment '{}', which is not allowed", parts->fragment
+            "deck identifier has a fragment '{}' which is prohibited", parts->fragment
         ),
         .key = "deck.identifier",
     });
@@ -257,7 +248,7 @@ void check_bad_cards_table_key(check_context const& ctx)
         if (data::is_canonical_id(card) || data::is_variant_reference(card))
             continue;
 
-        // A key path is cards-key-path's to report, and more precisely.
+        // An unexpected key path will be reported by cards-key-path so skip
         if (is_card_group_prefix(card))
             continue;
 
@@ -308,7 +299,7 @@ void check_cards_key_path(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "[cards] key path '{}' declares a table named '{}' rather than a card; write it as "
+                "[cards] key path '{}' declares a table named '{}' rather than a card. Write it as "
                 "the quoted card reference [cards.\"{}\"]",
                 wanted, head, wanted
             ),
@@ -329,8 +320,7 @@ void check_bad_follows(check_context const& ctx)
     {
         ctx.report({
             .message = std::format(
-                "follows '{}' is not a qualified identifier, so it names no deck this one is "
-                "patterned on",
+                "follows '{}' is not a qualified identifier",
                 *follows
             ),
             .key = "deck.follows",
@@ -342,10 +332,10 @@ void check_bad_follows(check_context const& ctx)
     if (parts->fragment.empty())
         return;
 
-    // follows names a deck as a whole, so a card or variant reference is out.
+    // variants not allowed
     ctx.report({
         .message = std::format(
-            "follows names a deck, but '{}' carries the fragment '{}'", *follows, parts->fragment
+            "follows should be a deck, but '{}' has a fragment '{}'", *follows, parts->fragment
         ),
         .key = "deck.follows",
     });
@@ -365,7 +355,7 @@ void check_follows_self(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "follows '{}' is this deck's own {}, and a deck does not follow itself", *follows,
+                "follows '{}' is this deck's own {}, but a deck should not follow itself", *follows,
                 other
             ),
             .key = "deck.follows",

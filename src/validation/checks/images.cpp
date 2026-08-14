@@ -45,11 +45,7 @@ void report_misplaced(
     }
 }
 
-// The card a raster asset belongs to, or nothing where the file is not one.
-// `<root>/major_arcana/<base>[.<variant>].<ext>` gives `major_arcana.<base>`
-// and `<root>/minor_arcana/<suit>/<base>[.<variant>].<ext>` gives
-// `minor_arcana.<suit>.<base>`. Variants of a card group under the card, since
-// DECK.md#9.4 asks after the card's assets and not each artwork's.
+// The card a raster asset belongs to, or nothing if the file is not a raster
 std::optional<std::string> card_of_raster(deck_file const& file)
 {
     auto const where = locate_asset(file.relative);
@@ -74,14 +70,13 @@ std::optional<std::string> card_of_raster(deck_file const& file)
 
 void check_card_not_baseline_format(check_context const& ctx)
 {
-    // Card -> its raster assets, in path order so the report is deterministic.
-    std::map<std::string, std::vector<deck_file const*>, std::less<>> by_card;
+    std::map<std::string, std::vector<deck_file const*>, std::less<>> rasters_by_card;
 
     for (auto const& file : ctx.files)
         if (auto const card = card_of_raster(file))
-            by_card[*card].push_back(&file);
+            rasters_by_card[*card].push_back(&file);
 
-    for (auto const& [card, files] : by_card)
+    for (auto const& [card, files] : rasters_by_card)
     {
         if (std::ranges::any_of(
                 files, [](deck_file const* one) { return is_baseline_image_format(one->absolute); }
@@ -93,7 +88,7 @@ void check_card_not_baseline_format(check_context const& ctx)
         ctx.report({
             .message = std::format(
                 "no raster asset for '{}' is in a baseline format, so an application that decodes "
-                "only PNG, JPEG and WebP falls back to a reference deck",
+                "only PNG, JPEG and WebP cannot display it",
                 card
             ),
             .card = card,

@@ -249,8 +249,7 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
             continue;
         }
 
-        // minor_arcana/<suit>/<rank>.<ext>. The suit is a directory, so a
-        // file sitting directly in minor_arcana/ names no suit.
+        // minor_arcana/<suit>/<rank>.<ext>.
         if (parts[at] != "minor_arcana" || at + 1 >= last)
             continue;
 
