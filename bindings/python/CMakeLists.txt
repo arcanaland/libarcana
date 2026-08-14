@@ -34,7 +34,7 @@ target_link_libraries(arcana-python PRIVATE arcana::arcana)
 
 # The build tree has to hold the same package shape the wheel installs, or pytest
 # has nothing to import. This is the seam ADR-025 names as debt: only the venv
-# check in `just test-wheel` exercises the real artifact.
+# check in `just python wheel` exercises the real artifact.
 configure_file(
     ${arcana_python_package}/__init__.py
     ${arcana_python_package_dir}/__init__.py
