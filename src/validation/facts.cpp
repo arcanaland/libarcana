@@ -5,6 +5,7 @@
 
 #include "../data/ascii.hpp"
 #include "../data/identifiers.hpp"
+#include "../data/text.hpp"
 #include "assets.hpp"
 #include "context.hpp"
 #include "spec.hpp"
@@ -164,10 +165,8 @@ void collect_variant_names(toml::table const& doc, std::vector<coined_name>& fou
     {
         auto const key = std::string_view{card.str()};
 
-        if (auto const colon = key.find(':'); colon != std::string_view::npos)
-            add_declared(
-                found, key.substr(colon + 1), name_site::other, std::format(R"(cards."{}")", key)
-            );
+        if (auto const split = cut(key, ':'))
+            add_declared(found, split->second, name_site::other, std::format(R"(cards."{}")", key));
 
         auto const* t = value.as_table();
         if (t == nullptr)
@@ -193,12 +192,6 @@ void collect_declared(toml::table const& doc, std::vector<coined_name>& found)
             );
 
     collect_variant_names(doc, found);
-}
-
-// The stem up to the first .
-std::string_view base_of(std::string_view filename)
-{
-    return filename.substr(0, filename.find('.'));
 }
 
 bool is_canonical_major_key(std::string_view base)
@@ -240,7 +233,7 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
         // major_arcana/<base>.<ext>
         if (parts[at] == "major_arcana" && at + 1 == last)
         {
-            auto const base = base_of(parts[last]);
+            auto const base = before(parts[last], '.');
 
             // A two-digit base is a canonical major arcanum
             if (!is_canonical_major_key(base))
@@ -256,7 +249,7 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
         add(parts[at + 1], name_site::suit);
 
         if (at + 2 == last)
-            add(base_of(parts[last]), name_site::rank);
+            add(before(parts[last], '.'), name_site::rank);
     }
 }
 

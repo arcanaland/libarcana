@@ -3,6 +3,7 @@
 
 #include "images.hpp"
 
+#include "../../data/text.hpp"
 #include "../assets.hpp"
 #include "../facts.hpp"
 #include "../probe.hpp"
@@ -55,8 +56,7 @@ std::optional<std::string> card_of_raster(deck_file const& file)
     std::vector<std::string> parts;
     for (auto const& one : file.relative) parts.push_back(one.string());
 
-    auto const stem = stem_of(parts.back());
-    auto const base = stem.substr(0, stem.find('.'));
+    auto const base = before(stem_of(parts.back()), '.');
     if (base.empty())
         return std::nullopt;
 

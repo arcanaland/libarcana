@@ -4,6 +4,7 @@
 #include "tables.hpp"
 
 #include "ascii.hpp"
+#include "text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -278,21 +279,16 @@ std::size_t split_uri_path(
 {
     std::size_t count = 0;
 
-    while (true)
+    for (auto const segment : pieces(path, '/'))
     {
-        auto const slash = path.find('/');
-        auto const segment = path.substr(0, slash);
         if (segment.empty() || count == max_uri_segments)
             return 0;
 
         out.at(count) = segment;
         ++count;
-
-        if (slash == std::string_view::npos)
-            return count;
-
-        path.remove_prefix(slash + 1);
     }
+
+    return count;
 }
 
 // A Creative Commons version segment: "1.0", "2.5", "4.0".

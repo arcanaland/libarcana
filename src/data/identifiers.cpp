@@ -4,6 +4,7 @@
 #include "identifiers.hpp"
 
 #include "ascii.hpp"
+#include "text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -13,34 +14,6 @@
 
 namespace arcana::data
 {
-
-namespace
-{
-
-// Splits `s` on `sep` and requires every piece to satisfy `piece_ok`.
-//
-// @returns The number of pieces, or 0 where any piece is empty or rejected.
-template <typename Predicate>
-std::size_t count_pieces(std::string_view s, char sep, Predicate piece_ok) noexcept
-{
-    std::size_t pieces = 0;
-
-    while (true)
-    {
-        auto const sep_at = s.find(sep);
-        auto const piece = s.substr(0, sep_at);
-        if (!piece_ok(piece))
-            return 0;
-
-        ++pieces;
-        if (sep_at == std::string_view::npos)
-            return pieces;
-
-        s.remove_prefix(sep_at + 1);
-    }
-}
-
-}  // namespace
 
 bool is_custom_name(std::string_view s) noexcept
 {
@@ -93,18 +66,16 @@ bool is_canonical_id(std::string_view s) noexcept
 
     // suit-key and rank-key are both custom-name productions, and a custom name
     // cannot contain a dot, so there is exactly one dot left to split on.
-    auto const rest = s.substr(minor_prefix.size());
-    auto const dot = rest.find('.');
-    if (dot == std::string_view::npos)
+    auto const split = cut(s.substr(minor_prefix.size()), '.');
+    if (!split)
         return false;
 
-    return is_custom_name(rest.substr(0, dot)) && is_custom_name(rest.substr(dot + 1));
+    return is_custom_name(split->first) && is_custom_name(split->second);
 }
 
 bool is_card_reference(std::string_view s) noexcept
 {
-    auto const colon = s.find(':');
-    if (colon == std::string_view::npos)
+    if (!s.contains(':'))
         return is_canonical_id(s);
 
     return is_variant_reference(s);
@@ -112,11 +83,11 @@ bool is_card_reference(std::string_view s) noexcept
 
 bool is_variant_reference(std::string_view s) noexcept
 {
-    auto const colon = s.find(':');
-    if (colon == std::string_view::npos)
+    auto const split = cut(s, ':');
+    if (!split)
         return false;
 
-    return is_canonical_id(s.substr(0, colon)) && is_custom_name(s.substr(colon + 1));
+    return is_canonical_id(split->first) && is_custom_name(split->second);
 }
 
 namespace
@@ -176,22 +147,22 @@ std::optional<qualified_identifier> parse_qualified_identifier(std::string_view 
 
     // A fragment cannot contain a hash and no other production admits one, so
     // the first hash is the separator.
-    if (auto const hash = s.find('#'); hash != std::string_view::npos)
+    if (auto const split = cut(s, '#'))
     {
-        parts.fragment = s.substr(hash + 1);
+        parts.fragment = split->second;
         if (!is_fragment(parts.fragment))
             return std::nullopt;
 
-        s = s.substr(0, hash);
+        s = split->first;
     }
 
     // The realm ends at the first slash.
-    auto const slash = s.find('/');
-    if (slash == std::string_view::npos)
+    auto const split = cut(s, '/');
+    if (!split)
         return std::nullopt;
 
-    parts.realm = s.substr(0, slash);
-    parts.path = s.substr(slash + 1);
+    parts.realm = split->first;
+    parts.path = split->second;
 
     if (!is_realm(parts.realm) || count_pieces(parts.path, '/', is_path_segment) == 0)
         return std::nullopt;

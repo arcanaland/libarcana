@@ -4,6 +4,7 @@
 #include "assets.hpp"
 
 #include "../data/ascii.hpp"
+#include "../data/text.hpp"
 
 #include <toml++/toml.hpp>
 
@@ -52,12 +53,12 @@ path_parts components_of(std::filesystem::path const& relative) noexcept
     static_assert(std::filesystem::path::preferred_separator == '/');
 
     path_parts found;
-    for (auto const one : std::views::split(std::string_view{relative.native()}, '/'))
+    for (auto const one : pieces(std::string_view{relative.native()}, '/'))
     {
         if (found.size == found.parts.size())
             return {};
 
-        found.parts[found.size++] = std::string_view{one};
+        found.parts[found.size++] = one;
     }
 
     return found;
