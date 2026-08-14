@@ -124,9 +124,8 @@ void check_bad_deck_identifier(check_context const& ctx)
 
     // fragments can't be in qualified ids
     ctx.report({
-        .message = std::format(
-            "deck identifier has a fragment '{}' which is prohibited", parts->fragment
-        ),
+        .message =
+            std::format("deck identifier has a fragment '{}' which is prohibited", parts->fragment),
         .key = "deck.identifier",
     });
 }
@@ -319,10 +318,7 @@ void check_bad_follows(check_context const& ctx)
     if (!parts)
     {
         ctx.report({
-            .message = std::format(
-                "follows '{}' is not a qualified identifier",
-                *follows
-            ),
+            .message = std::format("follows '{}' is not a qualified identifier", *follows),
             .key = "deck.follows",
         });
 
@@ -355,8 +351,7 @@ void check_follows_self(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "follows '{}' is this deck's own {}, but a deck should not follow itself", *follows,
-                other
+                "a deck should not follow itself, but the field is set to '{}'", *follows
             ),
             .key = "deck.follows",
         });
