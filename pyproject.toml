@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+# ADR-025: `arcana` on PyPI belongs to an unrelated project, so the distribution is
+# `arcana-tarot` and the import is `arcana_tarot` — the same name under PEP 503
+# normalization. `arcana` remains the identifier in every non-Python context.
+name = "arcana-tarot"
+description = "Python binding for libarcana, an implementation of the Arcana Land tarot deck specification"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Adam Fidel", email = "adam@arcana.land" }]
+license = "MIT"
+license-files = ["LICENSE"]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/arcanaland/libarcana"
+
+[tool.scikit-build]
+cmake.version = ">=4.3"
+
+# `arcana_tarot/` is assembled entirely by CMake's install rules — `_core` from the
+# target, `__init__.py` from `bindings/python/`. There is no package directory at the
+# repo root for scikit-build-core to copy, so tell it not to look.
+wheel.packages = []
+
+# The version is declared once, by `project(arcana VERSION ...)`.
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "CMakeLists.txt"
+regex = '''project\(\s+arcana\s+VERSION\s+(?P<value>[0-9][0-9.]*)'''
+
+[tool.scikit-build.cmake.define]
+ARCANA_BUILD_PYTHON = "ON"
+ARCANA_BUILD_TESTS = "OFF"
+ARCANA_INSTALL = "OFF"
+ARCANA_INSTALL_PYTHON_MODULE = "ON"

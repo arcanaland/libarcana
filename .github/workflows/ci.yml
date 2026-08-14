@@ -76,6 +76,11 @@ jobs:
       - name: Test the Python binding
         run: just test-python
 
+      # Also the only thing that exercises CMakeLists.txt's FetchContent
+      # fallback for toml++, which no Conan-driven build ever reaches.
+      - name: Build and import the wheel
+        run: just test-wheel
+
   lint:
     runs-on: ubuntu-latest
     steps:

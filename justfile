@@ -15,6 +15,7 @@ stage := build_dir / "stage"
 staged_prefix := stage + prefix
 
 python_build_dir := build_root / "python"
+wheel_venv := build_root / "wheel-venv"
 
 export LIBARCANA_IMAGE := image
 
@@ -90,6 +91,14 @@ build-python: configure-python
 [script]
 test-python: build-python
     ctest --test-dir {{python_build_dir}} -L python --output-on-failure
+
+# `pip install .` into a throwaway venv, then import it from outside the repo.
+[script]
+test-wheel:
+    rm -rf {{wheel_venv}}
+    python3 -m venv {{wheel_venv}}
+    {{wheel_venv}}/bin/pip install --disable-pip-version-check .
+    cd /tmp && /src/{{wheel_venv}}/bin/python /src/scripts/check-wheel-import.py
 
 # Stage the install tree.
 [script]

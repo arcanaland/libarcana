@@ -78,13 +78,15 @@ void bind_span_view(nb::module_& m)
 
 }  // namespace
 
-NB_MODULE(arcana, m)  // NOLINT
+// The extension inside the `arcana_tarot` package (ADR-025). Import it through the
+// package, which re-exports everything below; `_core` is not the public name.
+NB_MODULE(_core, m)  // NOLINT
 {
     m.doc() = "RFC-010 smoke binding: shapes, not surface. Not a shippable module.";
 
     m.attr("__version__") = std::string{library_version()};
 
-    deck_error_type = PyErr_NewException("arcana.deck_error", PyExc_RuntimeError, nullptr);
+    deck_error_type = PyErr_NewException("arcana_tarot.deck_error", PyExc_RuntimeError, nullptr);
     m.attr("deck_error") = nb::borrow(deck_error_type);
 
     // --- Shape: enum class ----------------------------------------------------
