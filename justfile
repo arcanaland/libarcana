@@ -3,7 +3,7 @@
 
 import 'just/common.just'
 
-mod python 'bindings/python/mod.just'
+mod python 'python/mod.just'
 
 stage := build_dir / "stage"
 staged_prefix := stage + prefix

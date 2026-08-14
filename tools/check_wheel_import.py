@@ -6,7 +6,9 @@
 
 Run from a directory that is *not* the repo root, out of a venv that has had
 `pip install .` run into it, so that neither the CWD nor a stray PYTHONPATH can
-stand in for the installed package.
+stand in for the installed package. It lives here rather than under `python/`
+for the same reason: Python puts a script's own directory on `sys.path[0]`, and
+next to `arcana_tarot/` that would shadow the wheel with the sources.
 
 ADR-025 makes this load-bearing rather than supplementary: `python_smoke` runs
 against a package the build tree *synthesizes*, so it cannot catch the wheel's

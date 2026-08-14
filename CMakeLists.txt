@@ -49,7 +49,7 @@ if(ARCANA_BUILD_TESTS)
 endif()
 
 if(ARCANA_BUILD_PYTHON)
-    add_subdirectory(bindings/python)
+    add_subdirectory(python)
 endif()
 
 if(ARCANA_INSTALL)

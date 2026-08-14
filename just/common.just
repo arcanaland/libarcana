@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # Recipes marked [script] run inside a podman container
-set script-interpreter := ['./scripts/podman-shim.sh']
+set script-interpreter := ['./just/podman-shim.sh']
 
 image := "libarcana-builder"
 build_root := "build"
