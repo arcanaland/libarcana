@@ -1,0 +1,9 @@
+# Every raster asset for `major_arcana.00` is AVIF, which an application need
+# not decode (DECK.md#5.7.4). `major_arcana.06` ships a PNG in another raster root
+# and is fine, and the scalable-only `minor_arcana.wands.ace` has no raster
+# asset for the rule to judge.
+[deck]
+schema_version = "2.0"
+name = "Off Baseline"
+version = "1.0"
+identifier = "org.example/deck/off-baseline"

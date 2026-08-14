@@ -117,3 +117,16 @@ TEST_CASE("stems colliding in case and in chain format", "[validation][images]")
     CHECK(found[1].level == severity::error);
     CHECK(found[1].message.find("docs/Notes.txt") != std::string::npos);
 }
+
+TEST_CASE("a card with no baseline raster asset is reported", "[validation][images]")
+{
+    auto const found = validate_fixture("validation/images/not-baseline-error");
+
+    REQUIRE(codes_of(found) == std::vector<std::string_view>{"card-not-baseline-format"});
+
+    // major_arcana.06 has a PNG in another raster root and
+    // minor_arcana.wands.ace has no raster asset at all, so neither fires.
+    CHECK(found[0].card == "major_arcana.00");
+    CHECK(found[0].level == severity::warning);
+    CHECK(paths_of(found) == std::vector<std::string>{"h1200/major_arcana/00.avif"});
+}

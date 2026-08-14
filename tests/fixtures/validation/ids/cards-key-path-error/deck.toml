@@ -1,0 +1,20 @@
+# `[cards.major_arcana.00]` declares a table named `major_arcana` rather than
+# the card `major_arcana.00` (DECK.md#3.6). The quoted entry below it is well
+# formed, and a subtable written beneath a quoted card reference is unaffected.
+[deck]
+schema_version = "2.0"
+name = "Cards Key Path"
+version = "1.0"
+identifier = "org.example/deck/cards-key-path"
+
+[cards.major_arcana.00]
+number = "0"
+
+[cards.minor_arcana.wands.ace]
+number = "1"
+
+[cards."major_arcana.06"]
+number = "VI"
+
+[cards."major_arcana.06".content_rating."oars-1.1"]
+violence-fantasy = "mild"
