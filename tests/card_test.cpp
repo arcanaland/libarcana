@@ -27,6 +27,21 @@ TEST_CASE("all 22 major arcana canonical ids round-trip", "[card]")
     }
 }
 
+TEST_CASE("extended major arcana past the canonical twenty-two round-trip", "[card]")
+{
+    for (int i = 22; i <= max_extended_major_arcana_number; ++i)
+    {
+        auto const text = std::format("major_arcana.{:02d}", i);
+        auto const parsed = card_id::parse(text);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->cls == card_class::standard_major);
+        CHECK(parsed->is_major());
+        CHECK_FALSE(parsed->is_custom());
+        CHECK(parsed->number == i);
+        CHECK(parsed->to_canonical() == text);
+    }
+}
+
 TEST_CASE("all 56 minor arcana canonical ids round-trip", "[card]")
 {
     constexpr std::array<suit, 4> suits{suit::wands, suit::cups, suit::swords, suit::pentacles};
@@ -106,8 +121,8 @@ TEST_CASE("named constructors and equality agree with parsing", "[card]")
 
 TEST_CASE("malformed canonical ids", "[card]")
 {
-    // this is out of range
-    CHECK_FALSE(card_id::parse("major_arcana.22").has_value());
+    // Past the two-digit key range
+    CHECK_FALSE(card_id::parse("major_arcana.100").has_value());
 
     CHECK_FALSE(card_id::parse("minor_arcana.wands.jack").has_value());
 
@@ -119,10 +134,22 @@ TEST_CASE("malformed canonical ids", "[card]")
     CHECK_FALSE(card_id::parse("minor_arcana.stars.").has_value());
     CHECK_FALSE(card_id::parse("minor_arcana.stars.Ace").has_value());
 
-    // TODO: bug in the spec? should this be a custom or rejected?
-    auto const one = card_id::parse("major_arcana.1");
-    REQUIRE(one.has_value());
-    CHECK(one->is_custom());
+    // A custom name may not lead with a digit
+    CHECK_FALSE(card_id::parse("major_arcana.1").has_value());
+    CHECK_FALSE(card_id::parse("minor_arcana.7stars.ace").has_value());
+    CHECK_FALSE(card_id::parse("minor_arcana.stars.2nd").has_value());
+}
+
+TEST_CASE("custom names reject a leading digit that identifiers allow", "[card]")
+{
+    CHECK(is_custom_name("happy_squirrel"));
+    CHECK(is_custom_name("s7"));
+    CHECK_FALSE(is_custom_name("7s"));
+    CHECK_FALSE(is_custom_name(""));
+    CHECK_FALSE(is_custom_name("Nope"));
+
+    // The looser predicate keeps its documented meaning
+    CHECK(is_valid_identifier("7s"));
 }
 
 namespace
@@ -200,7 +227,7 @@ TEST_CASE("best_ansi_for_lines prefers the largest that fits", "[card]")
 
     CHECK(c.best_ansi_for_lines(64)->lines == 64);
 
-    // Nothing fits a 10-line terminal, so the closest overflow is all there is
+    // why is your terminal so short friendo
     CHECK(c.best_ansi_for_lines(10)->lines == 16);
 }
 

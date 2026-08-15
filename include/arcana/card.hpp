@@ -16,7 +16,11 @@
 namespace arcana
 {
 
+// The highest number of the twenty-two canonical major arcana
 inline constexpr int max_major_arcana_number = 21;
+
+// The highest number a two-digit major arcana key grammar admists
+inline constexpr int max_extended_major_arcana_number = 99;
 
 enum class arcana_kind : std::uint8_t
 {
@@ -58,8 +62,11 @@ std::string_view to_string(rank r) noexcept;
 std::optional<suit> suit_from_string(std::string_view text) noexcept;
 std::optional<rank> rank_from_string(std::string_view text) noexcept;
 
-// True for a non-empty `[a-z0-9_]+` string.
+// True for a non-empty [a-z0-9_]+ string.
 bool is_valid_identifier(std::string_view text) noexcept;
+
+// [a-z0-9_]+ with no leading digit
+bool is_custom_name(std::string_view text) noexcept;
 
 enum class card_class : std::uint8_t
 {
@@ -73,7 +80,7 @@ struct card_id
 {
     card_class cls = card_class::standard_major;
 
-    int number = -1;        // standard_major only, 0..21; -1 otherwise
+    int number = -1;        // standard_major only, 0..99; -1 otherwise
     suit standard_suit{};   // standard_minor only
     rank standard_rank{};   // standard_minor only
     std::string suit_key;   // custom_minor only: the custom suit's key
