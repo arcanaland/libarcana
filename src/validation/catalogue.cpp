@@ -1328,7 +1328,7 @@ static_assert(
 
 [[nodiscard]] std::optional<std::size_t> index_of(std::string_view code) noexcept
 {
-    auto const found = std::ranges::lower_bound(catalogue, code, {}, &rule::code);
+    auto const* const found = std::ranges::lower_bound(catalogue, code, {}, &rule::code);
     if (found == catalogue.end() || found->code != code)
         return std::nullopt;
 
