@@ -1,0 +1,121 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the built artifacts to TestPyPI
+        type: boolean
+        default: false
+  release:
+    types: [published]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  wheels:
+    name: Build manylinux wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 420 six nine bing bong
+      - uses: pypa/cibuildwheel@v4.2.0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-wheels
+          path: wheelhouse/*.whl
+
+  sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the sdist
+        run: pipx run build --sdist
+
+      - name: Build a wheel from dist
+        run: |
+          set -euxo pipefail
+          python3 -m venv /tmp/sdist-venv
+          /tmp/sdist-venv/bin/pip install --upgrade pip
+          mkdir -p /tmp/sdist-check
+          tar -xzf dist/*.tar.gz -C /tmp/sdist-check
+          cd /tmp/sdist-check/*/
+          /tmp/sdist-venv/bin/pip install -v .
+          cd /tmp
+          /tmp/sdist-venv/bin/python -c "import arcana_tarot; print(arcana_tarot.__file__)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-sdist
+          path: dist/*.tar.gz
+
+  check-version:
+    name: Check tag matches project version
+    needs: [sdist]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-sdist
+          path: dist
+
+      - name: Compare
+        run: |
+          set -euo pipefail
+          sdist=$(basename dist/*.tar.gz)
+          built=${sdist#arcana_tarot-}
+          built=${built%.tar.gz}
+          tag=${GITHUB_REF_NAME#v}
+          echo "tag=$tag built=$built"
+          if [ "$tag" != "$built" ]; then
+            echo "::error::release tag $tag does not match project version $built from CMakeLists.txt"
+            exit 1
+          fi
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: [wheels, sdist]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          # this is fine for TestPyPI
+          skip-existing: true
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [wheels, sdist, check-version]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
