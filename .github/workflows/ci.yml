@@ -79,10 +79,6 @@ jobs:
       - name: Build and import the wheel
         run: just python wheel
 
-  # The manylinux toolchain is a lower compiler floor than the fedora:44 image
-  # every other job uses, so C++ that only GCC 15+ accepts builds green in all
-  # five gates and still breaks the wheel. Nothing else exercises that floor
-  # before a release, which is far too late to find out.
   manylinux-wheel:
     name: Build the manylinux wheel
     runs-on: ubuntu-latest

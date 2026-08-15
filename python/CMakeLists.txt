@@ -3,8 +3,7 @@
 
 option(ARCANA_INSTALL_PYTHON_MODULE "Install the arcana_tarot Python package" OFF)
 
-# Development.SABIModule is what the STABLE_ABI build below links against; without
-# it nanobind silently falls back to a version-tagged module.
+# Development.SABIModule is for nanobind's STABLE_ABI
 find_package(
     Python 3.12
     REQUIRED
@@ -25,10 +24,6 @@ set(arcana_python_package arcana_tarot)
 set(arcana_python_root ${CMAKE_CURRENT_BINARY_DIR}/import-root)
 set(arcana_python_package_dir ${arcana_python_root}/${arcana_python_package})
 
-# STABLE_ABI builds against CPython's limited API, so one `_core.abi3.so` serves
-# every interpreter from the 3.12 floor upward and the release matrix stays one
-# wheel per platform. It is a no-op on interpreters older than 3.12, which the
-# floor excludes anyway.
 nanobind_add_module(arcana-python NB_STATIC STABLE_ABI arcana_module.cpp)
 
 set_target_properties(
@@ -39,9 +34,6 @@ set_target_properties(
   )
 target_link_libraries(arcana-python PRIVATE arcana::arcana)
 
-# The build tree has to hold the same package shape the wheel installs, or pytest
-# has nothing to import. This is the seam ADR-025 names as debt: only the venv
-# check in `just python wheel` exercises the real artifact.
 configure_file(
     ${arcana_python_package}/__init__.py
     ${arcana_python_package_dir}/__init__.py
@@ -49,8 +41,6 @@ configure_file(
   )
 
 if(ARCANA_INSTALL_PYTHON_MODULE)
-    # Into the wheel's platlib, as a package. Deliberately independent of
-    # ARCANA_INSTALL, which the wheel build sets OFF to keep the C++ tree out.
     install(TARGETS arcana-python LIBRARY DESTINATION ${arcana_python_package})
     install(
         FILES ${arcana_python_package}/__init__.py

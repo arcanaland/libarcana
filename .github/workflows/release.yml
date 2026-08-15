@@ -3,9 +3,6 @@
 
 name: Release
 
-# TestPyPI is reachable by hand at any time; PyPI fires only from a published
-# GitHub release. RFC-019 §4 requires TestPyPI first and this shape enforces it
-# rather than trusting the operator to remember.
 on:
   workflow_dispatch:
     inputs:
@@ -27,8 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Configuration lives in pyproject.toml's [tool.cibuildwheel], so it is
-      # identical to what runs locally.
+      # 420 six nine bing bong
       - uses: pypa/cibuildwheel@v4.2.0
 
       - uses: actions/upload-artifact@v4
@@ -45,10 +41,7 @@ jobs:
       - name: Build the sdist
         run: pipx run build --sdist
 
-      # The sdist is the fallback for any platform the wheel matrix misses, so
-      # a broken one is worse than none. Building it in a clean venv, outside
-      # the repo, is the only thing that proves it carries enough of the tree.
-      - name: Build a wheel from the sdist alone
+      - name: Build a wheel from dist
         run: |
           set -euxo pipefail
           python3 -m venv /tmp/sdist-venv
@@ -65,9 +58,6 @@ jobs:
           name: dist-sdist
           path: dist/*.tar.gz
 
-  # The version is single-sourced from CMakeLists.txt, so a release tag can
-  # disagree with what actually gets published. PyPI will not let a version be
-  # re-uploaded, so catching this before the publish is the only cheap moment.
   check-version:
     name: Check tag matches project version
     needs: [sdist]
@@ -99,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: testpypi
     permissions:
-      id-token: write # the OIDC token; no API token is stored anywhere
+      id-token: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -110,8 +100,7 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          # TestPyPI is a rehearsal space and a version cannot be re-uploaded,
-          # so a repeated dry run of the same version must not fail the job.
+          # this is fine for TestPyPI
           skip-existing: true
 
   publish-pypi:

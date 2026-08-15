@@ -25,8 +25,7 @@ Issues = "https://github.com/arcanaland/libarcana/issues"
 cmake.version = ">=4.3"
 wheel.packages = []
 
-# Tag the wheel abi3 to match nanobind's STABLE_ABI build. cp312 is the floor
-# declared above, so one wheel covers 3.12 and every later interpreter.
+# match nanobind's STABLE_ABI
 wheel.py-api = "cp312"
 
 [tool.scikit-build.cmake.define]
@@ -36,17 +35,9 @@ ARCANA_INSTALL = "OFF"
 ARCANA_INSTALL_PYTHON_MODULE = "ON"
 
 [tool.cibuildwheel]
-# One build, not a matrix: the module is abi3 (see wheel.py-api above), so the
-# cp312 wheel serves every later interpreter too. Linux x86-64 only for now —
-# that is what both named consumers run, and macOS/Windows are a porting
-# question rather than a CI flag while the library is GCC-only C++26.
 build = "cp312-manylinux_x86_64"
 build-frontend = "build"
-
-# Pinned rather than left to the default, which has changed before. This is the
-# image measured to carry GCC 14.2.1, which compiles the project's C++26.
 manylinux-x86_64-image = "manylinux_2_28"
-
 test-command = "python {project}/tools/check_wheel_import.py"
 
 # Grab the real version from CMakeLists.txt
