@@ -3,7 +3,13 @@
 
 option(ARCANA_INSTALL_PYTHON_MODULE "Install the arcana_tarot Python package" OFF)
 
-find_package(Python 3.12 REQUIRED COMPONENTS Interpreter Development.Module)
+# Development.SABIModule is what the STABLE_ABI build below links against; without
+# it nanobind silently falls back to a version-tagged module.
+find_package(
+    Python 3.12
+    REQUIRED
+    COMPONENTS Interpreter Development.Module Development.SABIModule
+  )
 
 # nanobind ships its CMake in its Python package
 execute_process(
@@ -19,7 +25,11 @@ set(arcana_python_package arcana_tarot)
 set(arcana_python_root ${CMAKE_CURRENT_BINARY_DIR}/import-root)
 set(arcana_python_package_dir ${arcana_python_root}/${arcana_python_package})
 
-nanobind_add_module(arcana-python NB_STATIC arcana_module.cpp)
+# STABLE_ABI builds against CPython's limited API, so one `_core.abi3.so` serves
+# every interpreter from the 3.12 floor upward and the release matrix stays one
+# wheel per platform. It is a no-op on interpreters older than 3.12, which the
+# floor excludes anyway.
+nanobind_add_module(arcana-python NB_STATIC STABLE_ABI arcana_module.cpp)
 
 set_target_properties(
     arcana-python
