@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <charconv>
 #include <cstdlib>
 #include <expected>
@@ -77,7 +78,7 @@ std::expected<int, error> parse_major_number(std::string_view text)
     auto const [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
 
     if (ec != std::errc{} || ptr != text.data() + text.size() || value < 0 ||
-        value > max_major_arcana_number)
+        value > max_extended_major_arcana_number)
     {
         return std::unexpected(
             error{
@@ -159,6 +160,14 @@ bool is_valid_identifier(std::string_view text) noexcept
     );
 }
 
+bool is_custom_name(std::string_view text) noexcept
+{
+    if (!is_valid_identifier(text))
+        return false;
+
+    return std::isdigit(static_cast<unsigned char>(text.front())) == 0;
+}
+
 std::expected<card_id, error> card_id::parse(std::string_view canonical_id)
 {
     auto const parts = pieces(canonical_id, '.') | std::ranges::to<std::vector>();
@@ -186,7 +195,7 @@ std::expected<card_id, error> card_id::parse(std::string_view canonical_id)
         }
 
         // maybe a custom
-        if (!is_valid_identifier(parts[1]))
+        if (!is_custom_name(parts[1]))
             return parse_error_for("not a canonical card id");
 
         return card_id::custom_major(std::string(parts[1]));
@@ -203,7 +212,7 @@ std::expected<card_id, error> card_id::parse(std::string_view canonical_id)
             return card_id::standard_minor(*parsed_suit, *parsed_rank);
         }
 
-        if (!is_valid_identifier(parts[1]) || !is_valid_identifier(parts[2]))
+        if (!is_custom_name(parts[1]) || !is_custom_name(parts[2]))
             return parse_error_for("invalid minor arcana canonical id");
 
         return card_id::custom_minor(std::string(parts[1]), std::string(parts[2]));
