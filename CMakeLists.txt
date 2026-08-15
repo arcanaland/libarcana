@@ -16,6 +16,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 option(ARCANA_BUILD_TESTS "Build the arcana test suite" ${PROJECT_IS_TOP_LEVEL})
+option(ARCANA_BUILD_EXAMPLES "Build the programs under examples/" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_INSTALL "Generate arcana install rules" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_BUILD_PYTHON "Build the Python binding" OFF)
 
@@ -41,9 +42,18 @@ endif()
 
 add_subdirectory(src)
 
-if(ARCANA_BUILD_TESTS)
+# Both the tests and the examples run against real decks.
+if(ARCANA_BUILD_TESTS OR ARCANA_BUILD_EXAMPLES)
     enable_testing()
+    include(${PROJECT_SOURCE_DIR}/cmake/reference-decks.cmake)
+endif()
+
+if(ARCANA_BUILD_TESTS)
     add_subdirectory(tests)
+endif()
+
+if(ARCANA_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 if(ARCANA_BUILD_PYTHON)

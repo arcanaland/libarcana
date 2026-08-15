@@ -12,6 +12,7 @@ path = [
   "lefthook.yml",
   "LICENSE",
   "README.md",
+  "docs/**",
   "tests/fixtures/**",
 ]
 precedence = "aggregate"

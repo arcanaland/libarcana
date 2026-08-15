@@ -31,6 +31,8 @@ wheel.py-api = "cp312"
 [tool.scikit-build.cmake.define]
 ARCANA_BUILD_PYTHON = "ON"
 ARCANA_BUILD_TESTS = "OFF"
+# Nothing in the wheel needs them, and building them would fetch the reference decks.
+ARCANA_BUILD_EXAMPLES = "OFF"
 ARCANA_INSTALL = "OFF"
 ARCANA_INSTALL_PYTHON_MODULE = "ON"
 
