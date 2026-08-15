@@ -14,6 +14,7 @@
 #include "validation/tree.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <tuple>
@@ -30,6 +31,11 @@ std::span<rule const> rules() noexcept
 rule const* find_rule(std::string_view code) noexcept
 {
     return validation::lookup(code);
+}
+
+std::optional<rule_state> state_of(std::string_view code) noexcept
+{
+    return validation::state_of_code(code);
 }
 
 std::vector<diagnostic> validate(deck const& d)

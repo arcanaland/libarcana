@@ -19,17 +19,9 @@ namespace arcana
 // How much a validation finding matters.
 enum class severity : std::uint8_t
 {
-    // An actionable suggestion that may not apply to this deck.
     pedantic,
-
-    // An observation that certainly applies. Nothing is wrong.
     info,
-
-    // The deck violates a SHOULD, or does something the packager probably did
-    // not intend. An application must still load it.
     warning,
-
-    // The deck violates a MUST. It is non-conforming.
     error,
 };
 
@@ -39,7 +31,7 @@ enum class phase : std::uint8_t
     // The parsed deck.toml and names/*.toml suffice.
     document,
 
-    // The check must stat or read the deck's own tree.
+    // The check must read the deck's tree.
     filesystem,
 
     // The check needs sibling decks
@@ -89,11 +81,27 @@ struct rule
     bool experimental;
 };
 
+// Whether a rule is actually implemented
+enum class rule_state : std::uint8_t
+{
+    // A check runs for this rule.
+    checked,
+
+    // Catalogued, no check written yet.
+    pending,
+
+    // Deliberately not implemented
+    deferred,
+};
+
 // The rules catalogue sorted ascending by code.
 [[nodiscard]] std::span<rule const> rules() noexcept;
 
 // The rule with this code, or nullptr where no rule carries it.
 [[nodiscard]] rule const* find_rule(std::string_view code) noexcept;
+
+// Whether this rule is implemented
+[[nodiscard]] std::optional<rule_state> state_of(std::string_view code) noexcept;
 
 // One finding about one deck.
 struct diagnostic

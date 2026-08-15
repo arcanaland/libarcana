@@ -4,10 +4,6 @@
 // The diagnostic catalogue.
 //
 // Derived from the Tarot Deck Specification v2
-//
-// This is the one translation unit that sees both the catalogue and the
-// dispatch table, so it is where the two static_asserts tying them together
-// live.
 
 #include "catalogue.hpp"
 
@@ -16,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -25,7 +22,7 @@ namespace arcana::validation
 namespace
 {
 
-// One entry per distinct code, sorted ascending by code.
+// Sorted ascending by code
 constexpr std::array catalogue{
     rule{
         .code = "ansi-outside-image-root",
@@ -208,9 +205,7 @@ constexpr std::array catalogue{
         .area = "names",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#6.1; DECK.md#9.4",
-        .explanation =
-            "A name file's stem is not a well-formed BCP 47 language tag, so language resolution "
-            "never selects it. Rename the file to the tag itself, such as en.toml or pt-BR.toml.",
+        .explanation = "A name file's stem is not a well-formed BCP 47 language tag.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -221,7 +216,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.1; DECK.md#9.4",
         .explanation = "A link's rel is not a well-formed custom name: lowercase ASCII letters, "
-                       "digits and underscores, never starting with a digit..",
+                       "digits and underscores, never starting with a digit.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -231,8 +226,7 @@ constexpr std::array catalogue{
         .area = "deck",
         .needs = phase::document,
         .spec_ref = "DECK.md#4.1.1; DECK.md#9.4",
-        .explanation = "A link's url is not an absolute http or https URL. A deck is a directory "
-                       "on disk, so a relative reference has nothing to resolve against.",
+        .explanation = "A link's url is not an absolute http or https URL.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1305,20 +1299,15 @@ constexpr std::array catalogue{
     },
 };
 
-// Strictly ascending proves sortedness and uniqueness in one pass, which is
-// what lets find_rule() binary-search.
-consteval bool catalogue_is_sorted_and_unique()
-{
-    for (std::size_t i = 1; i < catalogue.size(); ++i)
-        if (!(catalogue[i - 1].code < catalogue[i].code))
-            return false;
-
-    return true;
-}
+// needed for std::lower_bound
+static_assert(
+    std::ranges::is_sorted(catalogue, {}, &rule::code),
+    "the catalogue must be sorted ascending by code"
+);
 
 static_assert(
-    catalogue_is_sorted_and_unique(),
-    "the catalogue must be sorted strictly ascending by code, with no duplicate code"
+    std::ranges::adjacent_find(catalogue, {}, &rule::code) == catalogue.end(),
+    "the catalogue shouldn't have duplicate codes"
 );
 
 consteval bool checks_cover_catalogue()
@@ -1337,6 +1326,15 @@ static_assert(
     checks_cover_catalogue(), "every rule needs a row in the dispatch table in catalogue order"
 );
 
+[[nodiscard]] std::optional<std::size_t> index_of(std::string_view code) noexcept
+{
+    auto const* const found = std::ranges::lower_bound(catalogue, code, {}, &rule::code);
+    if (found == catalogue.end() || found->code != code)
+        return std::nullopt;
+
+    return static_cast<std::size_t>(found - catalogue.begin());
+}
+
 }  // namespace
 
 std::span<rule const> all_rules() noexcept
@@ -1346,11 +1344,28 @@ std::span<rule const> all_rules() noexcept
 
 rule const* lookup(std::string_view code) noexcept
 {
-    auto const* const found = std::ranges::lower_bound(catalogue, code, {}, &rule::code);
-    if (found == catalogue.end() || found->code != code)
+    std::optional<std::size_t> const found = index_of(code);
+    if (!found.has_value())
         return nullptr;
 
-    return &*found;
+    return &catalogue[*found];
+}
+
+std::optional<rule_state> state_of_code(std::string_view code) noexcept
+{
+    std::optional<std::size_t> const found = index_of(code);
+    if (!found)
+        return std::nullopt;
+
+    check_fn const run = checks[*found].run;
+
+    if (run == pending)
+        return rule_state::pending;
+
+    if (run == deferred)
+        return rule_state::deferred;
+
+    return rule_state::checked;
 }
 
 }  // namespace arcana::validation
