@@ -19,17 +19,9 @@ namespace arcana
 // How much a validation finding matters.
 enum class severity : std::uint8_t
 {
-    // An actionable suggestion that may not apply to this deck.
     pedantic,
-
-    // An observation that certainly applies. Nothing is wrong.
     info,
-
-    // The deck violates a SHOULD, or does something the packager probably did
-    // not intend. An application must still load it.
     warning,
-
-    // The deck violates a MUST. It is non-conforming.
     error,
 };
 
@@ -39,7 +31,7 @@ enum class phase : std::uint8_t
     // The parsed deck.toml and names/*.toml suffice.
     document,
 
-    // The check must stat or read the deck's own tree.
+    // The check must read the deck's tree.
     filesystem,
 
     // The check needs sibling decks
@@ -89,22 +81,16 @@ struct rule
     bool experimental;
 };
 
-// What this build of the library actually does about a rule.
-//
-// The catalogue is written from the specification and is therefore always ahead
-// of the checks: a code exists here long before anything judges a deck against
-// it. A consumer that reports the catalogue must be able to say which is which,
-// or it claims a silent deck is a clean one.
+// Whether a rule is actually implemented
 enum class rule_state : std::uint8_t
 {
-    // A check runs for this rule. Silence about it means the deck passed.
+    // A check runs for this rule.
     checked,
 
-    // Catalogued, no check written yet. Silence means nothing was looked at.
+    // Catalogued, no check written yet.
     pending,
 
-    // Deliberately not implemented here, and not expected to be. Silence means
-    // this library is the wrong thing to ask.
+    // Deliberately not implemented
     deferred,
 };
 
@@ -114,9 +100,7 @@ enum class rule_state : std::uint8_t
 // The rule with this code, or nullptr where no rule carries it.
 [[nodiscard]] rule const* find_rule(std::string_view code) noexcept;
 
-// What this build does about the rule with this code, or nullopt where no rule
-// carries it. Derived from the dispatch table, never declared beside the rule,
-// so it cannot drift from what `validate` runs.
+// Whether this rule is implemented
 [[nodiscard]] std::optional<rule_state> state_of(std::string_view code) noexcept;
 
 // One finding about one deck.
