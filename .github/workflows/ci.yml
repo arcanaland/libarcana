@@ -42,6 +42,9 @@ jobs:
       - name: Build
         run: just build
 
+      # Builds and runs examples/ against the reference decks too, so the
+      # programs docs/ quotes cannot rot silently. The Python examples are
+      # gated by the python-binding job's `just python test`.
       - name: Test
         run: just test
 
