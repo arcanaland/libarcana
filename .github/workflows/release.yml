@@ -41,17 +41,20 @@ jobs:
       - name: Build the sdist
         run: pipx run build --sdist
 
-      - name: Build a wheel from dist
+      - name: Build a wheel from the sdist alone, at the supported floor
         run: |
           set -euxo pipefail
-          python3 -m venv /tmp/sdist-venv
-          /tmp/sdist-venv/bin/pip install --upgrade pip
-          mkdir -p /tmp/sdist-check
-          tar -xzf dist/*.tar.gz -C /tmp/sdist-check
-          cd /tmp/sdist-check/*/
-          /tmp/sdist-venv/bin/pip install -v .
-          cd /tmp
-          /tmp/sdist-venv/bin/python -c "import arcana_tarot; print(arcana_tarot.__file__)"
+          docker run --rm -v "$PWD/dist:/dist:ro" \
+            quay.io/pypa/manylinux_2_28_x86_64 bash -c '
+              set -euxo pipefail
+              /opt/python/cp312-cp312/bin/python -m venv /tmp/sdist-venv
+              mkdir -p /tmp/sdist-check
+              tar -xzf /dist/*.tar.gz -C /tmp/sdist-check
+              cd /tmp/sdist-check/*/
+              /tmp/sdist-venv/bin/pip install -v .
+              cd /tmp
+              /tmp/sdist-venv/bin/python -c "import arcana_tarot; print(arcana_tarot.__file__)"
+            '
 
       - uses: actions/upload-artifact@v4
         with:
