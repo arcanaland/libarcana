@@ -11,6 +11,7 @@
 
 #include <arcana/validation.hpp>
 
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -22,5 +23,9 @@ namespace arcana::validation
 
 // The rule with this code, or nullptr.
 [[nodiscard]] rule const* lookup(std::string_view code) noexcept;
+
+// What the dispatch table does about this code, or nullopt where the catalogue
+// does not carry it.
+[[nodiscard]] std::optional<rule_state> state_of_code(std::string_view code) noexcept;
 
 }  // namespace arcana::validation

@@ -89,11 +89,35 @@ struct rule
     bool experimental;
 };
 
+// What this build of the library actually does about a rule.
+//
+// The catalogue is written from the specification and is therefore always ahead
+// of the checks: a code exists here long before anything judges a deck against
+// it. A consumer that reports the catalogue must be able to say which is which,
+// or it claims a silent deck is a clean one.
+enum class rule_state : std::uint8_t
+{
+    // A check runs for this rule. Silence about it means the deck passed.
+    checked,
+
+    // Catalogued, no check written yet. Silence means nothing was looked at.
+    pending,
+
+    // Deliberately not implemented here, and not expected to be. Silence means
+    // this library is the wrong thing to ask.
+    deferred,
+};
+
 // The rules catalogue sorted ascending by code.
 [[nodiscard]] std::span<rule const> rules() noexcept;
 
 // The rule with this code, or nullptr where no rule carries it.
 [[nodiscard]] rule const* find_rule(std::string_view code) noexcept;
+
+// What this build does about the rule with this code, or nullopt where no rule
+// carries it. Derived from the dispatch table, never declared beside the rule,
+// so it cannot drift from what `validate` runs.
+[[nodiscard]] std::optional<rule_state> state_of(std::string_view code) noexcept;
 
 // One finding about one deck.
 struct diagnostic

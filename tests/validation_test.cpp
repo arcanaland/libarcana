@@ -122,6 +122,21 @@ TEST_CASE("find_rule rejects a code the catalogue does not carry", "[validation]
     CHECK(find_rule("") == nullptr);
 }
 
+TEST_CASE("every rule has an implementation state", "[validation]")
+{
+    for (auto const& r : rules())
+    {
+        INFO("rule: " << r.code);
+        CHECK(state_of(r.code).has_value());
+    }
+}
+
+TEST_CASE("state_of rejects a code the catalogue does not carry", "[validation]")
+{
+    CHECK_FALSE(state_of("no-such-rule-exists").has_value());
+    CHECK_FALSE(state_of("").has_value());
+}
+
 TEST_CASE("every rule is fully populated", "[validation]")
 {
     for (auto const& r : rules())
@@ -395,6 +410,38 @@ TEST_CASE("the three coverage lists partition the catalogue", "[validation][cove
     }
 
     CHECK(covered.size() + not_yet_covered.size() + deferred.size() == rules().size());
+}
+
+// The two hand-written lists above are the same partition `state_of` reports,
+// arrived at independently: the lists are maintained by whoever writes a
+// fixture, `state_of` is read off the dispatch table. Asserting they agree is
+// what keeps the reported state honest as layers land.
+TEST_CASE("state_of agrees with the coverage lists", "[validation][coverage]")
+{
+    for (auto const& r : rules())
+    {
+        INFO("rule: " << r.code);
+
+        auto const state = state_of(r.code);
+        REQUIRE(state.has_value());
+
+        if (contains(deferred, r.code))
+            CHECK(*state == rule_state::deferred);
+        else if (contains(not_yet_covered, r.code))
+            CHECK(*state == rule_state::pending);
+        else
+            CHECK(*state == rule_state::checked);
+    }
+}
+
+TEST_CASE("every code a fixture fires is a checked rule", "[validation][coverage]")
+{
+    for (auto const& name : validation_fixtures)
+        for (auto const code : codes_of(validate_fixture(name)))
+        {
+            INFO("fixture: " << name << ", code: " << code);
+            CHECK(state_of(code) == rule_state::checked);
+        }
 }
 
 TEST_CASE("no deferred rule has a fixture that fires it", "[validation][coverage]")

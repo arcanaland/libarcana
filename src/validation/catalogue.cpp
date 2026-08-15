@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -1351,6 +1352,24 @@ rule const* lookup(std::string_view code) noexcept
         return nullptr;
 
     return &*found;
+}
+
+std::optional<rule_state> state_of_code(std::string_view code) noexcept
+{
+    rule const* const found = lookup(code);
+    if (found == nullptr)
+        return std::nullopt;
+
+    // checks_cover_catalogue() above proves the two tables share an index.
+    check_fn const run = checks[static_cast<std::size_t>(found - catalogue.data())].run;
+
+    if (run == pending)
+        return rule_state::pending;
+
+    if (run == deferred)
+        return rule_state::deferred;
+
+    return rule_state::checked;
 }
 
 }  // namespace arcana::validation
