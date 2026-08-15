@@ -53,13 +53,15 @@ TEST_CASE("decks() lists every readable deck under the library root", "[library]
     auto const one = std::ranges::find(decks, "deck-one"s, &deck_summary::directory_name);
 
     REQUIRE(one != decks.end());
-    CHECK(one->id == "deck-one-id");
     CHECK(one->name == "Deck One");
+
+    // A 1.0 deck never carries an identifier
+    CHECK_FALSE(one->identifier.has_value());
 
     auto const two = std::ranges::find(decks, "deck-two"s, &deck_summary::directory_name);
 
     REQUIRE(two != decks.end());
-    CHECK(two->id == "deck-two-id");
+    CHECK(two->name == "Deck Two");
 }
 
 TEST_CASE("a deck declaring no artist or icon leaves them empty", "[library]")
@@ -116,7 +118,7 @@ TEST_CASE("load() loads by directory name", "[library]")
 
     auto const result = lib.load("deck-one");
     REQUIRE(result.has_value());
-    CHECK((*result)->metadata.id == "deck-one-id");
+    CHECK((*result)->metadata.name == "Deck One");
 
     CHECK_FALSE(lib.load("deck-one-id").has_value());
 }
@@ -169,7 +171,7 @@ TEST_CASE("refresh() drops cached loads without disturbing handed-out ones", "[l
     CHECK(before->get() != after->get());
 
     // The earlier load stays alive and usable
-    CHECK((*before)->metadata.id == "deck-one-id");
+    CHECK((*before)->metadata.name == "Deck One");
 }
 
 TEST_CASE("a failed load is not cached", "[library]")
@@ -182,13 +184,12 @@ TEST_CASE("a failed load is not cached", "[library]")
 
     // Repairing the deck while the process runs
     root.write("wip-deck/deck.toml", R"([deck]
-id = "wip-deck-id"
 name = "Repaired"
 )");
 
     auto const repaired = lib.load("wip-deck");
     REQUIRE(repaired.has_value());
-    CHECK((*repaired)->metadata.id == "wip-deck-id");
+    CHECK((*repaired)->metadata.name == "Repaired");
 }
 
 TEST_CASE("find() looks a deck up by its directory name", "[library]")
@@ -197,46 +198,49 @@ TEST_CASE("find() looks a deck up by its directory name", "[library]")
 
     auto const found = lib.find("deck-one");
     REQUIRE(found.has_value());
-    CHECK(found->id == "deck-one-id");
+    CHECK(found->name == "Deck One");
 
-    // The directory name is the key; the id is not interchangeable with it
-    CHECK_FALSE(lib.find("deck-one-id").has_value());
+    // The directory name is the key, and nothing else is interchangeable with it
+    CHECK_FALSE(lib.find("Deck One").has_value());
     CHECK_FALSE(lib.find("no-such-deck").has_value());
 }
 
-TEST_CASE("find_all_by_id() keeps a duplicated id visible", "[library]")
+TEST_CASE("find_all_by_identifier() keeps a duplicated identifier visible", "[library]")
 {
     arcana_test::temp_dir const root;
 
-    // Nothing enforces that [deck].id is unique across a library
+    // Nothing enforces that [deck].identifier is unique across a library
     root.write("fork-a/deck.toml", R"([deck]
-id = "shared-id"
+schema_version = "2.0"
+identifier = "net.example.jdoe/deck/shared"
 name = "Fork A"
 )");
     root.write("fork-b/deck.toml", R"([deck]
-id = "shared-id"
+schema_version = "2.0"
+identifier = "net.example.jdoe/deck/shared"
 name = "Fork B"
 )");
     root.write("solo/deck.toml", R"([deck]
-id = "solo-id"
+schema_version = "2.0"
+identifier = "net.example.jdoe/deck/solo"
 name = "Solo"
 )");
 
     deck_library const lib{library_options{.roots = {root.path()}}};
 
-    auto const shared = lib.find_all_by_id("shared-id");
+    auto const shared = lib.find_all_by_identifier("net.example.jdoe/deck/shared");
     REQUIRE(shared.size() == 2);
     CHECK(shared[0].directory_name == "fork-a");
     CHECK(shared[1].directory_name == "fork-b");
 
-    auto const solo = lib.find_all_by_id("solo-id");
+    auto const solo = lib.find_all_by_identifier("net.example.jdoe/deck/solo");
     REQUIRE(solo.size() == 1);
     CHECK(solo.front().directory_name == "solo");
 
-    CHECK(lib.find_all_by_id("no-such-id").empty());
+    CHECK(lib.find_all_by_identifier("net.example.jdoe/deck/no-such-deck").empty());
 
-    // The directory name is not an id
-    CHECK(lib.find_all_by_id("solo").empty());
+    // The directory name is not an identifier
+    CHECK(lib.find_all_by_identifier("solo").empty());
 }
 
 TEST_CASE("load_external() loads a deck from outside every root", "[library]")
@@ -245,7 +249,7 @@ TEST_CASE("load_external() loads a deck from outside every root", "[library]")
 
     auto const result = lib.load_external(alt_root() / "deck-three");
     REQUIRE(result.has_value());
-    CHECK((*result)->metadata.id == "deck-three-id");
+    CHECK((*result)->metadata.name == "Deck Three");
 }
 
 TEST_CASE("a library with nothing installed is empty", "[library]")
@@ -270,7 +274,7 @@ TEST_CASE("several roots are searched in order", "[library]")
     auto const three = std::ranges::find(lib.decks(), "deck-three"s, &deck_summary::directory_name);
 
     REQUIRE(three != lib.decks().end());
-    CHECK(three->id == "deck-three-id");
+    CHECK(three->name == "Deck Three");
 }
 
 TEST_CASE("an earlier root shadows a later one", "[library]")
@@ -280,16 +284,18 @@ TEST_CASE("an earlier root shadows a later one", "[library]")
     auto const two =
         std::ranges::find(first_wins.decks(), "deck-two"s, &deck_summary::directory_name);
     REQUIRE(two != first_wins.decks().end());
-    CHECK(two->id == "deck-two-id");
+    CHECK(two->name == "Deck Two");
 
     auto const reversed = open_library({alt_root(), primary_root()});
     auto const shadowed =
         std::ranges::find(reversed.decks(), "deck-two"s, &deck_summary::directory_name);
     REQUIRE(shadowed != reversed.decks().end());
-    CHECK(shadowed->id == "deck-two-shadowed-id");
+    CHECK(shadowed->name == "Deck Two (shadowed copy in the second root)");
 
-    CHECK((*first_wins.load("deck-two"))->metadata.id == "deck-two-id");
-    CHECK((*reversed.load("deck-two"))->metadata.id == "deck-two-shadowed-id");
+    CHECK((*first_wins.load("deck-two"))->metadata.name == "Deck Two");
+    CHECK(
+        (*reversed.load("deck-two"))->metadata.name == "Deck Two (shadowed copy in the second root)"
+    );
 }
 
 TEST_CASE("shadowing is decided before a deck is read", "[library]")
@@ -306,7 +312,7 @@ TEST_CASE("shadowing is decided before a deck is read", "[library]")
 
     auto const found = readable_first.find("deck-broken");
     REQUIRE(found.has_value());
-    CHECK(found->id == "deck-broken-but-fine-here");
+    CHECK(found->name == "Readable Under The Alt Root");
     CHECK(readable_first.load("deck-broken").has_value());
 }
 
@@ -327,13 +333,12 @@ TEST_CASE("the reference deck is configured apart from the roots", "[library]")
     };
 
     REQUIRE(lib.reference().has_value());
-    CHECK(lib.reference()->id == "reference-deck-id");
     CHECK(lib.reference()->name == "Reference Deck");
     CHECK(lib.reference()->version == "2.1");
 
     auto const loaded = lib.load_reference();
     REQUIRE(loaded.has_value());
-    CHECK((*loaded)->metadata.id == "reference-deck-id");
+    CHECK((*loaded)->metadata.name == "Reference Deck");
 
     // It stays out of the installed listing
     CHECK(lib.decks().size() == 2);
@@ -377,7 +382,6 @@ TEST_CASE("refresh() picks up a deck installed after construction", "[library]")
     deck_library lib{library_options{.roots = {root.path()}}};
 
     root.write("late-deck/deck.toml", R"([deck]
-id = "late-deck-id"
 schema_version = "1.0"
 name = "Late Deck"
 version = "1.0"
@@ -387,5 +391,5 @@ version = "1.0"
 
     lib.refresh();
     REQUIRE(lib.decks().size() == 1);
-    CHECK(lib.decks().front().id == "late-deck-id");
+    CHECK(lib.decks().front().name == "Late Deck");
 }

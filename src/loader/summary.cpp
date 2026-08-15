@@ -87,7 +87,7 @@ std::expected<deck_summary, error> load_deck_summary(std::filesystem::path const
     deck_summary summary{
         .directory_name = deck_directory.filename().string(),
         .path = deck_directory,
-        .id = get_string_or(deck_table["id"]),
+        .identifier = get_string(deck_table["identifier"]),
         .name = get_string_or(deck_table["name"]),
         .version = get_string_or(deck_table["version"]),
         .artist = get_string(deck_table["artist"]),

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "ascii.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <optional>
@@ -42,6 +44,30 @@ auto pieces(std::string&&, char) = delete;
 [[nodiscard]] constexpr std::string_view before(std::string_view text, char delim) noexcept
 {
     return text.substr(0, text.find(delim));
+}
+
+// A key rendered for display: underscores become spaces and each word is
+// capitalized. The fallback for a key the deck supplies no name for.
+[[nodiscard]] inline std::string titlecase_key(std::string_view key)
+{
+    std::string result;
+    result.reserve(key.size());
+
+    bool at_word_start = true;
+    for (char const c : key)
+    {
+        if (c == '_')
+        {
+            result.push_back(' ');
+            at_word_start = true;
+            continue;
+        }
+
+        result.push_back(at_word_start ? data::to_upper(c) : c);
+        at_word_start = false;
+    }
+
+    return result;
 }
 
 // Splits `text` on `delim` and requires every piece to satisfy `piece_ok`.

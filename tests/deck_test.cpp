@@ -135,7 +135,7 @@ TEST_CASE("custom cards and custom suits are enumerated alongside the standard 7
     }
 }
 
-TEST_CASE("aliases, remapping, card backs and variants", "[deck]")
+TEST_CASE("aliases, remapping and card backs", "[deck]")
 {
     auto const result = load_deck(fixture("aliased-deck"));
     REQUIRE(result.has_value());
@@ -152,21 +152,12 @@ TEST_CASE("aliases, remapping, card backs and variants", "[deck]")
     // A key this deck does not define at all still renders
     CHECK(d.display_suit_name("shooting_stars") == "Shooting Stars");
 
-    REQUIRE(d.major_arcana_remap.contains(8));
-    CHECK(d.major_arcana_remap.at(8) == "justice");
-    REQUIRE(d.major_arcana_remap.contains(11));
-    CHECK(d.major_arcana_remap.at(11) == "strength");
-
     REQUIRE(d.default_card_back.has_value());
     CHECK(*d.default_card_back == "classic");
 
     // One declared plus one discovered
     REQUIRE(d.card_backs.size() == 2);
     CHECK(d.card_backs.front().name == "Classic Back");
-
-    REQUIRE(d.variants.size() == 1);
-    CHECK(d.variants.front().id == "aliased-deck-standard");
-    CHECK(d.variants.front().card_back.value_or("") == "classic");
 }
 
 TEST_CASE("file-location-based defaults", "[deck]")
@@ -211,11 +202,14 @@ TEST_CASE("cards carry display-ready suit and rank", "[deck]")
     REQUIRE(fool.has_value());
     CHECK(fool->display_suit.empty());
     CHECK(fool->display_rank.empty());
-    REQUIRE(fool->number.has_value());
-    CHECK(*fool->number == 0);
+    REQUIRE(fool->position.has_value());
+    CHECK(*fool->position == 0);
+
+    // 1.0 declares no face number
+    CHECK_FALSE(fool->number.has_value());
 }
 
-TEST_CASE("[remap_major_arcana] moves display positions, not canonical ids", "[deck]")
+TEST_CASE("[remap_major_arcana] becomes a position, not a canonical id", "[deck]")
 {
     auto const result = load_deck(fixture("aliased-deck"));
     REQUIRE(result.has_value());
@@ -225,24 +219,24 @@ TEST_CASE("[remap_major_arcana] moves display positions, not canonical ids", "[d
     auto const strength = find(d, "major_arcana.08");
     REQUIRE(strength.has_value());
     CHECK(strength->display_name == "Strength");
-    REQUIRE(strength->number.has_value());
-    CHECK(*strength->number == 11);
+    REQUIRE(strength->position.has_value());
+    CHECK(*strength->position == 11);
 
     auto const justice = find(d, "major_arcana.11");
     REQUIRE(justice.has_value());
     CHECK(justice->display_name == "Justice");
-    REQUIRE(justice->number.has_value());
-    CHECK(*justice->number == 8);
+    REQUIRE(justice->position.has_value());
+    CHECK(*justice->position == 8);
 
     // other cards keep their canonical position
     auto const tower = find(d, "major_arcana.16");
     REQUIRE(tower.has_value());
-    CHECK(*tower->number == 16);
+    CHECK(*tower->position == 16);
 
     // A deck with no [remap_major_arcana] is the identity case.
     auto const plain = load_deck(fixture("custom-suit-deck"));
     REQUIRE(plain.has_value());
-    CHECK(*find(*plain, "major_arcana.08")->number == 8);
+    CHECK(*find(*plain, "major_arcana.08")->position == 8);
 }
 
 TEST_CASE("custom cards get display strings and a declared position", "[deck]")
@@ -258,8 +252,8 @@ TEST_CASE("custom cards get display strings and a declared position", "[deck]")
 
     auto const squirrel = find(d, "major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());
-    REQUIRE(squirrel->number.has_value());
-    CHECK(*squirrel->number == 22);
+    REQUIRE(squirrel->position.has_value());
+    CHECK(*squirrel->position == 22);
     CHECK(squirrel->display_suit.empty());
 }
 
@@ -267,7 +261,7 @@ TEST_CASE("canonical suits in order with customs at the end", "[deck]")
 {
     auto const result = load_deck(fixture("custom-suit-deck"));
     REQUIRE(result.has_value());
-    auto const suits = result->suits();
+    auto const& suits = result->suits;
 
     REQUIRE(suits.size() == 5);
     CHECK(suits[0].key == "wands");
@@ -279,19 +273,19 @@ TEST_CASE("canonical suits in order with customs at the end", "[deck]")
 
     CHECK(suits[0].standard);
     CHECK_FALSE(suits[4].standard);
-    CHECK(suits[4].display_name == "Stars");
+    CHECK(suits[4].name == "Stars");
     CHECK(std::ranges::none_of(suits, &suit_info::excluded));
 }
 
-TEST_CASE("suits() uses aliases", "[deck]")
+TEST_CASE("deck::suits uses aliases", "[deck]")
 {
     auto const result = load_deck(fixture("aliased-deck"));
     REQUIRE(result.has_value());
-    auto const suits = result->suits();
+    auto const& suits = result->suits;
 
     REQUIRE(suits.size() == 4);
-    CHECK(suits[0].display_name == "Staves");
-    CHECK(suits[3].display_name == "Disks");
+    CHECK(suits[0].name == "Staves");
+    CHECK(suits[3].name == "Disks");
 }
 
 TEST_CASE("partly-excluded suit", "[deck]")
@@ -300,7 +294,7 @@ TEST_CASE("partly-excluded suit", "[deck]")
     auto const result = load_deck(fixture("excluded-deck"));
     REQUIRE(result.has_value());
 
-    auto const suits = result->suits();
+    auto const& suits = result->suits;
     auto const pentacles = std::ranges::find(suits, "pentacles"s, &suit_info::key);
     REQUIRE(pentacles != suits.end());
     CHECK_FALSE(pentacles->excluded);
@@ -352,7 +346,7 @@ TEST_CASE("undeclared card backs ones are discovered", "[deck]")
     // alternative.png has no deck.toml entry
     REQUIRE(d.card_backs.size() == 2);
 
-    auto const classic = std::ranges::find(d.card_backs, "classic"s, &card_back_variant::id);
+    auto const classic = std::ranges::find(d.card_backs, "classic"s, &card_back_design::id);
 
     REQUIRE(classic != d.card_backs.end());
     CHECK(classic->declared);
@@ -361,36 +355,37 @@ TEST_CASE("undeclared card backs ones are discovered", "[deck]")
     CHECK(classic->image.is_absolute());
     CHECK(std::filesystem::exists(classic->image));
 
-    auto const alternative =
-        std::ranges::find(d.card_backs, "alternative"s, &card_back_variant::id);
+    auto const alternative = std::ranges::find(d.card_backs, "alternative"s, &card_back_design::id);
 
     REQUIRE(alternative != d.card_backs.end());
     CHECK_FALSE(alternative->declared);
     CHECK(alternative->image_ref.empty());
     CHECK(std::filesystem::exists(alternative->image));
 
-    auto const chosen = d.default_card_back_variant();
+    auto const chosen = d.default_card_back_design();
     REQUIRE(chosen.has_value());
     CHECK(chosen->id == "classic");
 
-    CHECK_FALSE(deck{}.default_card_back_variant().has_value());
+    CHECK_FALSE(deck{}.default_card_back_design().has_value());
 }
 
-TEST_CASE("custom card images keep the raw reference and resolve it", "[deck]")
+TEST_CASE("a declared image reference resolves against the deck root", "[deck]")
 {
     auto const result = load_deck(fixture("custom-suit-deck"));
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    REQUIRE(d.custom_major_cards.size() == 1);
-    auto const& squirrel = d.custom_major_cards.front();
-    CHECK(squirrel.image_ref == "scalable/major_arcana/happy_squirrel.svg");
-    CHECK(squirrel.image.is_absolute());
-    CHECK(squirrel.image == d.root_path / squirrel.image_ref);
+    auto const squirrel = find(d, "major_arcana.happy_squirrel");
+    REQUIRE(squirrel.has_value());
+    REQUIRE(squirrel->images.size() == 1);
+    CHECK(squirrel->images.front().path.is_absolute());
+    CHECK(
+        squirrel->images.front().path == d.root_path / "scalable/major_arcana/happy_squirrel.svg"
+    );
 
-    REQUIRE(d.custom_suits.size() == 1);
-    REQUIRE_FALSE(d.custom_suits.front().cards.empty());
-    CHECK_FALSE(d.custom_suits.front().cards.front().image.empty());
+    auto const stars_ace = find(d, "minor_arcana.stars.ace");
+    REQUIRE(stars_ace.has_value());
+    CHECK_FALSE(stars_ace->images.empty());
 }
 
 TEST_CASE("unknown keys and unknown sections survive a load", "[deck]")

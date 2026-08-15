@@ -55,7 +55,8 @@ id = "minimal"
 name = "Minimal"
 )");
 
-    CHECK(d.metadata.id == "minimal");
+    // 1.0's [deck].id is a library handle, not an identifier, and is dropped
+    CHECK_FALSE(d.metadata.identifier.has_value());
     CHECK(d.metadata.name == "Minimal");
     CHECK(d.cards.size() == 78);
     CHECK(d.cards_of_kind(arcana::arcana_kind::major_arcana).size() == 22);
@@ -155,17 +156,20 @@ name = "n"
 11 = "Strength"
 )");
 
-    // Strength keeps major_arcana.08 as its id while showing at 11
+    // Strength keeps major_arcana.08 as its id while sitting at 11
     auto const& strength = card_named(d, "major_arcana.08");
     CHECK(strength.display_name == "Strength");
-    CHECK(strength.number == 11);
+    CHECK(strength.position == 11);
 
     auto const& justice = card_named(d, "major_arcana.11");
     CHECK(justice.display_name == "Justice");
-    CHECK(justice.number == 8);
+    CHECK(justice.position == 8);
 
     // Untouched majors keep their ordinal
-    CHECK(card_named(d, "major_arcana.00").number == 0);
+    CHECK(card_named(d, "major_arcana.00").position == 0);
+
+    // 1.0 declares no face number anywhere
+    CHECK_FALSE(strength.number.has_value());
 }
 
 TEST_CASE("an unparseable remap key is skipped rather than failing the load", "[loader]")
@@ -179,9 +183,10 @@ name = "n"
 11 = "Strength"
 )");
 
-    CHECK(d.major_arcana_remap.size() == 1);
-    CHECK(d.major_arcana_remap.at(11) == "Strength");
-    CHECK(card_named(d, "major_arcana.08").number == 11);
+    CHECK(card_named(d, "major_arcana.08").position == 11);
+
+    // The two unparseable keys moved nothing
+    CHECK(card_named(d, "major_arcana.11").position == 11);
 }
 
 TEST_CASE("custom major arcana default their id to the table key", "[loader]")
@@ -198,15 +203,15 @@ id = "the_well"
 name = "The Well"
 )");
 
-    REQUIRE(d.custom_major_cards.size() == 2);
+    CHECK(d.cards.size() == 78 + 2);
 
     auto const& void_card = card_named(d, "major_arcana.the_void");
     CHECK(void_card.display_name == "The Void");
-    CHECK(void_card.number == 22);
+    CHECK(void_card.position == 22);
 
     auto const& well = card_named(d, "major_arcana.the_well");
     CHECK(well.display_name == "The Well");
-    CHECK_FALSE(well.number.has_value());
+    CHECK_FALSE(well.position.has_value());
 }
 
 TEST_CASE("a custom suit contributes cards and a suit_info entry", "[loader]")
@@ -229,14 +234,19 @@ cards = [
     CHECK(in_suit.front().display_name == "Ace of Stars");
     CHECK(in_suit.front().display_suit == "Stars");
 
-    auto const suits = d.suits();
+    auto const& suits = d.suits;
     REQUIRE(suits.size() == 5);
     CHECK(suits.back().key == "stars");
+    CHECK(suits.back().name == "Stars");
+    CHECK(suits.back().ranks == std::vector<std::string>{"ace", "two"});
     CHECK_FALSE(suits.back().standard);
     CHECK_FALSE(suits.back().excluded);
+
+    // A canonical suit carries the canonical fourteen
+    CHECK(suits.front().ranks.size() == 14);
 }
 
-TEST_CASE("card back variants are read from the deck.toml", "[loader]")
+TEST_CASE("card back designs are read from the deck.toml", "[loader]")
 {
     auto const d = build_from(R"([deck]
 name = "n"
@@ -256,37 +266,19 @@ name = "Ornate"
     REQUIRE(d.card_backs.size() == 2);
     CHECK(d.default_card_back == "plain");
 
-    auto const chosen = d.default_card_back_variant();
+    auto const chosen = d.default_card_back_design();
     REQUIRE(chosen.has_value());
     CHECK(chosen->name == "Plain");
     CHECK(chosen->declared);
     CHECK(chosen->image_ref == "card_backs/plain.png");
     CHECK(chosen->image == no_deck_dir / "card_backs/plain.png");
 
-    // A variant with no image declared gets no resolved path
+    // A design with no image declared gets no resolved path
     auto const ornate =
-        std::ranges::find(d.card_backs, std::string{"ornate"}, &arcana::card_back_variant::id);
+        std::ranges::find(d.card_backs, std::string{"ornate"}, &arcana::card_back_design::id);
 
     REQUIRE(ornate != d.card_backs.end());
     CHECK(ornate->image.empty());
-}
-
-TEST_CASE("variants are read with their table key preserved", "[loader]")
-{
-    auto const d = build_from(R"([deck]
-name = "n"
-
-[variants.borderless]
-id = "rws.borderless"
-name = "Borderless"
-card_back = "plain"
-)");
-
-    REQUIRE(d.variants.size() == 1);
-    CHECK(d.variants.front().key == "borderless");
-    CHECK(d.variants.front().id == "rws.borderless");
-    CHECK(d.variants.front().card_back == "plain");
-    CHECK_FALSE(d.variants.front().publisher.has_value());
 }
 
 TEST_CASE("keys no parser reads survive into source_toml", "[loader]")

@@ -40,7 +40,7 @@ def test_deck_summary_aggregate(alt_root: Path) -> None:
     lib = arcana.deck_library(arcana.library_options(roots=[alt_root]))
     (summary,) = [d for d in lib.decks() if d.directory_name == "deck-two"]
 
-    assert summary.id == "deck-two-shadowed-id"
+    assert summary.identifier is None  # a 1.0 deck never carries one
     assert summary.name.startswith("Deck Two")
     assert summary.version == "1.0"
     assert summary.artist is None  # optional<string> -> None
@@ -100,7 +100,7 @@ def test_vector_returns_a_list(alt_root: Path) -> None:
     lib = arcana.deck_library(arcana.library_options(roots=[alt_root]))
     deck = lib.load("deck-two")
 
-    suits = deck.suits()
+    suits = deck.suits
     assert isinstance(suits, list)
     assert [s.key for s in suits] == ["wands", "cups", "swords", "pentacles"]
 
@@ -109,12 +109,15 @@ def test_vector_returns_a_list(alt_root: Path) -> None:
     assert isinstance(majors[0], arcana.card)
 
 
-def test_map_shapes(alt_root: Path) -> None:
+def test_optional_and_vector_shapes(alt_root: Path) -> None:
     lib = arcana.deck_library(arcana.library_options(roots=[alt_root]))
     deck = lib.load("deck-two")
 
-    assert isinstance(deck.major_arcana_remap, dict)  # std::map<int, string>
-    assert isinstance(deck.suit_aliases, dict)  # std::unordered_map
+    fool = deck.find_card(arcana.card_id.standard_major(0))
+    assert fool is not None
+    assert fool.number is None  # optional<string> -> None
+    assert fool.position == 0  # optional<int> -> int
+    assert deck.metadata.origin == []  # a 1.0 deck states no origin
 
 
 # --- Shape: std::shared_ptr<deck const> ---------------------------------------

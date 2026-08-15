@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -36,7 +35,13 @@ inline constexpr double default_aspect_ratio = 0.5789;
 // The [deck] section
 struct deck_metadata
 {
-    std::string id;
+    // The globally unique identifier of [deck].identifier
+    //
+    // Always nullopt for a 1.0 deck: v1's [deck].id is a bare library handle,
+    // not a qualified identifier, and one is never synthesized for a deck that
+    // lacks one
+    std::optional<std::string> identifier;
+
     std::string schema_version;
     std::string name;
     std::string version;
@@ -51,7 +56,12 @@ struct deck_metadata
     std::optional<std::string> website;
     std::vector<std::string> tags;
 
-    // deprecated v1.0 fields
+    // How the deck's artwork came to exist. The default every card and card
+    // back design inherits where it declares nothing of its own
+    std::vector<origin_term> origin;
+
+    // v1.0-source fields, populated only for a 1.0 deck. v2's published_date is
+    // a different claim about a different event and is never derived from these
     std::optional<std::string> created_date;
     std::optional<std::string> updated_date;
 };
@@ -67,7 +77,8 @@ struct esoterica_companion
     std::string uri;
 };
 
-struct card_back_variant
+// One of the back images a deck ships, named by a design key
+struct card_back_design
 {
     std::string id;
     std::string name;
@@ -75,13 +86,16 @@ struct card_back_variant
     // The deck-relative reference exactly as written in deck.toml
     std::string image_ref;
 
-    // For a discovered variant this is the file that was found.
+    // For a discovered design this is the file that was found.
     std::filesystem::path image;
 
     std::optional<std::string> description;
     std::optional<std::string> alt_text;
 
-    // If this back was declared in [card_backs.variants].
+    // How this design came to exist, the deck's unless it says otherwise
+    std::vector<origin_term> origin;
+
+    // If this back was declared rather than only discovered
     bool declared = true;
 };
 
@@ -91,47 +105,16 @@ struct excluded_cards
     std::optional<std::string> reason;
 };
 
-// One of
-//   [custom_cards.major_arcana.<foo>] or
-//   [custom_cards.minor_arcana.<foo>] or
-struct custom_card_def
-{
-    std::string id;
-    std::string name;
-
-    // The deck-relative reference exactly as written in deck.toml
-    std::string image_ref;
-
-    // For a discovered variant this is the file that was found.
-    std::filesystem::path image;
-
-    std::optional<std::string> alt_text;
-    std::optional<int> position;
-};
-
-// An entire new suit.
-struct custom_suit_def
-{
-    std::string key;
-    std::string name;
-    std::vector<custom_card_def> cards;
-};
-
-struct deck_variant
-{
-    std::string key;  // the `[variants.<key>]` table key
-    std::string id;
-    std::string name;
-    std::optional<std::string> card_back;
-    std::optional<std::string> publisher;
-    std::optional<std::string> created_date;
-};
-
-// One suit of a loaded deck, standard or custom
+// One suit of a loaded deck, canonical or custom
 struct suit_info
 {
     std::string key;  // "wands" for a canonical suit, or the custom suit's key
-    std::string display_name;
+    std::string name;
+
+    // The suit's rank keys, in the order the deck ranks them. The canonical
+    // fourteen for a canonical suit the deck does not re-rank
+    std::vector<std::string> ranks;
+
     bool standard = true;
 
     // True when every card of this suit is excluded
@@ -146,41 +129,31 @@ struct deck
     std::vector<esoterica_companion> companions;
 
     std::optional<std::string> default_card_back;  // `[card_backs].default`
-    std::vector<card_back_variant> card_backs;
-
-    std::unordered_map<std::string, std::string> suit_aliases;   // canonical suit -> display name
-    std::unordered_map<std::string, std::string> court_aliases;  // canonical rank -> display name
-
-    std::map<int, std::string> major_arcana_remap;
+    std::vector<card_back_design> card_backs;
 
     excluded_cards excluded;
 
-    std::vector<custom_card_def> custom_major_cards;
-    std::vector<custom_suit_def> custom_suits;
+    // Every suit this deck has, canonical suits first
+    std::vector<suit_info> suits;
 
-    std::vector<deck_variant> variants;
-
-    // The 78 standard cards minus exclusions, plus custom cards
+    // The 78 standard cards minus exclusions, plus the deck's own cards
     std::vector<card> cards;
 
-    // A suit's title-cased canonical name (or alias if defined)
+    // A canonical suit's display name, or its title-cased key
     [[nodiscard]] std::string display_suit_name(suit s) const;
 
-    // A custom suit's title-cased display name
-    [[nodiscard]] std::string display_suit_name(std::string_view custom_suit_key) const;
+    // A suit's display name by key, or its title-cased key
+    [[nodiscard]] std::string display_suit_name(std::string_view suit_key) const;
 
-    // A rank's title-cased canonical name (or alias if defined)
+    // A canonical rank's display name, or its title-cased key
     [[nodiscard]] std::string display_rank_name(rank r) const;
 
-    // A custom rank's title-cased canonical name
-    [[nodiscard]] std::string display_rank_name(std::string_view custom_rank_key) const;
+    // A rank's display name by key, or its title-cased key
+    [[nodiscard]] std::string display_rank_name(std::string_view rank_key) const;
 
     // Reason why a card is excluded
     // nullopt if not excluded
     [[nodiscard]] std::optional<std::string> exclusion_reason(std::string_view canonical_id) const;
-
-    // Every suit this deck has cards for
-    [[nodiscard]] std::vector<suit_info> suits() const;
 
     // Every major arcana or minor arcana card
     [[nodiscard]] std::vector<card> cards_of_kind(arcana_kind kind) const;
@@ -197,13 +170,18 @@ struct deck
     // nullopt for an empty deck
     [[nodiscard]] std::optional<card> random_card(std::uint64_t seed) const;
 
-    [[nodiscard]] std::optional<card_back_variant> default_card_back_variant() const;
+    [[nodiscard]] std::optional<card_back_design> default_card_back_design() const;
 
     // The deck.toml re-serialized
     [[nodiscard]] std::string source_toml() const;
 
   private:
     friend class detail::deck_loader;
+
+    // Rank key -> the display name this deck resolved for it. Filled at load
+    // from [aliases.courts] in 1.0 and from a name file's [name.rank] in 2.0;
+    // v2 gives ranks no manifest field, so there is no public map
+    std::unordered_map<std::string, std::string> rank_names_;
 
     // So toml++ stays out of this header
     std::shared_ptr<detail::deck_document const> document_;

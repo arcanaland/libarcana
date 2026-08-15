@@ -190,7 +190,9 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("display_suit", &card::display_suit)
         .def_rw("display_rank", &card::display_rank)
         .def_rw("number", &card::number)
+        .def_rw("position", &card::position)
         .def_rw("alt_text", &card::alt_text)
+        .def_rw("origin", &card::origin)
         // Shape: std::vector<T> by value.
         .def_rw("images", &card::images)
         .def("canonical_id", &card::canonical_id)
@@ -199,16 +201,22 @@ NB_MODULE(_core, m)  // NOLINT
         .def("best_ansi_for_lines", &card::best_ansi_for_lines, nb::arg("target_lines"))
         .def("scalable_image", &card::scalable_image);
 
+    nb::class_<origin_term>(m, "origin_term")
+        .def(nb::init<>())
+        .def_rw("system", &origin_term::system)
+        .def_rw("term", &origin_term::term);
+
     nb::class_<suit_info>(m, "suit_info")
         .def(nb::init<>())
         .def_rw("key", &suit_info::key)
-        .def_rw("display_name", &suit_info::display_name)
+        .def_rw("name", &suit_info::name)
+        .def_rw("ranks", &suit_info::ranks)
         .def_rw("standard", &suit_info::standard)
         .def_rw("excluded", &suit_info::excluded);
 
     nb::class_<deck_metadata>(m, "deck_metadata")
         .def(nb::init<>())
-        .def_rw("id", &deck_metadata::id)
+        .def_rw("identifier", &deck_metadata::identifier)
         .def_rw("schema_version", &deck_metadata::schema_version)
         .def_rw("name", &deck_metadata::name)
         .def_rw("version", &deck_metadata::version)
@@ -217,13 +225,14 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("license", &deck_metadata::license)
         .def_rw("description", &deck_metadata::description)
         .def_rw("aspect_ratio", &deck_metadata::aspect_ratio)
-        .def_rw("tags", &deck_metadata::tags);
+        .def_rw("tags", &deck_metadata::tags)
+        .def_rw("origin", &deck_metadata::origin);
 
     nb::class_<deck_summary>(m, "deck_summary")
         .def(nb::init<>())
         .def_rw("directory_name", &deck_summary::directory_name)
         .def_rw("path", &deck_summary::path)
-        .def_rw("id", &deck_summary::id)
+        .def_rw("identifier", &deck_summary::identifier)
         .def_rw("name", &deck_summary::name)
         .def_rw("version", &deck_summary::version)
         .def_rw("artist", &deck_summary::artist)
@@ -241,11 +250,7 @@ NB_MODULE(_core, m)  // NOLINT
         .def_ro("root_path", &deck::root_path)
         .def_ro("metadata", &deck::metadata)
         .def_ro("cards", &deck::cards)
-        // Shape: std::map / std::unordered_map by value.
-        .def_ro("major_arcana_remap", &deck::major_arcana_remap)
-        .def_ro("suit_aliases", &deck::suit_aliases)
-        .def_ro("court_aliases", &deck::court_aliases)
-        .def("suits", &deck::suits)
+        .def_ro("suits", &deck::suits)
         .def("cards_of_kind", &deck::cards_of_kind, nb::arg("kind"))
         .def("cards_in_suit", &deck::cards_in_suit, nb::arg("key"))
         .def("find_card", &deck::find_card, nb::arg("id"))
@@ -321,7 +326,7 @@ NB_MODULE(_core, m)  // NOLINT
         .def("reference", &deck_library::reference)
         .def("reference_path", &deck_library::reference_path)
         .def("find", &deck_library::find, nb::arg("directory_name"))
-        .def("find_all_by_id", &deck_library::find_all_by_id, nb::arg("deck_id"))
+        .def("find_all_by_identifier", &deck_library::find_all_by_identifier, nb::arg("identifier"))
 
         .def(
             "load", [](deck_library const& self, std::string_view directory_name)
