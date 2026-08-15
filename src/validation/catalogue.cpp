@@ -205,8 +205,7 @@ constexpr std::array catalogue{
         .area = "names",
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#6.1; DECK.md#9.4",
-        .explanation =
-            "A name file's stem is not a well-formed BCP 47 language tag.",
+        .explanation = "A name file's stem is not a well-formed BCP 47 language tag.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
