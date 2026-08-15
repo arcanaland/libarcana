@@ -207,9 +207,6 @@ TEST_CASE("every schema range names a major this specification has", "[validatio
 
 TEST_CASE("no rule citing DECK.md#9.4 sits below the specification's floor", "[validation]")
 {
-    // DECK.md#9.2 defines only `error` and `warning`. `info` and `pedantic`
-    // carry findings the specification states no outcome for, so a rule that
-    // cites a labelled §9.4 rule cannot be filed as either.
     for (auto const& r : rules())
     {
         INFO("rule: " << r.code);
@@ -401,8 +398,6 @@ TEST_CASE("the three coverage lists partition the catalogue", "[validation][cove
         CHECK(memberships == 1);
     }
 
-    // Every code a fixture fired is a real one, so the three lists cover the
-    // catalogue and nothing else.
     for (auto const code : covered)
     {
         INFO("code: " << code);
@@ -412,10 +407,6 @@ TEST_CASE("the three coverage lists partition the catalogue", "[validation][cove
     CHECK(covered.size() + not_yet_covered.size() + deferred.size() == rules().size());
 }
 
-// The two hand-written lists above are the same partition `state_of` reports,
-// arrived at independently: the lists are maintained by whoever writes a
-// fixture, `state_of` is read off the dispatch table. Asserting they agree is
-// what keeps the reported state honest as layers land.
 TEST_CASE("state_of agrees with the coverage lists", "[validation][coverage]")
 {
     for (auto const& r : rules())
@@ -462,11 +453,6 @@ TEST_CASE("validate on a deck with no root on disk reads nothing from a tree", "
 {
     deck const empty{};
 
-    // walk_deck finds no files, so nothing a check learns here can have come
-    // from the filesystem. The document checks still run and see an empty
-    // deck.toml, and as layers land more of them have something to say about
-    // one, so the assertion is about where a finding came from rather than
-    // about how many there are.
     for (auto const& one : validate(empty))
     {
         INFO("code: " << one.code);
