@@ -78,17 +78,17 @@ void bind_span_view(nb::module_& m)
 
 }  // namespace
 
-NB_MODULE(arcana, m)  // NOLINT
+NB_MODULE(_core, m)  // NOLINT
 {
-    m.doc() = "RFC-010 smoke binding: shapes, not surface. Not a shippable module.";
+    // TODO:
+    // m.doc() = "";
 
     m.attr("__version__") = std::string{library_version()};
 
-    deck_error_type = PyErr_NewException("arcana.deck_error", PyExc_RuntimeError, nullptr);
+    deck_error_type = PyErr_NewException("arcana_tarot.deck_error", PyExc_RuntimeError, nullptr);
     m.attr("deck_error") = nb::borrow(deck_error_type);
 
     // --- Shape: enum class ----------------------------------------------------
-    // Discriminants. Trivial, included as a control.
 
     nb::enum_<error_code>(m, "error_code")
         .value("not_found", error_code::not_found)

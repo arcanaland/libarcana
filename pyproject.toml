@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = ["scikit-build-core>=1.0", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "arcana-tarot"
+description = "Implementation of the Arcana Land tarot deck specification"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Adam Fidel", email = "adam@arcana.land" }]
+license = "MIT"
+license-files = ["LICENSE"]
+dynamic = ["version"]
+keywords = ["tarot", "tarot-deck", "esoterica", "tarot-spread", "cards"]
+
+[project.urls]
+Homepage = "https://arcana.land"
+Repository = "https://github.com/arcanaland/libarcana"
+Issues = "https://github.com/arcanaland/libarcana/issues"
+
+[tool.scikit-build]
+cmake.version = ">=4.3"
+wheel.packages = []
+
+[tool.scikit-build.cmake.define]
+ARCANA_BUILD_PYTHON = "ON"
+ARCANA_BUILD_TESTS = "OFF"
+ARCANA_INSTALL = "OFF"
+ARCANA_INSTALL_PYTHON_MODULE = "ON"
+
+# Grab the real version from CMakeLists.txt
+[[tool.dynamic-metadata]]
+provider = "scikit_build_core.metadata.regex"
+field = "version"
+input = "CMakeLists.txt"
+regex = '''project\(\s+arcana\s+VERSION\s+(?P<value>[0-9][0-9.]*)'''

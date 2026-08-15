@@ -8,7 +8,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-import arcana
+import arcana_tarot as arcana
 import pytest
 
 from conftest import write_deck
@@ -33,7 +33,8 @@ def test_span_view_survives_construction(growable_root: Path) -> None:
 
 def test_keep_alive_protects_the_view_from_the_owner_dying(growable_root: Path) -> None:
     """keep_alive does the one thing it can do, and it does it correctly."""
-    view = arcana.deck_library(arcana.library_options(roots=[growable_root])).decks_view()
+    options = arcana.library_options(roots=[growable_root])
+    view = arcana.deck_library(options).decks_view()
 
     # the deck_library has no Python reference left
     assert view[0].directory_name == "deck-a"

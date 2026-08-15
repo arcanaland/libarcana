@@ -19,7 +19,25 @@ option(ARCANA_BUILD_TESTS "Build the arcana test suite" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_INSTALL "Generate arcana install rules" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_BUILD_PYTHON "Build the Python binding" OFF)
 
-find_package(tomlplusplus REQUIRED)
+set(ARCANA_TOMLPLUSPLUS_TAG v3.4.0 CACHE STRING
+    "Tag of marzer/tomlplusplus to fetch when find_package(tomlplusplus) fails")
+
+include(FetchContent)
+
+# The main build shouldn't need to fetch anything because it uses
+# conan but just in case you don't use conan
+FetchContent_Declare(tomlplusplus
+    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+    GIT_TAG ${ARCANA_TOMLPLUSPLUS_TAG}
+    GIT_SHALLOW TRUE
+    FIND_PACKAGE_ARGS)
+FetchContent_MakeAvailable(tomlplusplus)
+
+if(tomlplusplus_SOURCE_DIR)
+    message(STATUS "arcana: tomlplusplus fetched at ${ARCANA_TOMLPLUSPLUS_TAG}")
+else()
+    message(STATUS "arcana: tomlplusplus resolved by find_package")
+endif()
 
 add_subdirectory(src)
 
@@ -29,7 +47,7 @@ if(ARCANA_BUILD_TESTS)
 endif()
 
 if(ARCANA_BUILD_PYTHON)
-    add_subdirectory(bindings/python)
+    add_subdirectory(python)
 endif()
 
 if(ARCANA_INSTALL)

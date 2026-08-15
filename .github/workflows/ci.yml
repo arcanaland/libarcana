@@ -74,7 +74,10 @@ jobs:
         run: just build-image
 
       - name: Test the Python binding
-        run: just test-python
+        run: just python test
+
+      - name: Build and import the wheel
+        run: just python wheel
 
   lint:
     runs-on: ubuntu-latest

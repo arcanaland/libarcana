@@ -8,7 +8,7 @@ This is not a set of exhaustive API tests.
 
 from pathlib import Path
 
-import arcana
+import arcana_tarot as arcana
 import pytest
 
 from conftest import write_broken_deck, write_deck
@@ -166,7 +166,9 @@ def test_expected_error_arm_raises_with_a_code(alt_root: Path, fixtures_dir: Pat
 
 def test_expected_on_a_static_factory() -> None:
     parsed = arcana.card_id.parse("minor_arcana.cups.ace")
-    assert parsed == arcana.card_id.standard_minor(arcana.suit.cups, arcana.rank.ace)
+    assert parsed == arcana.card_id.standard_minor(
+        arcana.suit.cups, arcana.rank.ace
+    )
 
     with pytest.raises(arcana.deck_error):
         arcana.card_id.parse("not a card id")
