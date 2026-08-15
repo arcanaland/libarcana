@@ -3,6 +3,7 @@
 
 #include <arcana/card.hpp>
 
+#include "data/identifiers.hpp"
 #include "data/text.hpp"
 
 #include <algorithm>
@@ -162,10 +163,7 @@ bool is_valid_identifier(std::string_view text) noexcept
 
 bool is_custom_name(std::string_view text) noexcept
 {
-    if (!is_valid_identifier(text))
-        return false;
-
-    return std::isdigit(static_cast<unsigned char>(text.front())) == 0;
+    return data::is_custom_name(text);
 }
 
 std::expected<card_id, error> card_id::parse(std::string_view canonical_id)

@@ -22,6 +22,29 @@
 namespace arcana::detail
 {
 
+// One [custom_cards.major_arcana.<key>] or [custom_cards.minor_arcana.<suit>]
+// card, as 1.0 spells it. A loader-internal shape: the model has one card list
+// and knows nothing about "custom"
+struct custom_card_def
+{
+    std::string id;
+    std::string name;
+
+    // The deck-relative reference exactly as written in deck.toml
+    std::string image_ref;
+
+    std::optional<std::string> alt_text;
+    std::optional<int> position;
+};
+
+// An entire new suit, as 1.0's [custom_cards.minor_arcana] spells it
+struct custom_suit_def
+{
+    std::string key;
+    std::string name;
+    std::vector<custom_card_def> cards;
+};
+
 // Builds a deck from a parsed deck.toml
 class deck_loader
 {
@@ -44,14 +67,10 @@ class deck_loader
     void parse_aliases();
     void parse_major_arcana_remap();
     void parse_custom_cards();
-    void parse_variants();
 
-    [[nodiscard]] std::vector<custom_card_def> parse_minor_custom_cards(
+    [[nodiscard]] static std::vector<custom_card_def> parse_minor_custom_cards(
         toml::array const& array
-    ) const;
-
-    // Resolves a deck-relative image reference against the deck root
-    void set_image(custom_card_def& def, std::string image_ref) const;
+    );
 
     // --- assets on disk -------------------------------------------------------
 
@@ -66,6 +85,10 @@ class deck_loader
 
     // --- card materialization -------------------------------------------------
 
+    // A suit's display name from 1.0's [aliases.suits], else its title-cased key
+    [[nodiscard]] std::string suit_name(std::string_view key) const;
+
+    void build_suits();
     void build_standard_majors();
     void build_standard_minors();
     void build_custom_majors();
@@ -81,6 +104,14 @@ class deck_loader
 
     name_catalog names_;
     std::vector<std::string> image_roots_;
+
+    // 1.0's [aliases] tables, resolved into suit_info::name and deck::rank_names_
+    std::unordered_map<std::string, std::string> suit_aliases_;
+    std::unordered_map<std::string, std::string> court_aliases_;
+
+    // 1.0's [custom_cards], before it is folded into the one card list
+    std::vector<custom_card_def> custom_major_cards_;
+    std::vector<custom_suit_def> custom_suits_;
 
     // Folded major arcana name -> the position the deck shows it at
     std::unordered_map<std::string, int> remapped_positions_;

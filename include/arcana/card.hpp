@@ -111,6 +111,19 @@ struct card_id
     friend bool operator==(card_id const&, card_id const&) = default;
 };
 
+// How one artwork came to exist, in a named vocabulary
+//
+// One entry per vocabulary system, e.g. system "iptc-dst", term "print".
+// Sorted by system. Resolved at load: an artwork that declares no term for a
+// system carries the deck's.
+struct origin_term
+{
+    std::string system;
+    std::string term;
+
+    friend bool operator==(origin_term const&, origin_term const&) = default;
+};
+
 enum class image_kind : std::uint8_t
 {
     scalable,
@@ -142,12 +155,19 @@ struct card
     std::string display_suit;
     std::string display_rank;
 
-    // Major arcana only
-    // The display position, might differ from id.number due to remappings
-    // nullopt for minors and position-less custom majors
-    std::optional<int> number;
+    // The number printed on the card's face, e.g. "XXIII" or "VIII½"
+    // Opaque and not localized
+    std::optional<std::string> number;
+
+    // Major arcana only: where the card sits in the deck's sequence
+    // nullopt for minors and for majors the deck gives no position
+    std::optional<int> position;
 
     std::optional<std::string> alt_text;
+
+    // How this card's artwork came to exist, the deck's unless it says otherwise
+    std::vector<origin_term> origin;
+
     std::vector<card_image> images;
 
     // Shorthand for id.to_canonical()

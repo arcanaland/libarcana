@@ -3,6 +3,7 @@
 
 #include "loader.hpp"
 
+#include "../data/text.hpp"
 #include "standard_cards.hpp"
 #include "toml_read.hpp"
 
@@ -116,10 +117,10 @@ deck deck_loader::build() &&
     parse_aliases();
     parse_major_arcana_remap();
     parse_custom_cards();
-    parse_variants();
 
     // build the deck from the parsed toml
     discover_image_roots();
+    build_suits();
     build_standard_majors();
     build_standard_minors();
     build_custom_majors();
@@ -135,7 +136,7 @@ void deck_loader::parse_metadata()
     toml::table const& t = *deck_table_;
 
     deck_metadata m;
-    m.id = get_string_or(t["id"]);
+    m.identifier = get_string(t["identifier"]);
     m.schema_version = get_string_or(t["schema_version"]);
     m.name = get_string_or(t["name"]);
     m.version = get_string_or(t["version"]);
@@ -206,13 +207,14 @@ void deck_loader::parse_card_backs()
                     image = root_ / image_ref;
 
                 deck_.card_backs.push_back(
-                    card_back_variant{
+                    card_back_design{
                         .id = std::string(key.str()),
                         .name = get_string_or((*t)["name"]),
                         .image_ref = std::move(image_ref),
                         .image = std::move(image),
                         .description = get_string((*t)["description"]),
                         .alt_text = get_string((*t)["alt_text"]),
+                        .origin = {},
                         .declared = true
                     }
                 );
@@ -226,7 +228,7 @@ void deck_loader::parse_card_backs()
     if (!fs::is_directory(backs_dir, ec))
         return;
 
-    std::vector<card_back_variant> discovered;
+    std::vector<card_back_design> discovered;
     for (auto const& entry : fs::directory_iterator(backs_dir, ec))
     {
         if (!entry.is_regular_file())
@@ -234,25 +236,26 @@ void deck_loader::parse_card_backs()
 
         auto stem = entry.path().stem().string();
         bool const already_declared = std::ranges::any_of(
-            deck_.card_backs, [&stem](card_back_variant const& back) { return back.id == stem; }
+            deck_.card_backs, [&stem](card_back_design const& back) { return back.id == stem; }
         );
         if (already_declared)
             continue;
 
         discovered.push_back(
-            card_back_variant{
+            card_back_design{
                 .id = stem,
                 .name = stem,
                 .image_ref = {},
                 .image = entry.path(),
                 .description = std::nullopt,
                 .alt_text = std::nullopt,
+                .origin = {},
                 .declared = false
             }
         );
     }
 
-    std::ranges::sort(discovered, {}, &card_back_variant::id);
+    std::ranges::sort(discovered, {}, &card_back_design::id);
     deck_.card_backs.insert(deck_.card_backs.end(), discovered.begin(), discovered.end());
 }
 
@@ -260,8 +263,12 @@ void deck_loader::parse_aliases()
 {
     toml::table const& document = document_->table;
 
-    deck_.suit_aliases = get_string_map(document["aliases"]["suits"]);
-    deck_.court_aliases = get_string_map(document["aliases"]["courts"]);
+    suit_aliases_ = get_string_map(document["aliases"]["suits"]);
+    court_aliases_ = get_string_map(document["aliases"]["courts"]);
+
+    // v2 gives ranks no manifest field, so the resolved names are private to
+    // the deck and reached through display_rank_name()
+    deck_.rank_names_ = court_aliases_;
 }
 
 void deck_loader::parse_major_arcana_remap()
@@ -282,25 +289,13 @@ void deck_loader::parse_major_arcana_remap()
             std::from_chars(key_text.data(), key_text.data() + key_text.size(), position);
 
         if (ec == std::errc{} && ptr == key_text.data() + key_text.size())
-            deck_.major_arcana_remap.emplace(position, *s);
+            remapped_positions_.emplace(fold_major_arcana_name(*s), position);
         // else: unparseable key, skipped permissively.
         // TODO: this should emit a warning
     }
-
-    // saved the remapped positions
-    for (auto const& [position, name] : deck_.major_arcana_remap)
-        remapped_positions_.emplace(fold_major_arcana_name(name), position);
 }
 
-void deck_loader::set_image(custom_card_def& def, std::string image_ref) const
-{
-    if (!image_ref.empty())
-        def.image = root_ / image_ref;
-
-    def.image_ref = std::move(image_ref);
-}
-
-std::vector<custom_card_def> deck_loader::parse_minor_custom_cards(toml::array const& array) const
+std::vector<custom_card_def> deck_loader::parse_minor_custom_cards(toml::array const& array)
 {
     std::vector<custom_card_def> result;
 
@@ -310,16 +305,15 @@ std::vector<custom_card_def> deck_loader::parse_minor_custom_cards(toml::array c
         if (t == nullptr)
             continue;
 
-        custom_card_def def{
-            .id = get_string_or((*t)["id"]),
-            .name = get_string_or((*t)["name"]),
-            .image_ref = {},
-            .image = {},
-            .alt_text = get_string((*t)["alt_text"]),
-            .position = (*t)["position"].value<int>()
-        };
-        set_image(def, get_string_or((*t)["image"]));
-        result.push_back(std::move(def));
+        result.push_back(
+            custom_card_def{
+                .id = get_string_or((*t)["id"]),
+                .name = get_string_or((*t)["name"]),
+                .image_ref = get_string_or((*t)["image"]),
+                .alt_text = get_string((*t)["alt_text"]),
+                .position = (*t)["position"].value<int>()
+            }
+        );
     }
 
     return result;
@@ -339,16 +333,15 @@ void deck_loader::parse_custom_cards()
             if (t == nullptr)
                 continue;
 
-            custom_card_def def{
-                .id = get_string_or((*t)["id"], std::string(key.str())),
-                .name = get_string_or((*t)["name"]),
-                .image_ref = {},
-                .image = {},
-                .alt_text = get_string((*t)["alt_text"]),
-                .position = (*t)["position"].value<int>()
-            };
-            set_image(def, get_string_or((*t)["image"]));
-            deck_.custom_major_cards.push_back(std::move(def));
+            custom_major_cards_.push_back(
+                custom_card_def{
+                    .id = get_string_or((*t)["id"], std::string(key.str())),
+                    .name = get_string_or((*t)["name"]),
+                    .image_ref = get_string_or((*t)["image"]),
+                    .alt_text = get_string((*t)["alt_text"]),
+                    .position = (*t)["position"].value<int>()
+                }
+            );
         }
     }
 
@@ -366,33 +359,8 @@ void deck_loader::parse_custom_cards()
             if (auto const* cards = (*t)["cards"].as_array())
                 suit_def.cards = parse_minor_custom_cards(*cards);
 
-            deck_.custom_suits.push_back(std::move(suit_def));
+            custom_suits_.push_back(std::move(suit_def));
         }
-    }
-}
-
-void deck_loader::parse_variants()
-{
-    auto const* variants = document_->table["variants"].as_table();
-    if (variants == nullptr)
-        return;
-
-    for (auto const& [key, value] : *variants)
-    {
-        auto const* t = value.as_table();
-        if (t == nullptr)
-            continue;
-
-        deck_.variants.push_back(
-            deck_variant{
-                .key = std::string(key.str()),
-                .id = get_string_or((*t)["id"]),
-                .name = get_string_or((*t)["name"]),
-                .card_back = get_string((*t)["card_back"]),
-                .publisher = get_string((*t)["publisher"]),
-                .created_date = get_string((*t)["created_date"])
-            }
-        );
     }
 }
 
@@ -481,6 +449,65 @@ bool deck_loader::is_excluded(std::string const& canonical_id) const
     return std::ranges::find(deck_.excluded.cards, canonical_id) != deck_.excluded.cards.end();
 }
 
+std::string deck_loader::suit_name(std::string_view key) const
+{
+    if (auto const it = suit_aliases_.find(std::string(key)); it != suit_aliases_.end())
+        return it->second;
+
+    return titlecase_key(key);
+}
+
+void deck_loader::build_suits()
+{
+    auto const canonical_ranks = []
+    {
+        std::vector<std::string> keys;
+        keys.reserve(standard_ranks.size());
+        for (auto const r : standard_ranks) keys.emplace_back(to_string(r));
+        return keys;
+    }();
+
+    auto const all_excluded =
+        [this](std::string_view suit_key, std::vector<std::string> const& ranks)
+    {
+        return std::ranges::all_of(
+            ranks, [this, suit_key](std::string const& rank_key)
+            { return is_excluded(std::format("minor_arcana.{}.{}", suit_key, rank_key)); }
+        );
+    };
+
+    for (auto const s : standard_suits)
+    {
+        auto key = std::string(to_string(s));
+        deck_.suits.push_back(
+            suit_info{
+                .key = key,
+                .name = suit_name(key),
+                .ranks = canonical_ranks,
+                .standard = true,
+                .excluded = all_excluded(key, canonical_ranks)
+            }
+        );
+    }
+
+    for (auto const& custom : custom_suits_)
+    {
+        std::vector<std::string> ranks;
+        ranks.reserve(custom.cards.size());
+        for (auto const& def : custom.cards) ranks.push_back(def.id);
+
+        deck_.suits.push_back(
+            suit_info{
+                .key = custom.key,
+                .name = custom.name,
+                .ranks = std::move(ranks),
+                .standard = false,
+                .excluded = false
+            }
+        );
+    }
+}
+
 void deck_loader::build_standard_majors()
 {
     for (int i = 0; i <= max_major_arcana_number; ++i)
@@ -496,8 +523,9 @@ void deck_loader::build_standard_majors()
         c.id = std::move(id);
         c.display_name = names_.lookup("major_arcana", key).value_or(std::string(canonical_name));
 
+        // 1.0 declares no face number; [remap_major_arcana] is a position
         auto const remapped = remapped_positions_.find(fold_major_arcana_name(canonical_name));
-        c.number = remapped == remapped_positions_.end() ? i : remapped->second;
+        c.position = remapped == remapped_positions_.end() ? i : remapped->second;
         c.alt_text = names_.lookup("alt_text", key);
         c.images = scan_images_for("major_arcana", key);
 
@@ -532,12 +560,12 @@ void deck_loader::build_standard_minors()
 
 void deck_loader::build_custom_majors()
 {
-    for (auto const& def : deck_.custom_major_cards)
+    for (auto const& def : custom_major_cards_)
     {
         card c;
         c.id = card_id::custom_major(def.id);
         c.display_name = names_.lookup("major_arcana", def.id).value_or(def.name);
-        c.number = def.position;  // nullopt unless the deck declared a position
+        c.position = def.position;  // nullopt unless the deck declared a position
         c.alt_text = coalesce_alt_text(names_.lookup("alt_text", def.id), def.alt_text);
         if (!def.image_ref.empty())
             c.images.push_back(image_from_relative_path(def.image_ref));
@@ -548,7 +576,7 @@ void deck_loader::build_custom_majors()
 
 void deck_loader::build_custom_minors()
 {
-    for (auto const& suit_def : deck_.custom_suits)
+    for (auto const& suit_def : custom_suits_)
     {
         for (auto const& def : suit_def.cards)
         {

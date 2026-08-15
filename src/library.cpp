@@ -119,10 +119,10 @@ std::optional<deck_summary> deck_library::find(std::string_view directory_name) 
     return *found;
 }
 
-std::vector<deck_summary> deck_library::find_all_by_id(std::string_view deck_id) const
+std::vector<deck_summary> deck_library::find_all_by_identifier(std::string_view identifier) const
 {
-    auto matches = decks_ | std::views::filter([deck_id](deck_summary const& summary)
-                                               { return summary.id == deck_id; });
+    auto matches = decks_ | std::views::filter([identifier](deck_summary const& summary)
+                                               { return summary.identifier == identifier; });
 
     return {matches.begin(), matches.end()};
 }

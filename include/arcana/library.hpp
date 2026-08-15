@@ -25,7 +25,10 @@ struct deck_summary
 {
     std::string directory_name;
     std::filesystem::path path;
-    std::string id;
+
+    // [deck].identifier, and nullopt for a 1.0 deck. The library handle is the
+    // directory name, never this
+    std::optional<std::string> identifier;
 
     std::string name;
     std::string version;
@@ -33,7 +36,7 @@ struct deck_summary
 
     std::optional<std::filesystem::path> icon;
 
-    // The 78 standard cards minus [excluded_cards] plus [custom_cards]
+    // The cards this deck has: the standard 78 minus exclusions, plus its own
     std::size_t card_count = 0;
 };
 
@@ -102,10 +105,12 @@ class deck_library
     // @return std::nullopt for a deck that is absent or malformed
     [[nodiscard]] std::optional<deck_summary> find(std::string_view directory_name) const;
 
-    // Every readable deck carrying this [deck].id
+    // Every readable deck carrying this [deck].identifier
     //
-    // @return Empty vector when no deck declares the id.
-    [[nodiscard]] std::vector<deck_summary> find_all_by_id(std::string_view deck_id) const;
+    // @return Empty vector when no deck declares the identifier.
+    [[nodiscard]] std::vector<deck_summary> find_all_by_identifier(
+        std::string_view identifier
+    ) const;
 
     // Fully load a deck from this library
     [[nodiscard]] std::expected<std::shared_ptr<deck const>, error> load(

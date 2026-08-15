@@ -18,14 +18,15 @@ TEST_CASE("a summary has the directory's name and path", "[summary]")
 {
     arcana_test::temp_dir deck;
     deck.write("deck.toml", R"([deck]
-id = "com.example.rider"
+schema_version = "2.0"
+identifier = "com.example/deck/rider"
 name = "Rider-Waite"
 )");
 
     auto const summary = load_deck_summary(deck.path());
 
     REQUIRE(summary.has_value());
-    CHECK(summary->id == "com.example.rider");
+    CHECK(summary->identifier == "com.example/deck/rider");
     CHECK(summary->name == "Rider-Waite");
     CHECK(summary->directory_name == deck.path().filename().string());
     CHECK(summary->path == deck.path());
@@ -41,7 +42,7 @@ version = "1.0"
     auto const summary = load_deck_summary(deck.path());
 
     REQUIRE(summary.has_value());
-    CHECK(summary->id.empty());
+    CHECK_FALSE(summary->identifier.has_value());
     CHECK(summary->name.empty());
     CHECK_FALSE(summary->artist.has_value());
     CHECK_FALSE(summary->icon.has_value());
