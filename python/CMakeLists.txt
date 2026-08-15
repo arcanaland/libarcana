@@ -15,9 +15,6 @@ execute_process(
 
 find_package(nanobind CONFIG REQUIRED PATHS ${arcana_nanobind_cmake_dir} NO_DEFAULT_PATH)
 
-# ADR-025: the wheel ships a package `arcana_tarot/` holding exactly one extension
-# module, `_core`. Further specs become pure-Python submodules over that surface
-# rather than further extensions, so `libarcana.a` is linked in exactly once.
 set(arcana_python_package arcana_tarot)
 set(arcana_python_root ${CMAKE_CURRENT_BINARY_DIR}/import-root)
 set(arcana_python_package_dir ${arcana_python_root}/${arcana_python_package})

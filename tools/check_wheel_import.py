@@ -4,17 +4,7 @@
 
 """Check that a pip-installed `arcana_tarot` imports and works.
 
-Run from a directory that is *not* the repo root, out of a venv that has had
-`pip install .` run into it, so that neither the CWD nor a stray PYTHONPATH can
-stand in for the installed package. It lives here rather than under `python/`
-for the same reason: Python puts a script's own directory on `sys.path[0]`, and
-next to `arcana_tarot/` that would shadow the wheel with the sources.
-
-ADR-025 makes this load-bearing rather than supplementary: `python_smoke` runs
-against a package the build tree *synthesizes*, so it cannot catch the wheel's
-layout being wrong. This is the only check that looks at the real artifact, and
-so it asserts the shape — a package, one `_core` extension inside it — and not
-merely that an import succeeded.
+Run from a directory that is not the repo root.
 """
 
 import sys
@@ -47,6 +37,7 @@ missing = [name for name in arcana_tarot.__all__ if not hasattr(arcana_tarot, na
 if missing:
     sys.exit(f"__all__ names that the package does not export: {missing}")
 
+# quick smoke test
 alt_root = repo_root / "tests" / "fixtures" / "loader" / "library-root-alt"
 library = arcana_tarot.deck_library(arcana_tarot.library_options(roots=[alt_root]))
 names = [deck.directory_name for deck in library.decks()]

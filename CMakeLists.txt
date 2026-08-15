@@ -19,15 +19,13 @@ option(ARCANA_BUILD_TESTS "Build the arcana test suite" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_INSTALL "Generate arcana install rules" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_BUILD_PYTHON "Build the Python binding" OFF)
 
-# toml++ normally arrives through Conan (ADR-002). A configure with no Conan in front of
-# it — the wheel build — falls back to fetching upstream at the version conan.lock pins.
-# `FIND_PACKAGE_ARGS` makes MakeAvailable try `find_package` first, so a Conan configure
-# never reaches the fetch. Bumping the dependency must touch conanfile.py too (ADR-023).
 set(ARCANA_TOMLPLUSPLUS_TAG v3.4.0 CACHE STRING
     "Tag of marzer/tomlplusplus to fetch when find_package(tomlplusplus) fails")
 
 include(FetchContent)
 
+# The main build shouldn't need to fetch anything because it uses
+# conan but just in case you don't use conan
 FetchContent_Declare(tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
     GIT_TAG ${ARCANA_TOMLPLUSPLUS_TAG}
