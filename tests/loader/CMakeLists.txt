@@ -4,4 +4,5 @@
 arcana_add_test(dispatch_test LIBS arcana::loader)
 arcana_add_test(loader_test LIBS arcana::loader)
 arcana_add_test(names_test LIBS arcana::loader)
+arcana_add_test(reader_test LIBS arcana::loader)
 arcana_add_test(summary_test LIBS arcana::loader)
