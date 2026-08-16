@@ -3,7 +3,7 @@
 
 #include "temp_dir.hpp"
 
-#include <loader.hpp>
+#include <v1_compat/reader.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -16,7 +16,7 @@
 #include <vector>
 
 using arcana::detail::deck_document;
-using arcana::detail::deck_loader;
+using arcana::detail::v1_compat::deck_reader;
 
 namespace
 {
@@ -34,7 +34,7 @@ arcana::deck build_from(
     auto document = std::make_shared<deck_document>(std::move(parsed).table());
     REQUIRE(document->table["deck"].as_table() != nullptr);
 
-    return deck_loader{root, std::move(document), languages}.build();
+    return deck_reader{root, std::move(document), languages}.build();
 }
 
 arcana::card const& card_named(arcana::deck const& d, std::string_view canonical_id)
