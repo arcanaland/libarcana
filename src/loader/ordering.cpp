@@ -7,8 +7,9 @@
 
 #include <algorithm>
 #include <compare>
-#include <cstddef>
 #include <format>
+#include <ranges>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,8 +19,6 @@ namespace arcana::detail
 
 namespace
 {
-
-using suit_iterator = std::vector<suit_info>::const_iterator;
 
 struct card_order
 {
@@ -69,17 +68,17 @@ std::string rank_key_of(card_id const& id)
 
 // The four canonical suits come first in their canonical order, and every other
 // suit the deck has follows them sorted by key
-std::vector<std::string> suit_order_of(suit_iterator suits_first, suit_iterator suits_last)
+std::vector<std::string> suit_order_of(std::span<suit_info const> suits)
 {
     std::vector<std::string> order;
-    order.reserve(static_cast<std::size_t>(std::ranges::distance(suits_first, suits_last)));
+    order.reserve(suits.size());
 
     for (auto const s : standard_suits) order.emplace_back(to_string(s));
 
     std::vector<std::string> custom;
-    for (auto it = suits_first; it != suits_last; ++it)
-        if (std::ranges::find(order, it->key) == order.end())
-            custom.push_back(it->key);
+    for (auto const& info : suits)
+        if (std::ranges::find(order, info.key) == order.end())
+            custom.push_back(info.key);
 
     std::ranges::sort(custom);
     order.insert(order.end(), custom.begin(), custom.end());
@@ -88,8 +87,7 @@ std::vector<std::string> suit_order_of(suit_iterator suits_first, suit_iterator 
 }
 
 card_order order_of(
-    card const& c, std::vector<std::string> const& suit_order, suit_iterator suits_first,
-    suit_iterator suits_last
+    card const& c, std::vector<std::string> const& suit_order, std::span<suit_info const> suits
 )
 {
     if (c.id.is_major())
@@ -125,8 +123,7 @@ card_order order_of(
                             : static_cast<int>(std::ranges::distance(suit_order.begin(), ordered));
 
     result.unranked = 1;
-    if (auto const info = std::ranges::find(suits_first, suits_last, suit_key, &suit_info::key);
-        info != suits_last)
+    if (auto const info = std::ranges::find(suits, suit_key, &suit_info::key); info != suits.end())
     {
         if (auto const ranked = std::ranges::find(info->ranks, rank_key);
             ranked != info->ranks.end())
@@ -141,22 +138,17 @@ card_order order_of(
 
 }  // namespace
 
-void sort_cards(
-    std::vector<card>::iterator first, std::vector<card>::iterator last,
-    std::vector<suit_info>::const_iterator suits_first,
-    std::vector<suit_info>::const_iterator suits_last
-)
+void sort_cards(std::span<card> cards, std::span<suit_info const> suits)
 {
-    auto const suit_order = suit_order_of(suits_first, suits_last);
+    auto const suit_order = suit_order_of(suits);
 
     std::vector<std::pair<card_order, card>> decorated;
-    decorated.reserve(static_cast<std::size_t>(std::ranges::distance(first, last)));
-    for (auto it = first; it != last; ++it)
-        decorated.emplace_back(order_of(*it, suit_order, suits_first, suits_last), std::move(*it));
+    decorated.reserve(cards.size());
+    for (auto& c : cards) decorated.emplace_back(order_of(c, suit_order, suits), std::move(c));
 
     std::ranges::sort(decorated, {}, &std::pair<card_order, card>::first);
 
-    for (std::size_t i = 0; i < decorated.size(); ++i) first[i] = std::move(decorated[i].second);
+    std::ranges::move(decorated | std::views::values, cards.begin());
 }
 
 }  // namespace arcana::detail

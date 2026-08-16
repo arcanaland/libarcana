@@ -6,7 +6,7 @@
 #include <arcana/card.hpp>
 #include <arcana/deck.hpp>
 
-#include <vector>
+#include <span>
 
 namespace arcana::detail
 {
@@ -22,10 +22,6 @@ namespace arcana::detail
 //   - within a suit, by ranks sequence
 //
 // Ties break by canonical ID
-void sort_cards(
-    std::vector<card>::iterator first, std::vector<card>::iterator last,
-    std::vector<suit_info>::const_iterator suits_first,
-    std::vector<suit_info>::const_iterator suits_last
-);
+void sort_cards(std::span<card> cards, std::span<suit_info const> suits);
 
 }  // namespace arcana::detail

@@ -207,7 +207,9 @@ class reader
         return found == annotations_.end() ? std::nullopt : found->second.name;
     }
 
-    [[nodiscard]] std::vector<origin_term> with_deck_origin(std::vector<origin_term>&& declared) const
+    [[nodiscard]] std::vector<origin_term> with_deck_origin(
+        std::vector<origin_term>&& declared
+    ) const
     {
         for (auto const& term : deck_origin_)
             if (std::ranges::find(declared, term.system, &origin_term::system) == declared.end())
@@ -709,7 +711,7 @@ deck reader::read()
     read_card_backs();
     resolve_names();
 
-    sort_cards(deck_.cards.begin(), deck_.cards.end(), deck_.suits.cbegin(), deck_.suits.cend());
+    sort_cards(deck_.cards, deck_.suits);
 
     deck_access::document(deck_) = document_;
     return std::move(deck_);
