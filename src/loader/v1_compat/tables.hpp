@@ -11,9 +11,6 @@ namespace arcana::detail::v1_compat
 {
 
 // One [custom_cards.major_arcana.<key>] or [custom_cards.minor_arcana.<suit>] (v1)
-//
-// A reader-internal shape: the model has one card list and knows nothing
-// about "custom"
 struct custom_card_def
 {
     std::string id;

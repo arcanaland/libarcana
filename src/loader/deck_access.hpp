@@ -14,10 +14,7 @@
 namespace arcana::detail
 {
 
-// The one door into deck's private state
-//
-// deck names this and nothing else as a friend, so neither reader is
-// privileged over the other in a public header
+// A portal into deck's private state
 struct deck_access
 {
     [[nodiscard]] static std::unordered_map<std::string, std::string>& rank_names(deck& d) noexcept

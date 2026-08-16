@@ -24,11 +24,6 @@ std::expected<deck, error> load_deck(
     if (!version)
         return std::unexpected(std::move(version.error()));
 
-    // This dispatch and rule::applies_to are the only two places allowed to
-    // branch on the major. Major 1 reads under the v1 shim and every other
-    // major best-effort under the newest front end -- which is that same shim
-    // until TASK-032 layer 3b writes detail::read_deck on the neutral ground
-    // this layer freed, so there is one arm to write today
     return detail::v1_compat::read_deck(deck_directory, *std::move(document), languages);
 }
 

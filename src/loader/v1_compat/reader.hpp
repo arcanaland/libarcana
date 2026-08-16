@@ -23,9 +23,6 @@ namespace arcana::detail::v1_compat
 {
 
 // Builds a deck from a parsed 1.0 deck.toml
-//
-// Frozen once TASK-032 layer 3c converges it onto the neutral units: 1.0 is a
-// closed specification, so this reader changes only for a 1.0 bug
 class deck_reader
 {
   public:
@@ -100,7 +97,7 @@ class deck_reader
     deck deck_;
 };
 
-// Read a 1.0 document into the one normalized deck model
+// Read a 1.0 document into the normalized deck model
 [[nodiscard]] deck read_deck(
     std::filesystem::path deck_root, std::shared_ptr<deck_document const> document,
     std::vector<std::string> const& languages

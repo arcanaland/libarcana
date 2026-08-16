@@ -19,10 +19,7 @@ namespace arcana::detail
 namespace
 {
 
-// One part of the version: decimal digits and nothing else.
-//
-// from_chars alone is too permissive here — it accepts a leading sign, and a
-// leading '+' is not two decimal integers separated by a dot
+// from_chars alone is too permissive
 std::optional<std::uint32_t> decimal_integer(std::string_view text)
 {
     if (text.empty())
@@ -63,8 +60,6 @@ std::expected<schema_version, error> read_schema_version(
     auto const text = node.value<std::string>();
     if (!text)
     {
-        // The emitters get this wrong: `schema_version = 2` is a TOML integer,
-        // and 2 and 2.0 are not the same document even before the type differs
         return std::unexpected(
             malformed(deck_directory, R"([deck].schema_version must be a string, e.g. "2.0")")
         );

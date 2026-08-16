@@ -16,7 +16,7 @@
 namespace
 {
 
-// Loads a deck whose [deck].schema_version is written exactly as given
+// Load a deck with a specific schema_version
 std::expected<arcana::deck, arcana::error> load_declaring(std::string_view schema_version_line)
 {
     arcana_test::temp_dir deck;
@@ -53,7 +53,6 @@ name = "Undeclared"
 
     SECTION("a bare integer is not a version")
     {
-        // What deckle emits today, and 2 is not 2.0
         auto const result = load_declaring("schema_version = 2");
 
         REQUIRE_FALSE(result.has_value());
@@ -78,9 +77,6 @@ TEST_CASE("a malformed schema_version is a hard error", "[loader][dispatch]")
 
 TEST_CASE("a well-formed schema_version loads under some front end", "[loader][dispatch]")
 {
-    // Every one of these loads: a known major routes to its own front end, an
-    // unknown minor routes to its major silently, and an unknown major is read
-    // best-effort under the newest
     auto const accepted = GENERATE(
         as<std::string_view>{}, "1.0", "1.7", "2.0", "2.9", "3.0", "256.0", "0.1", "01.00"
     );

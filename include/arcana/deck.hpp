@@ -25,7 +25,6 @@ namespace detail
 // The parsed deck.toml
 struct deck_document;
 
-// The one door into deck's private state, for whichever reader is loading
 struct deck_access;
 
 }  // namespace detail
