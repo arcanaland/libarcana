@@ -27,14 +27,6 @@ class name_catalog
     );
 
     // The string at a key path, where each element is one whole TOML key
-    //
-    // Elements are not split on '.', because a key may contain one: a name
-    // file's [name.variant] is keyed by a variant reference such as
-    // "major_arcana.06:two_women", which §3.6 makes a single key. Where a
-    // reader means a table path it passes the tables as separate elements.
-    //
-    // This is the whole of the per-major difference in name lookup: the two
-    // readers pass different paths into the same catalog.
     [[nodiscard]] std::optional<std::string> lookup(std::span<std::string_view const> path) const;
 
     // @return The string at [<section>].<key>

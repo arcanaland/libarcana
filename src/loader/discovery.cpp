@@ -19,9 +19,7 @@ namespace
 
 namespace fs = std::filesystem;
 
-// The <height> of an h<n>/ root or the <lines> of an ansi<n>/ root: a decimal
-// integer greater than zero, written without a sign, leading zeroes or
-// separators
+// The <height> of an h<n>/ root or the <lines> of an ansi<n>/ root
 std::optional<int> parse_root_size(std::string_view digits)
 {
     if (digits.empty() || !std::ranges::all_of(digits, data::is_digit))
@@ -39,8 +37,6 @@ std::optional<int> parse_root_size(std::string_view digits)
 }
 
 // nullopt for a directory that is not one of the four image root forms.
-// surrogate/ is a root but supplies no card_image, so it is recognized here and
-// dropped by the caller
 std::optional<image_root> classify_root(fs::path const& path)
 {
     auto const name = path.filename().string();
@@ -67,9 +63,6 @@ std::optional<image_root> classify_root(fs::path const& path)
 
 // Where an extension sits in the chain for `kind`, or nullopt where discovery
 // ignores it entirely. Lower ranks win.
-//
-// jpeg and jpg share a rank: where a directory holds both, the spec leaves the
-// choice unspecified and the filename tie-break below settles it.
 std::optional<int> extension_rank(std::string_view extension, image_kind kind)
 {
     switch (kind)
@@ -89,8 +82,7 @@ std::optional<int> extension_rank(std::string_view extension, image_kind kind)
             return std::nullopt;
 
         case image_kind::ansi:
-            // ANSI files take any extension or none, so an ANSI root matches on
-            // stem alone and every candidate ranks equally
+            // ANSI files take any extension or none
             return 0;
     }
 
@@ -126,9 +118,7 @@ std::vector<image_root> find_image_roots(fs::path const& deck_root)
         if (!entry.is_directory(ec))
             continue;
 
-        // surrogate/ is an image root, but this library does not read surrogate
-        // assets yet. Recognizing it keeps discovery from treating it as one of
-        // the deck's own directories
+        // TODO
         if (entry.path().filename() == "surrogate")
             continue;
 
@@ -145,7 +135,7 @@ std::vector<discovered_asset> discover_directory(
 )
 {
     // (base, variant key) -> the best candidate seen so far, with the chain rank
-    // that won it. Ordered so the result comes out deterministically
+    // that won it. Not unordered_map so the result comes out deterministically
     std::map<std::pair<std::string, std::string>, std::pair<int, fs::path>> best;
 
     std::error_code ec;
@@ -166,12 +156,11 @@ std::vector<discovered_asset> discover_directory(
         if (!chain_rank)
             continue;
 
+
         auto key = std::pair{std::string{parts.base}, std::string{parts.variant_key}};
         auto const it = best.find(key);
 
-        // A tie between two equally ranked candidates -- two ANSI files sharing
-        // a stem, or jpeg beside jpg -- breaks by filename, so that the same
-        // directory always yields the same file
+        // break tie by filename
         if (it == best.end() || *chain_rank < it->second.first ||
             (*chain_rank == it->second.first && entry.path() < it->second.second))
             best.insert_or_assign(std::move(key), std::pair{*chain_rank, entry.path()});

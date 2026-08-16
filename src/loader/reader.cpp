@@ -735,7 +735,7 @@ deck reader::read()
     read_card_backs();
     resolve_names();
 
-    sort_cards(deck_.cards, deck_.suits);
+    sort_cards(deck_.cards.begin(), deck_.cards.end(), deck_.suits.cbegin(), deck_.suits.cend());
 
     deck_access::document(deck_) = document_;
     return std::move(deck_);
