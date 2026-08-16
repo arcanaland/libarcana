@@ -25,8 +25,8 @@ namespace detail
 // The parsed deck.toml
 struct deck_document;
 
-// Builds a deck from a parsed deck.toml
-class deck_loader;
+// The one door into deck's private state, for whichever reader is loading
+struct deck_access;
 
 }  // namespace detail
 
@@ -176,7 +176,7 @@ struct deck
     [[nodiscard]] std::string source_toml() const;
 
   private:
-    friend class detail::deck_loader;
+    friend struct detail::deck_access;
 
     // Rank key -> the display name this deck resolved for it. Filled at load
     // from [aliases.courts] in 1.0 and from a name file's [name.rank] in 2.0;

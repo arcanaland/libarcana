@@ -3,8 +3,9 @@
 
 #pragma once
 
-#include "document.hpp"
-#include "names.hpp"
+#include "../document.hpp"
+#include "../names.hpp"
+#include "tables.hpp"
 
 #include <arcana/card.hpp>
 #include <arcana/deck.hpp>
@@ -13,43 +14,22 @@
 
 #include <filesystem>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
-namespace arcana::detail
+namespace arcana::detail::v1_compat
 {
 
-// One [custom_cards.major_arcana.<key>] or [custom_cards.minor_arcana.<suit>]
-// card, as 1.0 spells it. A loader-internal shape: the model has one card list
-// and knows nothing about "custom"
-struct custom_card_def
-{
-    std::string id;
-    std::string name;
-
-    // The deck-relative reference exactly as written in deck.toml
-    std::string image_ref;
-
-    std::optional<std::string> alt_text;
-    std::optional<int> position;
-};
-
-// An entire new suit, as 1.0's [custom_cards.minor_arcana] spells it
-struct custom_suit_def
-{
-    std::string key;
-    std::string name;
-    std::vector<custom_card_def> cards;
-};
-
-// Builds a deck from a parsed deck.toml
-class deck_loader
+// Builds a deck from a parsed 1.0 deck.toml
+//
+// Frozen once TASK-032 layer 3c converges it onto the neutral units: 1.0 is a
+// closed specification, so this reader changes only for a 1.0 bug
+class deck_reader
 {
   public:
-    deck_loader(
+    deck_reader(
         std::filesystem::path deck_root, std::shared_ptr<deck_document const> document,
         std::vector<std::string> const& languages
     );
@@ -105,7 +85,8 @@ class deck_loader
     name_catalog names_;
     std::vector<std::string> image_roots_;
 
-    // 1.0's [aliases] tables, resolved into suit_info::name and deck::rank_names_
+    // 1.0's [aliases] tables, resolved into suit_info::name and the deck's
+    // private rank names
     std::unordered_map<std::string, std::string> suit_aliases_;
     std::unordered_map<std::string, std::string> court_aliases_;
 
@@ -119,4 +100,10 @@ class deck_loader
     deck deck_;
 };
 
-}  // namespace arcana::detail
+// Read a 1.0 document into the one normalized deck model
+[[nodiscard]] deck read_deck(
+    std::filesystem::path deck_root, std::shared_ptr<deck_document const> document,
+    std::vector<std::string> const& languages
+);
+
+}  // namespace arcana::detail::v1_compat

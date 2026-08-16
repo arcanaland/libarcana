@@ -18,22 +18,23 @@ target_sources(
         FILE_SET HEADERS
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
+            deck_access.hpp
             document.hpp
-            loader.hpp
             manifest.hpp
             names.hpp
             schema_version.hpp
             standard_cards.hpp
             summary.hpp
             toml_read.hpp
-            v2_frontend.hpp
+            v1_compat/reader.hpp
+            v1_compat/tables.hpp
     PRIVATE
         document.cpp
         loader.cpp
         names.cpp
         schema_version.cpp
         summary.cpp
-        v2_frontend.cpp
+        v1_compat/reader.cpp
 )
 
 target_compile_features(arcana-loader PUBLIC cxx_std_26)
