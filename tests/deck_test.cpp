@@ -413,6 +413,19 @@ TEST_CASE("rider-waite-smith enumerates all 78 standard cards", "[deck][referenc
     CHECK(result->cards.size() == 78);
 }
 
+TEST_CASE("a 1.0 reference deck reports an artist but no identifier", "[deck][reference-decks]")
+{
+    auto const result = load_deck(reference_deck("rider-waite-smith"));
+    REQUIRE(result.has_value());
+
+    // 1.0 spells the artist [deck].author, which the loader used to skip
+    CHECK(result->metadata.artist == "Pamela Colman Smith");
+
+    // [deck].id is a library handle, and DECK.md 3.4 forbids synthesizing an
+    // identifier for a deck that lacks one
+    CHECK_FALSE(result->metadata.identifier.has_value());
+}
+
 TEST_CASE("ascii-tarot resolves ansi32 card images", "[deck][reference-decks]")
 {
     auto const result = load_deck(reference_deck("ascii-tarot"));

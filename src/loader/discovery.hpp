@@ -53,8 +53,15 @@ struct discovered_asset
     std::filesystem::path path;
 };
 
+// The image root `path` names, or nullopt for a directory that is not one of
+// the four forms
+[[nodiscard]] std::optional<image_root> classify_image_root(std::filesystem::path const& path);
+
 // Every image root the deck has, sorted by directory name
 [[nodiscard]] std::vector<image_root> find_image_roots(std::filesystem::path const& deck_root);
+
+// The model's view of one file found under `root`
+[[nodiscard]] card_image image_at(image_root const& root, std::filesystem::path path);
 
 // All files nested in dir as (base, variant key), sorted by base
 //

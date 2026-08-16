@@ -5,6 +5,7 @@
 
 #include "../../data/text.hpp"
 #include "../deck_access.hpp"
+#include "../ordering.hpp"
 #include "../standard_cards.hpp"
 #include "../toml_read.hpp"
 
@@ -12,7 +13,9 @@
 #include <cctype>
 #include <charconv>
 #include <format>
+#include <initializer_list>
 #include <ranges>
+#include <span>
 #include <system_error>
 #include <utility>
 
@@ -71,22 +74,13 @@ std::optional<std::string> coalesce_alt_text(
     return text;
 }
 
-// "Raster folders are named h<height>/"
-bool looks_like_raster_root(std::string_view name)
+// 1.0's name files are flat — [major_arcana], [minor_arcana.<suit>], [alt_text]
+// — so every path here is a literal key sequence
+std::optional<std::string> name_at(
+    name_catalog const& names, std::initializer_list<std::string_view> path
+)
 {
-    return name.size() > 1 && name.front() == 'h' &&
-           std::ranges::all_of(
-               name.substr(1), [](unsigned char c) { return std::isdigit(c) != 0; }
-           );
-}
-
-// "Files should be stored in the `ansi<lines>/` directory"
-bool looks_like_ansi_root(std::string_view name)
-{
-    return name.starts_with("ansi") && name.size() > 4 &&
-           std::ranges::all_of(
-               name.substr(4), [](unsigned char c) { return std::isdigit(c) != 0; }
-           );
+    return names.lookup(std::span{path.begin(), path.size()});
 }
 
 }  // namespace
@@ -116,12 +110,16 @@ deck deck_reader::build() &&
     parse_custom_cards();
 
     // build the deck from the parsed toml
-    discover_image_roots();
+    discover_assets();
     build_suits();
     build_standard_majors();
     build_standard_minors();
     build_custom_majors();
     build_custom_minors();
+
+    // §4.3.2's order is expressed over the model, so 1.0 decks get it too. It
+    // moves custom majors ahead of the minor arcana, where build order left them
+    sort_cards(deck_.cards, deck_.suits);
 
     return std::move(deck_);
 }
@@ -133,12 +131,17 @@ void deck_reader::parse_metadata()
     toml::table const& t = *deck_table_;
 
     deck_metadata m;
-    m.identifier = get_string(t["identifier"]);
+
+    // A 1.0 deck never gets an identifier. [deck].id is a bare library handle,
+    // not a qualified identifier, and 2.0 §3.4 forbids synthesizing one
     m.schema_version = get_string_or(t["schema_version"]);
     m.name = get_string_or(t["name"]);
     m.version = get_string_or(t["version"]);
     m.icon = get_string(t["icon"]);
-    m.artist = get_string(t["artist"]);
+
+    // 1.0 spells the artist [deck].author. The newer spelling is accepted as a
+    // deliberate courtesy to decks emitted mid-migration; 1.0's own wins
+    m.artist = get_string(t["author"]).or_else([&t] { return get_string(t["artist"]); });
     m.creator = get_string(t["creator"]);
     m.license = get_string(t["license"]);
     m.attribution = get_string(t["attribution"]);
@@ -363,80 +366,79 @@ void deck_reader::parse_custom_cards()
 
 // --- assets on disk -------------------------------------------------------------
 
-void deck_reader::discover_image_roots()
+std::vector<std::string> deck_reader::card_directories() const
 {
-    std::error_code ec;
+    std::vector<std::string> directories{"major_arcana"};
+    directories.reserve(1 + standard_suits.size() + custom_suits_.size());
 
-    if (fs::is_directory(root_ / "scalable", ec))
-        image_roots_.emplace_back("scalable");
+    for (auto const s : standard_suits)
+        directories.push_back(std::format("minor_arcana/{}", to_string(s)));
 
-    for (auto const& entry : fs::directory_iterator(root_, ec))
+    for (auto const& custom : custom_suits_)
+        directories.push_back(std::format("minor_arcana/{}", custom.key));
+
+    return directories;
+}
+
+void deck_reader::discover_assets()
+{
+    auto const directories = card_directories();
+
+    // Borrowed from the neutral units: the roots come back sorted by name, and
+    // each directory resolves through §5.7.4's extension chain rather than
+    // through whatever directory_iterator happened to yield first
+    for (auto const& root : find_image_roots(root_))
     {
-        if (!entry.is_directory())
-            continue;
+        root_assets assets{.root = root};
 
-        auto const name = entry.path().filename().string();
-        if (looks_like_raster_root(name) || looks_like_ansi_root(name))
-            image_roots_.push_back(name);
+        for (auto const& directory : directories)
+        {
+            std::map<std::string, fs::path> files;
+            for (auto& asset :
+                 discover_directory(root.path / directory, root.kind, /*allow_variants=*/false))
+                files.emplace(std::move(asset.base), std::move(asset.path));
+
+            if (!files.empty())
+                assets.by_directory.emplace(directory, std::move(files));
+        }
+
+        roots_.push_back(std::move(assets));
     }
 }
 
 card_image deck_reader::image_from_relative_path(std::string_view relative_path) const
 {
-    card_image result;
-    result.path = root_ / relative_path;
-
     auto const slash = relative_path.find('/');
-    result.source_dir = std::string(relative_path.substr(0, slash));
+    std::string source_dir{relative_path.substr(0, slash)};
 
-    if (looks_like_raster_root(result.source_dir))
-    {
-        result.kind = image_kind::raster;
-        result.height = std::stoi(result.source_dir.substr(1));
-    }
-    else if (looks_like_ansi_root(result.source_dir))
-    {
-        result.kind = image_kind::ansi;
-        result.lines = std::stoi(result.source_dir.substr(4));
-    }
-    else
-    {
-        // TODO: should this be the fallback?
-        result.kind = image_kind::scalable;
-    }
+    if (auto const root = classify_image_root(root_ / source_dir))
+        return image_at(*root, root_ / relative_path);
 
-    return result;
+    // A path under no recognizable root carries no kind of its own
+    return {
+        .source_dir = std::move(source_dir),
+        .path = root_ / relative_path,
+        .kind = image_kind::scalable
+    };
 }
 
-std::vector<card_image> deck_reader::scan_images_for(
-    fs::path const& relative_stem_dir, std::string_view stem
+std::vector<card_image> deck_reader::images_for(
+    std::string const& directory, std::string_view base
 ) const
 {
-    std::vector<card_image> result;
-    std::error_code ec;
+    std::vector<card_image> images;
 
-    for (auto const& image_root : image_roots_)
+    for (auto const& assets : roots_)
     {
-        fs::path const dir = root_ / image_root / relative_stem_dir;
-        if (!fs::is_directory(dir, ec))
+        auto const found = assets.by_directory.find(directory);
+        if (found == assets.by_directory.end())
             continue;
 
-        for (auto const& entry : fs::directory_iterator(dir, ec))
-        {
-            if (!entry.is_regular_file())
-                continue;
-
-            if (entry.path().stem().string() == stem)
-            {
-                auto const relative =
-                    fs::path(image_root) / relative_stem_dir / entry.path().filename();
-                result.push_back(image_from_relative_path(relative.generic_string()));
-                break;
-            }
-        }
+        if (auto const file = found->second.find(std::string{base}); file != found->second.end())
+            images.push_back(image_at(assets.root, file->second));
     }
 
-    return result;
+    return images;
 }
 
 // --- card materialization -------------------------------------------------------
@@ -518,13 +520,14 @@ void deck_reader::build_standard_majors()
 
         card c;
         c.id = std::move(id);
-        c.display_name = names_.lookup("major_arcana", key).value_or(std::string(canonical_name));
+        c.display_name =
+            name_at(names_, {"major_arcana", key}).value_or(std::string(canonical_name));
 
         // 1.0 declares no face number; [remap_major_arcana] is a position
         auto const remapped = remapped_positions_.find(fold_major_arcana_name(canonical_name));
         c.position = remapped == remapped_positions_.end() ? i : remapped->second;
-        c.alt_text = names_.lookup("alt_text", key);
-        c.images = scan_images_for("major_arcana", key);
+        c.alt_text = name_at(names_, {"alt_text", key});
+        c.images = images_for("major_arcana", key);
 
         deck_.cards.push_back(std::move(c));
     }
@@ -540,15 +543,17 @@ void deck_reader::build_standard_minors()
             if (is_excluded(id.to_canonical()))
                 continue;
 
+            auto const suit_key = to_string(s);
+            auto const rank_key = to_string(r);
+
             card c;
             c.id = std::move(id);
-            c.display_name = names_.lookup_minor("minor_arcana", to_string(s), to_string(r))
+            c.display_name = name_at(names_, {"minor_arcana", suit_key, rank_key})
                                  .value_or(default_minor_arcana_name(s, r));
             c.display_suit = deck_.display_suit_name(s);
             c.display_rank = deck_.display_rank_name(r);
-            c.alt_text = names_.lookup_minor("alt_text", to_string(s), to_string(r));
-            c.images =
-                scan_images_for(fs::path("minor_arcana") / std::string(to_string(s)), to_string(r));
+            c.alt_text = name_at(names_, {"alt_text", suit_key, rank_key});
+            c.images = images_for(std::format("minor_arcana/{}", suit_key), rank_key);
 
             deck_.cards.push_back(std::move(c));
         }
@@ -561,9 +566,11 @@ void deck_reader::build_custom_majors()
     {
         card c;
         c.id = card_id::custom_major(def.id);
-        c.display_name = names_.lookup("major_arcana", def.id).value_or(def.name);
+        c.display_name = name_at(names_, {"major_arcana", def.id}).value_or(def.name);
         c.position = def.position;  // nullopt unless the deck declared a position
-        c.alt_text = coalesce_alt_text(names_.lookup("alt_text", def.id), def.alt_text);
+        c.alt_text = coalesce_alt_text(name_at(names_, {"alt_text", def.id}), def.alt_text);
+
+        // 1.0 gives a custom card its artwork by declaration only
         if (!def.image_ref.empty())
             c.images.push_back(image_from_relative_path(def.image_ref));
 
@@ -580,11 +587,11 @@ void deck_reader::build_custom_minors()
             card c;
             c.id = card_id::custom_minor(suit_def.key, def.id);
             c.display_name =
-                names_.lookup_minor("minor_arcana", suit_def.key, def.id).value_or(def.name);
+                name_at(names_, {"minor_arcana", suit_def.key, def.id}).value_or(def.name);
             c.display_suit = deck_.display_suit_name(suit_def.key);
             c.display_rank = deck_.display_rank_name(def.id);
             c.alt_text = coalesce_alt_text(
-                names_.lookup_minor("alt_text", suit_def.key, def.id), def.alt_text
+                name_at(names_, {"alt_text", suit_def.key, def.id}), def.alt_text
             );
             if (!def.image_ref.empty())
                 c.images.push_back(image_from_relative_path(def.image_ref));

@@ -76,17 +76,6 @@ struct root_index
     std::map<std::string, fs::path> card_backs;
 };
 
-card_image image_at(image_root const& root, fs::path path)
-{
-    return {
-        .source_dir = root.name,
-        .path = std::move(path),
-        .kind = root.kind,
-        .height = root.height,
-        .lines = root.lines
-    };
-}
-
 // The filename base a card's artwork is stored under
 //   - the two-digit key, the custom major key or the rank key
 std::string base_of(card_id const& id)

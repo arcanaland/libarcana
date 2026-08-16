@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "../discovery.hpp"
 #include "../document.hpp"
 #include "../names.hpp"
 #include "tables.hpp"
@@ -13,6 +14,7 @@
 #include <toml++/toml.hpp>
 
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -51,13 +53,17 @@ class deck_reader
 
     // --- assets on disk -------------------------------------------------------
 
-    void discover_image_roots();
+    // The card directories 1.0 draws artwork from, relative to an image root
+    [[nodiscard]] std::vector<std::string> card_directories() const;
 
+    void discover_assets();
+
+    // A path a deck.toml spells out, which 1.0 allows anywhere under the deck
     [[nodiscard]] card_image image_from_relative_path(std::string_view relative_path) const;
 
-    // Every image root holding a file named <stem> under <relative_stem_dir>
-    [[nodiscard]] std::vector<card_image> scan_images_for(
-        std::filesystem::path const& relative_stem_dir, std::string_view stem
+    // Every image root holding a file based <base> under <directory>
+    [[nodiscard]] std::vector<card_image> images_for(
+        std::string const& directory, std::string_view base
     ) const;
 
     // --- card materialization -------------------------------------------------
@@ -80,7 +86,15 @@ class deck_reader
     toml::table const* deck_table_ = nullptr;
 
     name_catalog names_;
-    std::vector<std::string> image_roots_;
+
+    // One image root's card files: directory relative to the root -> base -> path
+    struct root_assets
+    {
+        image_root root;
+        std::map<std::string, std::map<std::string, std::filesystem::path>> by_directory;
+    };
+
+    std::vector<root_assets> roots_;
 
     // 1.0's [aliases] tables, resolved into suit_info::name and the deck's
     // private rank names
