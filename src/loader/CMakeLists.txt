@@ -19,9 +19,12 @@ target_sources(
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
             deck_access.hpp
+            discovery.hpp
             document.hpp
             manifest.hpp
             names.hpp
+            ordering.hpp
+            reader.hpp
             schema_version.hpp
             standard_cards.hpp
             summary.hpp
@@ -29,9 +32,12 @@ target_sources(
             v1_compat/reader.hpp
             v1_compat/tables.hpp
     PRIVATE
+        discovery.cpp
         document.cpp
         loader.cpp
         names.cpp
+        ordering.cpp
+        reader.cpp
         schema_version.cpp
         summary.cpp
         v1_compat/reader.cpp

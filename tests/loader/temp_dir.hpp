@@ -9,6 +9,7 @@
 #include <fstream>
 #include <string_view>
 #include <system_error>
+#include <utility>
 
 #include <unistd.h>
 
@@ -38,6 +39,21 @@ class temp_dir
 
     temp_dir(temp_dir const&) = delete;
     temp_dir& operator=(temp_dir const&) = delete;
+
+    // Movable, so that a helper can build a deck and hand it back
+    temp_dir(temp_dir&& other) noexcept : path_{std::exchange(other.path_, {})} {}
+
+    temp_dir& operator=(temp_dir&& other) noexcept
+    {
+        if (this != &other)
+        {
+            std::error_code ec;
+            std::filesystem::remove_all(path_, ec);
+            path_ = std::exchange(other.path_, {});
+        }
+
+        return *this;
+    }
 
     [[nodiscard]] std::filesystem::path const& path() const noexcept
     {

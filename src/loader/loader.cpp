@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "document.hpp"
+#include "reader.hpp"
 #include "schema_version.hpp"
 #include "v1_compat/reader.hpp"
 
@@ -24,7 +25,10 @@ std::expected<deck, error> load_deck(
     if (!version)
         return std::unexpected(std::move(version.error()));
 
-    return detail::v1_compat::read_deck(deck_directory, *std::move(document), languages);
+    if (version->major == 1)
+        return detail::v1_compat::read_deck(deck_directory, *std::move(document), languages);
+
+    return detail::read_deck(deck_directory, *std::move(document), languages);
 }
 
 }  // namespace arcana

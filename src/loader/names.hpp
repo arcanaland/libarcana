@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -24,6 +25,9 @@ class name_catalog
     [[nodiscard]] static name_catalog load(
         std::filesystem::path const& deck_root, std::vector<std::string> const& languages
     );
+
+    // The string at a key path, where each element is one whole TOML key
+    [[nodiscard]] std::optional<std::string> lookup(std::span<std::string_view const> path) const;
 
     // @return The string at [<section>].<key>
     [[nodiscard]] std::optional<std::string> lookup(
