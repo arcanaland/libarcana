@@ -16,14 +16,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <map>
-#include <ranges>
 #include <set>
 #include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 namespace arcana::detail
 {
@@ -35,8 +36,7 @@ namespace fs = std::filesystem;
 
 constexpr std::string_view default_minor_name_template = "{rank} of {suit}";
 
-// A vocabulary table such as [deck.origin], sorted by system so that two decks
-// declaring the same terms compare equal
+// A vocabulary table such as [deck.origin] sorted by system
 std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& node)
 {
     std::vector<origin_term> terms;
@@ -61,7 +61,7 @@ struct card_annotation
     std::vector<origin_term> origin;
 };
 
-// One image root's contribution, indexed the way the card loop reads it
+// One image root's contribution
 struct root_index
 {
     image_root root;
@@ -87,8 +87,8 @@ card_image image_at(image_root const& root, fs::path path)
     };
 }
 
-// The filename base a card's artwork is stored under: the two-digit key, the
-// custom major key, or the rank key
+// The filename base a card's artwork is stored under
+//   - the two-digit key, the custom major key or the rank key
 std::string base_of(card_id const& id)
 {
     switch (id.cls)
@@ -121,8 +121,6 @@ struct minor_parts
     std::string_view suit;
 };
 
-// §6.3.1's template, with {rank} and {suit} replaced by the names resolved for
-// them. No other placeholder is defined and any other braced text is left alone
 std::string compose_minor_name(std::string_view name_template, minor_parts const& parts)
 {
     constexpr std::string_view rank_placeholder = "{rank}";
@@ -153,8 +151,6 @@ std::string compose_minor_name(std::string_view name_template, minor_parts const
     return result;
 }
 
-// The reader's whole state, so that the steps below read as the spec sections
-// they implement rather than as one function threading a dozen parameters
 class reader
 {
   public:
@@ -211,10 +207,7 @@ class reader
         return found == annotations_.end() ? std::nullopt : found->second.name;
     }
 
-    // §4.1.8's inheritance, resolved at the door: an artwork that declares no
-    // term for a system carries the deck's, per system, so that a consumer reads
-    // one field and never walks a fallback chain
-    [[nodiscard]] std::vector<origin_term> with_deck_origin(std::vector<origin_term> declared) const
+    [[nodiscard]] std::vector<origin_term> with_deck_origin(std::vector<origin_term>&& declared) const
     {
         for (auto const& term : deck_origin_)
             if (std::ranges::find(declared, term.system, &origin_term::system) == declared.end())
@@ -265,10 +258,6 @@ void reader::read_metadata()
     if (auto const ratio = deck_table["aspect_ratio"].value<double>())
         metadata.aspect_ratio = *ratio;
 
-    // created_date and updated_date are 1.0-source fields. 2.0's published_date
-    // is a different claim about a different event and neither is derived from
-    // the other
-
     deck_origin_ = read_origin(deck_table["origin"]);
     metadata.origin = deck_origin_;
 
@@ -290,8 +279,6 @@ void reader::discover_majors(image_root const& root, root_index& index)
 
         discovered_.insert(id->to_canonical());
 
-        // A variant file names its card through its base but supplies no artwork
-        // the model can hold yet; card_image gains a variant key in layer 5
         if (asset.variant_key.empty())
             index.majors.emplace(asset.base, std::move(asset.path));
     }
@@ -313,8 +300,7 @@ void reader::discover_minors(image_root const& root, root_index& index)
         {
             auto const id = card_id::parse(std::format("minor_arcana.{}.{}", suit_key, asset.base));
 
-            // A canonical suit holding a custom rank key, which §4.4 allows and
-            // card_id cannot yet express, lands here and is dropped
+            // TODO: A canonical suit holding a custom rank key
             if (!id)
                 continue;
 
@@ -372,8 +358,6 @@ void reader::build_suits()
 
     for (auto const s : standard_suits) add(std::string{to_string(s)}, /*standard=*/true);
 
-    // [suits] describes rather than creates: a suit exists because files sit
-    // under minor_arcana/<suit>/
     for (auto const& key : discovered_suits_)
         if (!suit_from_string(key))
             add(key, /*standard=*/false);
@@ -387,8 +371,6 @@ void reader::read_annotations()
 
     for (auto const& [key, value] : *cards_table)
     {
-        // A variant-reference key belongs to layer 5. The two are disjoint: a
-        // variant reference holds a colon and a canonical ID cannot
         std::string const reference{key.str()};
         if (reference.contains(':'))
             continue;
@@ -413,9 +395,7 @@ std::set<std::string> reader::wanted_cards() const
 {
     std::set<std::string> wanted = discovered_;
 
-    // The seventy-eight canonical slots exist for every deck, so an entry for
-    // one is accepted whether or not a file backs it. An entry for any other
-    // card without a file creates nothing
+    // The seventy-eight canonical slots exist for every deck
     for (int number = 0; number <= max_major_arcana_number; ++number)
         wanted.insert(std::format("major_arcana.{:02}", number));
 
@@ -480,8 +460,6 @@ void reader::build_cards()
             c.alt_text = annotation->second.alt_text;
             c.origin = annotation->second.origin;
 
-            // A position on a minor arcanum is ignored: a minor takes its place
-            // from its suit's `ranks` sequence
             if (id->is_major())
                 c.position = annotation->second.position;
         }
@@ -515,8 +493,8 @@ void reader::read_card_backs()
 
     // The top-level card_backs/ is a root of no declared kind or size, so
     // neither chain alone describes it: the raster chain is the documented
-    // simple form and scalable fills in for a design shipped only as SVG. It is
-    // consulted last, so the image roots below overwrite whatever it supplies
+    // simple form and scalable fills in for a design shipped only as SVG. It
+    // seeds the map, so any image root below overwrites what it supplies
     for (auto const kind : {image_kind::scalable, image_kind::raster})
         for (auto& asset : discover_directory(root_ / "card_backs", kind, /*allow_variants=*/false))
             if (is_custom_name(asset.base))
@@ -524,8 +502,7 @@ void reader::read_card_backs()
 
     // The model holds one image per design where the spec resolves per kind and
     // size, so a preference is unavoidable: scalable, then the largest raster,
-    // then the largest ANSI, and the top-level directory only where nothing else
-    // supplies the design
+    // then the largest ANSI. Lower wins
     auto const preference = [](image_root const& root)
     {
         switch (root.kind)
@@ -538,14 +515,20 @@ void reader::read_card_backs()
                 return std::pair{2, -root.lines.value_or(0)};
         }
 
-        return std::pair{3, 0};
+        std::unreachable();
     };
 
-    auto ranked = roots_;
-    std::ranges::sort(ranked, {}, [&](root_index const& index) { return preference(index.root); });
+    // Worst-ranked first, so the best-ranked root is the last to write and wins
+    std::vector<root_index const*> ranked;
+    ranked.reserve(roots_.size());
+    for (auto const& index : roots_) ranked.push_back(&index);
 
-    for (auto const& index : ranked | std::views::reverse)
-        for (auto const& [key, path] : index.card_backs) found.insert_or_assign(key, path);
+    std::ranges::sort(
+        ranked, std::greater{}, [&](root_index const* index) { return preference(index->root); }
+    );
+
+    for (auto const* const index : ranked)
+        for (auto const& [key, path] : index->card_backs) found.insert_or_assign(key, path);
 
     auto const designs = table()["card_backs"]["designs"];
 
@@ -585,9 +568,6 @@ void reader::read_card_backs()
 
 void reader::resolve_suit_names()
 {
-    // [name.suit].<key>, then [suits.<key>].name, which build_suits already put
-    // on the suit, then the title-cased key that deck::display_suit_name applies
-    // to a name left empty
     for (auto& info : deck_.suits)
     {
         std::array const path{
@@ -601,9 +581,6 @@ void reader::resolve_suit_names()
 
 void reader::resolve_rank_names()
 {
-    // [name.rank].<key>, and nothing in the manifest: §6.3's Rank row has a dash
-    // where the other rows name a field. Resolved into deck's private map, which
-    // display_rank_name reads
     auto& rank_names = deck_access::rank_names(deck_);
 
     for (auto const& key : rank_keys_)
@@ -637,9 +614,7 @@ void reader::name_major(card& c)
     else if (c.id.cls == card_class::standard_major && c.id.number <= max_major_arcana_number)
         c.display_name = default_major_arcana_names[static_cast<std::size_t>(c.id.number)];
     else
-        // An extended major that reaches the end of its chain has no name, and
-        // its title-cased key is bare digits: §6.3 says an application SHOULD
-        // present it by its number instead
+        // fallback
         c.display_name = titlecase_key(base);
 
     if (auto const alt = from_names(alt_path))
@@ -668,8 +643,7 @@ void reader::name_minor(card& c, std::string_view name_template)
     else if (auto const declared = annotated_name(c.canonical_id()))
         c.display_name = *declared;
     else
-        // A minor arcanum's name is composed rather than fetched, which is one
-        // of the two rows of §6.3 that departs from the common chain
+        // A minor arcanum's name is composed
         c.display_name =
             compose_minor_name(name_template, {.rank = c.display_rank, .suit = c.display_suit});
 
@@ -716,10 +690,10 @@ void reader::resolve_back_names()
 
 void reader::resolve_names()
 {
-    // Suits and ranks first: a minor arcanum's composed name is built from the
-    // names they resolve to
+    // Suits and ranks because a minor arcana needs them
     resolve_suit_names();
     resolve_rank_names();
+
     resolve_card_names();
     resolve_back_names();
 }
