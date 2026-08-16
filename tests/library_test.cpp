@@ -184,6 +184,7 @@ TEST_CASE("a failed load is not cached", "[library]")
 
     // Repairing the deck while the process runs
     root.write("wip-deck/deck.toml", R"([deck]
+schema_version = "1.0"
 name = "Repaired"
 )");
 

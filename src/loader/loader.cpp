@@ -4,8 +4,10 @@
 #include "loader.hpp"
 
 #include "../data/text.hpp"
+#include "schema_version.hpp"
 #include "standard_cards.hpp"
 #include "toml_read.hpp"
+#include "v2_frontend.hpp"
 
 #include <algorithm>
 #include <array>
@@ -607,7 +609,20 @@ std::expected<deck, error> load_deck(
     if (!document)
         return std::unexpected(std::move(document.error()));
 
-    return detail::deck_loader{deck_directory, *std::move(document), languages}.build();
+    auto version = detail::read_schema_version((*document)->table, deck_directory);
+    if (!version)
+        return std::unexpected(std::move(version.error()));
+
+    // The only two places allowed to branch on the major are this dispatch and
+    // rule::applies_to; everything downstream reads one normalized model.
+    //
+    // A minor is never dispatched on — minor updates are compatible in both
+    // directions — and an unknown major is read best-effort under the newest
+    // front end rather than refused, so a 3.0 deck degrades instead of failing
+    if (version->major == 1)
+        return detail::deck_loader{deck_directory, *std::move(document), languages}.build();
+
+    return detail::build_v2_deck(deck_directory, *std::move(document), languages);
 }
 
 }  // namespace arcana

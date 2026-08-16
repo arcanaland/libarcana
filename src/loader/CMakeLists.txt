@@ -22,14 +22,18 @@ target_sources(
             loader.hpp
             manifest.hpp
             names.hpp
+            schema_version.hpp
             standard_cards.hpp
             summary.hpp
             toml_read.hpp
+            v2_frontend.hpp
     PRIVATE
         document.cpp
         loader.cpp
         names.cpp
+        schema_version.cpp
         summary.cpp
+        v2_frontend.cpp
 )
 
 target_compile_features(arcana-loader PUBLIC cxx_std_26)

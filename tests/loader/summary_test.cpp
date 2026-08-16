@@ -137,6 +137,7 @@ TEST_CASE("the card count agrees with load_deck", "[summary]")
 {
     arcana_test::temp_dir deck;
     deck.write("deck.toml", R"([deck]
+schema_version = "1.0"
 name = "Mixed"
 
 [deck.excluded_cards]
