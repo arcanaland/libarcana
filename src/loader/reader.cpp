@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <iterator>
 #include <map>
 #include <set>
 #include <span>
@@ -58,19 +59,27 @@ struct card_annotation
     std::optional<std::string> number;
     std::optional<int> position;
     std::optional<std::string> image;
+    std::optional<std::string> default_variant;
     std::vector<origin_term> origin;
 };
+
+// The files one directory supplies for a card: variant key -> file, where the
+// empty key is the unsuffixed file
+using variant_files = std::map<std::string, fs::path>;
+
+// A card's artwork grouped the same way, across every image root
+using artwork_by_variant = std::map<std::string, std::vector<card_image>>;
 
 // One image root's contribution
 struct root_index
 {
     image_root root;
 
-    // base -> the unsuffixed file, for major_arcana/
-    std::map<std::string, fs::path> majors;
+    // base -> its files, for major_arcana/
+    std::map<std::string, variant_files> majors;
 
-    // suit key -> rank key -> the unsuffixed file
-    std::map<std::string, std::map<std::string, fs::path>> minors;
+    // suit key -> rank key -> its files
+    std::map<std::string, std::map<std::string, variant_files>> minors;
 
     // design key -> the file
     std::map<std::string, fs::path> card_backs;
@@ -167,7 +176,9 @@ class reader
 
     void read_annotations();
     [[nodiscard]] std::set<std::string> wanted_cards() const;
+    [[nodiscard]] artwork_by_variant discovered_images(card const& c) const;
     void attach_images(card& c) const;
+    void resolve_default_variant(card& c) const;
     void build_cards();
     void mark_excluded_suits();
 
@@ -224,6 +235,10 @@ class reader
 
     std::map<std::string, card_annotation> annotations_;
 
+    // canonical ID -> variant key -> the `image` a [cards."<ref>:<key>"] entry
+    // declares. Such an entry creates the variant where no file does (§3.1.2)
+    std::map<std::string, std::map<std::string, std::string>> variant_images_;
+
     // Rank keys the deck uses, so that [name.rank] is read for each of them
     std::set<std::string> rank_keys_;
 };
@@ -270,8 +285,7 @@ void reader::discover_majors(image_root const& root, root_index& index)
 
         discovered_.insert(id->to_canonical());
 
-        if (asset.variant_key.empty())
-            index.majors.emplace(asset.base, std::move(asset.path));
+        index.majors[asset.base].emplace(asset.variant_key, std::move(asset.path));
     }
 }
 
@@ -298,8 +312,7 @@ void reader::discover_minors(image_root const& root, root_index& index)
             discovered_suits_.insert(suit_key);
             discovered_.insert(id->to_canonical());
 
-            if (asset.variant_key.empty())
-                index.minors[suit_key].emplace(asset.base, std::move(asset.path));
+            index.minors[suit_key][asset.base].emplace(asset.variant_key, std::move(asset.path));
         }
     }
 }
@@ -363,16 +376,29 @@ void reader::read_annotations()
     for (auto const& [key, value] : *cards_table)
     {
         std::string const reference{key.str()};
-        if (reference.contains(':'))
-            continue;
-
         auto const entry = toml::node_view<toml::node const>{value};
+
+        if (auto const colon = reference.find(':'); colon != std::string::npos)
+        {
+            // A variant-reference entry supplies that variant's image. Its
+            // strings, alt text and origin have nowhere to live in a model with
+            // no variant entity and are dropped. `number`, `position` and
+            // `default_variant` belong to the card, and §4.3 says an
+            // application MUST ignore all three declared on a variant
+            if (auto image = get_string(entry["image"]))
+                variant_images_[reference.substr(0, colon)].insert_or_assign(
+                    reference.substr(colon + 1), *std::move(image)
+                );
+
+            continue;
+        }
 
         card_annotation annotation;
         annotation.name = get_string(entry["name"]);
         annotation.alt_text = get_string(entry["alt_text"]);
         annotation.number = get_string(entry["number"]);
         annotation.image = get_string(entry["image"]);
+        annotation.default_variant = get_string(entry["default_variant"]);
         annotation.origin = read_origin(entry["origin"]);
 
         if (auto const position = entry["position"].value<std::int64_t>())
@@ -397,13 +423,17 @@ std::set<std::string> reader::wanted_cards() const
     return wanted;
 }
 
-void reader::attach_images(card& c) const
+// variant key -> its artwork across the roots, the empty key being the
+// unsuffixed file
+artwork_by_variant reader::discovered_images(card const& c) const
 {
     auto const base = base_of(c.id);
 
+    artwork_by_variant by_variant;
+
     for (auto const& index : roots_)
     {
-        std::map<std::string, fs::path> const* level = nullptr;
+        std::map<std::string, variant_files> const* level = nullptr;
 
         if (c.id.is_major())
             level = &index.majors;
@@ -413,21 +443,69 @@ void reader::attach_images(card& c) const
         if (level == nullptr)
             continue;
 
-        if (auto const found = level->find(base); found != level->end())
-            c.images.push_back(image_at(index.root, found->second));
+        auto const found = level->find(base);
+        if (found == level->end())
+            continue;
+
+        for (auto const& [variant_key, path] : found->second)
+        {
+            auto image = image_at(index.root, path);
+            if (!variant_key.empty())
+                image.variant_key = variant_key;
+
+            by_variant[variant_key].push_back(std::move(image));
+        }
     }
 
-    // An explicit `image` path wins outright over discovery
-    auto const annotation = annotations_.find(c.canonical_id());
-    if (annotation == annotations_.end())
+    return by_variant;
+}
+
+void reader::attach_images(card& c) const
+{
+    auto by_variant = discovered_images(c);
+    auto const canonical = c.canonical_id();
+
+    // An explicit `image` path wins outright over discovery, for the one
+    // artwork it names: a card entry's for the default artwork, a variant
+    // entry's for that variant
+    auto const declare = [&](std::string const& variant_key, std::string const& relative)
+    {
+        card_image image{.source_dir = {}, .path = root_ / relative, .kind = image_kind::scalable};
+        if (!variant_key.empty())
+            image.variant_key = variant_key;
+
+        by_variant[variant_key] = {std::move(image)};
+    };
+
+    if (auto const annotation = annotations_.find(canonical); annotation != annotations_.end())
+        if (auto const& declared = annotation->second.image)
+            declare({}, *declared);
+
+    if (auto const declared = variant_images_.find(canonical); declared != variant_images_.end())
+        for (auto const& [variant_key, relative] : declared->second) declare(variant_key, relative);
+
+    // The unsuffixed artwork first, then the variants by key
+    for (auto& entry : by_variant) std::ranges::move(entry.second, std::back_inserter(c.images));
+}
+
+void reader::resolve_default_variant(card& c) const
+{
+    if (auto const annotation = annotations_.find(c.canonical_id());
+        annotation != annotations_.end() && annotation->second.default_variant)
+    {
+        c.default_variant = annotation->second.default_variant;
+        return;
+    }
+
+    // Where the deck declares none, the unsuffixed file is the default
+    if (std::ranges::any_of(c.images, [](card_image const& image) { return !image.variant_key; }))
         return;
 
-    auto const& declared = annotation->second.image;
-    if (!declared.has_value())
-        return;
-
-    c.images.clear();
-    c.images.push_back({.source_dir = {}, .path = root_ / *declared, .kind = image_kind::scalable});
+    // A card with variant files and no unsuffixed file MUST declare
+    // `default_variant` (§4.3). Where it does not, that is for a validator to
+    // report: the deck still loads, on the first variant key
+    if (auto const keys = c.variant_keys(); !keys.empty())
+        c.default_variant = keys.front();
 }
 
 void reader::build_cards()
@@ -457,6 +535,7 @@ void reader::build_cards()
 
         c.origin = with_deck_origin(std::move(c.origin));
         attach_images(c);
+        resolve_default_variant(c);
 
         if (!id->is_major())
             rank_keys_.insert(base_of(*id));

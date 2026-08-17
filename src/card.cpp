@@ -222,6 +222,46 @@ std::expected<card_id, error> card_id::parse(std::string_view canonical_id)
 namespace
 {
 
+// The artwork carrying `key`, where nullopt means the unsuffixed file
+std::vector<card_image> images_with_key(
+    std::vector<card_image> const& images, std::optional<std::string_view> key
+)
+{
+    std::vector<card_image> found;
+
+    for (auto const& image : images)
+        if (image.variant_key.has_value() == key.has_value() &&
+            (!key || *image.variant_key == *key))
+            found.push_back(image);
+
+    return found;
+}
+
+// The card's default artwork: the variant `default_variant` names, or the
+// unsuffixed file. A declared default naming a variant the card does not have
+// is a validation matter, so fall back rather than resolve to nothing
+std::vector<card_image> default_images(card const& c)
+{
+    if (c.default_variant)
+    {
+        auto declared = images_with_key(c.images, std::string_view{*c.default_variant});
+        if (!declared.empty())
+            return declared;
+    }
+
+    return images_with_key(c.images, std::nullopt);
+}
+
+std::optional<card_image> scalable_of(std::vector<card_image> const& images)
+{
+    auto const found = std::ranges::find(images, image_kind::scalable, &card_image::kind);
+
+    if (found == images.end())
+        return std::nullopt;
+
+    return *found;
+}
+
 std::optional<card_image> best_of_kind(
     std::vector<card_image> const& images, image_kind kind, int target
 )
@@ -260,24 +300,61 @@ std::string card::canonical_id() const
     return id.to_canonical();
 }
 
+std::vector<std::string> card::variant_keys() const
+{
+    std::vector<std::string> keys;
+
+    for (auto const& image : images)
+        if (image.variant_key && std::ranges::find(keys, *image.variant_key) == keys.end())
+            keys.push_back(*image.variant_key);
+
+    std::ranges::sort(keys);
+    return keys;
+}
+
+std::vector<card_image> card::images_for_variant(std::string_view variant_key) const
+{
+    auto requested = images_with_key(images, variant_key);
+
+    // §5.7.5: a request for a variant the card lacks resolves to its default
+    if (requested.empty())
+        return default_images(*this);
+
+    return requested;
+}
+
 std::optional<card_image> card::scalable_image() const
 {
-    auto const found = std::ranges::find(images, image_kind::scalable, &card_image::kind);
+    return scalable_of(default_images(*this));
+}
 
-    if (found == images.end())
-        return std::nullopt;
-
-    return *found;
+std::optional<card_image> card::scalable_image(std::string_view variant_key) const
+{
+    return scalable_of(images_for_variant(variant_key));
 }
 
 std::optional<card_image> card::best_raster_for_height(int target_height) const
 {
-    return best_of_kind(images, image_kind::raster, target_height);
+    return best_of_kind(default_images(*this), image_kind::raster, target_height);
+}
+
+std::optional<card_image> card::best_raster_for_height(
+    int target_height, std::string_view variant_key
+) const
+{
+    return best_of_kind(images_for_variant(variant_key), image_kind::raster, target_height);
 }
 
 std::optional<card_image> card::best_ansi_for_lines(int target_lines) const
 {
-    return best_of_kind(images, image_kind::ansi, target_lines);
+    return best_of_kind(default_images(*this), image_kind::ansi, target_lines);
+}
+
+std::optional<card_image> card::best_ansi_for_lines(
+    int target_lines, std::string_view variant_key
+) const
+{
+    return best_of_kind(images_for_variant(variant_key), image_kind::ansi, target_lines);
 }
 
 }  // namespace arcana
