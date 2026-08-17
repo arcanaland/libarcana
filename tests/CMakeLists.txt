@@ -30,6 +30,8 @@ else()
     set(arcana_reference_decks_dir "")
 endif()
 
+set(arcana_support_dir ${CMAKE_CURRENT_SOURCE_DIR}/support)
+
 function(arcana_add_test name)
     cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;DEFINES;INCLUDES" ${ARGN})
 
@@ -41,7 +43,7 @@ function(arcana_add_test name)
 
     target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS} arcana::arcana)
     target_compile_definitions(${name} PRIVATE ${ARG_DEFINES})
-    target_include_directories(${name} PRIVATE ${ARG_INCLUDES})
+    target_include_directories(${name} PRIVATE ${arcana_support_dir} ${ARG_INCLUDES})
 
     # The random "Checking <VAR> env var" lines are coming from Catch2.
     # Annoying but harmless:

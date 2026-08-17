@@ -3,6 +3,8 @@
 
 #include "temp_dir.hpp"
 
+#include <image_headers.hpp>
+
 #include <arcana/card.hpp>
 #include <arcana/deck.hpp>
 
@@ -144,7 +146,7 @@ TEST_CASE("files create cards", "[loader][v2][discovery]")
 [cards."major_arcana.23"]
 number = "XXIII"
 )");
-        dir.write("h1200/major_arcana/23.png", "\x89PNG");
+        dir.write("h1200/major_arcana/23.png", arcana_test::png_header);
 
         auto const deck = load(dir);
 
@@ -302,9 +304,10 @@ TEST_CASE("images resolve by the extension chain, not by filesystem order", "[lo
         CHECK(deck.cards.size() == canonical_card_count);
         CHECK_FALSE(has_card(deck, "major_arcana.06.two_women"));
 
-        // Layer 5 gives card_image a variant key; until then only the
-        // unsuffixed file supplies artwork
-        CHECK(card_at(deck, "major_arcana.06").images.size() == 1);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+        REQUIRE(lovers.images.size() == 2);
+        CHECK_FALSE(lovers.images.front().variant_key.has_value());
+        CHECK(lovers.images.back().variant_key == "two_women");
     }
 
     SECTION("a loose file and an unknown subdirectory are ignored")
@@ -335,6 +338,137 @@ image = "extra/fool.tiff"
     auto const& fool = card_at(deck, "major_arcana.00");
     REQUIRE(fool.images.size() == 1);
     CHECK(fool.images.front().path.filename() == "fool.tiff");
+}
+
+TEST_CASE("artwork variants belong to one card", "[loader][v2][variants]")
+{
+    SECTION("a declared default_variant is the artwork a bare reference resolves to")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06"]
+default_variant = "two_women"
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_men.svg", "<svg/>");
+
+        auto const deck = load(dir);
+
+        // One card, three artworks
+        CHECK(deck.cards.size() == canonical_card_count);
+
+        auto const& lovers = card_at(deck, "major_arcana.06");
+        REQUIRE(lovers.images.size() == 3);
+        CHECK(lovers.default_variant == "two_women");
+        CHECK(lovers.variant_keys() == std::vector<std::string>{"two_men", "two_women"});
+
+        auto const scalable = lovers.scalable_image();
+        REQUIRE(scalable.has_value());
+        CHECK(scalable->path.filename() == "06.two_women.svg");
+
+        auto const requested = lovers.images_for_variant("two_men");
+        REQUIRE(requested.size() == 1);
+        CHECK(requested.front().path.filename() == "06.two_men.svg");
+
+        // §5.7.5: a variant the card lacks resolves to its default, not an error
+        auto const missing = lovers.images_for_variant("no_such_key");
+        REQUIRE(missing.size() == 1);
+        CHECK(missing.front().path.filename() == "06.two_women.svg");
+    }
+
+    SECTION("a card with only variant files and no default_variant still loads")
+    {
+        auto dir = make_deck();
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_men.svg", "<svg/>");
+
+        auto const deck = load(dir);
+
+        auto const& lovers = card_at(deck, "major_arcana.06");
+        REQUIRE(lovers.images.size() == 2);
+
+        // The lexicographically first variant, which a validator may object to
+        CHECK(lovers.default_variant == "two_men");
+
+        auto const scalable = lovers.scalable_image();
+        REQUIRE(scalable.has_value());
+        CHECK(scalable->path.filename() == "06.two_men.svg");
+    }
+
+    SECTION("the unsuffixed file is the default where the deck declares none")
+    {
+        auto dir = make_deck();
+        dir.write("h1200/major_arcana/06.png", "png");
+        dir.write("h1200/major_arcana/06.two_women.png", "png");
+
+        auto const deck = load(dir);
+
+        auto const& lovers = card_at(deck, "major_arcana.06");
+        CHECK_FALSE(lovers.default_variant.has_value());
+
+        // A variant does not leak into a bare request for the card's artwork
+        auto const raster = lovers.best_raster_for_height(1200);
+        REQUIRE(raster.has_value());
+        CHECK(raster->path.filename() == "06.png");
+
+        auto const variant = lovers.best_raster_for_height(1200, "two_women");
+        REQUIRE(variant.has_value());
+        CHECK(variant->path.filename() == "06.two_women.png");
+    }
+
+    SECTION("a variant entry's image creates the variant, and a card's replaces only the default")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06"]
+image = "extra/lovers.tiff"
+
+[cards."major_arcana.06:two_women"]
+image = "extra/two_women.tiff"
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_men.svg", "<svg/>");
+        dir.write("extra/lovers.tiff", "tiff");
+        dir.write("extra/two_women.tiff", "tiff");
+
+        auto const deck = load(dir);
+
+        auto const& lovers = card_at(deck, "major_arcana.06");
+        REQUIRE(lovers.images.size() == 3);
+        CHECK(lovers.variant_keys() == std::vector<std::string>{"two_men", "two_women"});
+
+        // The card's `image` wins over the unsuffixed file and leaves the
+        // discovered variant alone
+        REQUIRE(lovers.images.front().path.filename() == "lovers.tiff");
+        CHECK_FALSE(lovers.images.front().variant_key.has_value());
+
+        auto const declared = lovers.images_for_variant("two_women");
+        REQUIRE(declared.size() == 1);
+        CHECK(declared.front().path.filename() == "two_women.tiff");
+        CHECK(lovers.images_for_variant("two_men").front().path.filename() == "06.two_men.svg");
+    }
+
+    SECTION("§4.3's card-level keys are ignored on a variant reference")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06:two_women"]
+number = "XCIX"
+position = 3
+default_variant = "two_men"
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        auto const ids = canonical_ids(deck);
+
+        auto const& lovers = card_at(deck, "major_arcana.06");
+        CHECK_FALSE(lovers.number.has_value());
+        CHECK_FALSE(lovers.position.has_value());
+        CHECK_FALSE(lovers.default_variant.has_value());
+
+        // The card kept its place, so `position` did not reach it
+        CHECK(ids[6] == "major_arcana.06");
+    }
 }
 
 TEST_CASE("cards come out in the order of §4.3.2", "[loader][v2][ordering]")

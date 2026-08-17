@@ -143,6 +143,9 @@ struct card_image
 
     std::optional<int> height;  // raster only
     std::optional<int> lines;   // ansi only
+
+    // nullopt if not a variant
+    std::optional<std::string> variant_key;
 };
 
 // The main card model.
@@ -168,21 +171,43 @@ struct card
     // How this card's artwork came to exist, the deck's unless it says otherwise
     std::vector<origin_term> origin;
 
+    // Which variant a bare reference to this card resolves to
+    //
+    // nullopt where the unsuffixed file is the default, which is the usual case
+    std::optional<std::string> default_variant;
+
+    // Every artwork of the card: the default one and each variant
     std::vector<card_image> images;
 
     // Shorthand for id.to_canonical()
     [[nodiscard]] std::string canonical_id() const;
 
+    // The keys of the card's variants excluding the default artwork
+    [[nodiscard]] std::vector<std::string> variant_keys() const;
+
+    // The artwork a request for variant_key resolves to
+    //
+    // Where the card has no variant under that key the default variant's
+    // artwork is returned instead
+    [[nodiscard]] std::vector<card_image> images_for_variant(std::string_view variant_key) const;
+
     // The raster image closest to target_height in pixels.
     // Prefers the smallest image at or above the target
     [[nodiscard]] std::optional<card_image> best_raster_for_height(int target_height) const;
+    [[nodiscard]] std::optional<card_image> best_raster_for_height(
+        int target_height, std::string_view variant_key
+    ) const;
 
     // The ANSI image closest to target_lines in terminal lines.
     // Prefers the largest image at or below the target
     [[nodiscard]] std::optional<card_image> best_ansi_for_lines(int target_lines) const;
+    [[nodiscard]] std::optional<card_image> best_ansi_for_lines(
+        int target_lines, std::string_view variant_key
+    ) const;
 
     // The scalable image, if it exists
     [[nodiscard]] std::optional<card_image> scalable_image() const;
+    [[nodiscard]] std::optional<card_image> scalable_image(std::string_view variant_key) const;
 };
 
 }  // namespace arcana
