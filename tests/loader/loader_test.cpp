@@ -110,7 +110,7 @@ tags = ["classic", 7, "rider"]
     CHECK(d.metadata.tags == std::vector<std::string>{"classic", "rider"});
 }
 
-TEST_CASE("the artist comes from [deck].author, and artist is a courtesy", "[loader]")
+TEST_CASE("the artist comes from [deck].author", "[loader]")
 {
     SECTION("1.0's own spelling")
     {
@@ -277,7 +277,7 @@ cards = [
     CHECK(suits.front().ranks.size() == 14);
 }
 
-TEST_CASE("the cards come back in DECK.md 4.3.2 order", "[loader]")
+TEST_CASE("the cards come back in correct order", "[loader]")
 {
     auto const d = build_from(R"([deck]
 name = "n"
@@ -304,9 +304,7 @@ cards = [{ id = "ace", name = "Ace of Stars" }]
     CHECK(ids[8] == "major_arcana.11");
     CHECK(ids[11] == "major_arcana.08");
 
-    // A custom major with no position follows every major that has one, and
-    // every major precedes the minor arcana. Build order used to put custom
-    // majors after the whole minor arcana
+    // A custom major with no position follows every major that has one
     CHECK(ids[22] == "major_arcana.the_void");
     CHECK(ids[23] == "minor_arcana.wands.ace");
 
@@ -399,7 +397,7 @@ name = "n"
     CHECK(ansi->lines == 32);
 }
 
-TEST_CASE("1.0 artwork resolves through DECK.md 5.7.4's extension chain", "[loader]")
+TEST_CASE("1.0 artwork resolves through proper extension chain", "[loader]")
 {
     arcana_test::temp_dir deck;
     deck.write("h1200/major_arcana/00.jpg");

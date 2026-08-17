@@ -74,8 +74,7 @@ std::optional<std::string> coalesce_alt_text(
     return text;
 }
 
-// 1.0's name files are flat — [major_arcana], [minor_arcana.<suit>], [alt_text]
-// — so every path here is a literal key sequence
+
 std::optional<std::string> name_at(
     name_catalog const& names, std::initializer_list<std::string_view> path
 )
@@ -117,8 +116,6 @@ deck deck_reader::build() &&
     build_custom_majors();
     build_custom_minors();
 
-    // §4.3.2's order is expressed over the model, so 1.0 decks get it too. It
-    // moves custom majors ahead of the minor arcana, where build order left them
     sort_cards(deck_.cards, deck_.suits);
 
     return std::move(deck_);
@@ -132,15 +129,12 @@ void deck_reader::parse_metadata()
 
     deck_metadata m;
 
-    // A 1.0 deck never gets an identifier. [deck].id is a bare library handle,
-    // not a qualified identifier, and 2.0 §3.4 forbids synthesizing one
     m.schema_version = get_string_or(t["schema_version"]);
     m.name = get_string_or(t["name"]);
     m.version = get_string_or(t["version"]);
     m.icon = get_string(t["icon"]);
 
-    // 1.0 spells the artist [deck].author. The newer spelling is accepted as a
-    // deliberate courtesy to decks emitted mid-migration; 1.0's own wins
+    // in 1.0, "author" meant artist
     m.artist = get_string(t["author"]).or_else([&t] { return get_string(t["artist"]); });
     m.creator = get_string(t["creator"]);
     m.license = get_string(t["license"]);
@@ -384,9 +378,6 @@ void deck_reader::discover_assets()
 {
     auto const directories = card_directories();
 
-    // Borrowed from the neutral units: the roots come back sorted by name, and
-    // each directory resolves through §5.7.4's extension chain rather than
-    // through whatever directory_iterator happened to yield first
     for (auto const& root : find_image_roots(root_))
     {
         root_assets assets{.root = root};

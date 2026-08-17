@@ -53,8 +53,7 @@ struct discovered_asset
     std::filesystem::path path;
 };
 
-// The image root `path` names, or nullopt for a directory that is not one of
-// the four forms
+// nullopt if directory is not one of the four forms
 [[nodiscard]] std::optional<image_root> classify_image_root(std::filesystem::path const& path);
 
 // Every image root the deck has, sorted by directory name
