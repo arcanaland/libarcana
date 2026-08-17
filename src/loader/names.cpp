@@ -5,7 +5,6 @@
 
 #include "toml_read.hpp"
 
-#include <array>
 #include <system_error>
 #include <utility>
 
@@ -98,20 +97,6 @@ std::optional<std::string> name_catalog::lookup(std::span<std::string_view const
     for (auto const& key : path.subspan(1)) node = node[key];
 
     return get_string(node);
-}
-
-std::optional<std::string> name_catalog::lookup(
-    std::string_view section, std::string_view key
-) const
-{
-    return lookup(std::array{section, key});
-}
-
-std::optional<std::string> name_catalog::lookup_minor(
-    std::string_view section, std::string_view suit_key, std::string_view rank_key
-) const
-{
-    return lookup(std::array{section, suit_key, rank_key});
 }
 
 }  // namespace arcana::detail

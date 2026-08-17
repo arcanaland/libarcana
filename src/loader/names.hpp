@@ -27,17 +27,9 @@ class name_catalog
     );
 
     // The string at a key path, where each element is one whole TOML key
+    //
+    // Not a dotted string: a variant reference is a single key containing dots
     [[nodiscard]] std::optional<std::string> lookup(std::span<std::string_view const> path) const;
-
-    // @return The string at [<section>].<key>
-    [[nodiscard]] std::optional<std::string> lookup(
-        std::string_view section, std::string_view key
-    ) const;
-
-    // @return The string at [<section>.<suit_key>].<rank_key>
-    [[nodiscard]] std::optional<std::string> lookup_minor(
-        std::string_view section, std::string_view suit_key, std::string_view rank_key
-    ) const;
 
     // @return False when no names file was found or failed to parse
     [[nodiscard]] bool loaded() const noexcept

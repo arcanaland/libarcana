@@ -36,31 +36,6 @@ std::optional<int> parse_root_size(std::string_view digits)
     return value;
 }
 
-// nullopt for a directory that is not one of the four image root forms.
-std::optional<image_root> classify_root(fs::path const& path)
-{
-    auto const name = path.filename().string();
-
-    if (name == "scalable")
-        return image_root{.path = path, .name = name, .kind = image_kind::scalable};
-
-    if (name.starts_with("h"))
-    {
-        if (auto const height = parse_root_size(std::string_view{name}.substr(1)))
-            return image_root{
-                .path = path, .name = name, .kind = image_kind::raster, .height = height
-            };
-    }
-
-    if (name.starts_with("ansi"))
-    {
-        if (auto const lines = parse_root_size(std::string_view{name}.substr(4)))
-            return image_root{.path = path, .name = name, .kind = image_kind::ansi, .lines = lines};
-    }
-
-    return std::nullopt;
-}
-
 // Where an extension sits in the chain for `kind`, or nullopt where discovery
 // ignores it entirely. Lower ranks win.
 std::optional<int> extension_rank(std::string_view extension, image_kind kind)
@@ -90,6 +65,41 @@ std::optional<int> extension_rank(std::string_view extension, image_kind kind)
 }
 
 }  // namespace
+
+std::optional<image_root> classify_image_root(fs::path const& path)
+{
+    auto const name = path.filename().string();
+
+    if (name == "scalable")
+        return image_root{.path = path, .name = name, .kind = image_kind::scalable};
+
+    if (name.starts_with("h"))
+    {
+        if (auto const height = parse_root_size(std::string_view{name}.substr(1)))
+            return image_root{
+                .path = path, .name = name, .kind = image_kind::raster, .height = height
+            };
+    }
+
+    if (name.starts_with("ansi"))
+    {
+        if (auto const lines = parse_root_size(std::string_view{name}.substr(4)))
+            return image_root{.path = path, .name = name, .kind = image_kind::ansi, .lines = lines};
+    }
+
+    return std::nullopt;
+}
+
+card_image image_at(image_root const& root, fs::path path)
+{
+    return {
+        .source_dir = root.name,
+        .path = std::move(path),
+        .kind = root.kind,
+        .height = root.height,
+        .lines = root.lines
+    };
+}
 
 asset_filename split_asset_filename(std::string_view filename) noexcept
 {
@@ -122,7 +132,7 @@ std::vector<image_root> find_image_roots(fs::path const& deck_root)
         if (entry.path().filename() == "surrogate")
             continue;
 
-        if (auto root = classify_root(entry.path()))
+        if (auto root = classify_image_root(entry.path()))
             roots.push_back(*std::move(root));
     }
 

@@ -110,6 +110,37 @@ tags = ["classic", 7, "rider"]
     CHECK(d.metadata.tags == std::vector<std::string>{"classic", "rider"});
 }
 
+TEST_CASE("the artist comes from [deck].author", "[loader]")
+{
+    SECTION("1.0's own spelling")
+    {
+        auto const d = build_from(R"([deck]
+name = "n"
+author = "Pamela"
+)");
+        CHECK(d.metadata.artist == "Pamela");
+    }
+
+    SECTION("a deck emitted mid-migration")
+    {
+        auto const d = build_from(R"([deck]
+name = "n"
+artist = "Pamela"
+)");
+        CHECK(d.metadata.artist == "Pamela");
+    }
+
+    SECTION("1.0's spelling wins where a deck carries both")
+    {
+        auto const d = build_from(R"([deck]
+name = "n"
+author = "Pamela"
+artist = "Somebody Else"
+)");
+        CHECK(d.metadata.artist == "Pamela");
+    }
+}
+
 TEST_CASE("excluded cards are dropped and carry the deck's reason", "[loader]")
 {
     auto const d = build_from(R"([deck]
@@ -246,6 +277,41 @@ cards = [
     CHECK(suits.front().ranks.size() == 14);
 }
 
+TEST_CASE("the cards come back in correct order", "[loader]")
+{
+    auto const d = build_from(R"([deck]
+name = "n"
+
+[remap_major_arcana]
+8 = "Justice"
+11 = "Strength"
+
+[custom_cards.major_arcana.the_void]
+name = "The Void"
+
+[custom_cards.minor_arcana.stars]
+name = "Stars"
+cards = [{ id = "ace", name = "Ace of Stars" }]
+)");
+
+    std::vector<std::string> ids;
+    ids.reserve(d.cards.size());
+    for (auto const& c : d.cards) ids.push_back(c.canonical_id());
+
+    REQUIRE(ids.size() == 80);
+
+    // A major sorts on its position, so the remap swaps these two
+    CHECK(ids[8] == "major_arcana.11");
+    CHECK(ids[11] == "major_arcana.08");
+
+    // A custom major with no position follows every major that has one
+    CHECK(ids[22] == "major_arcana.the_void");
+    CHECK(ids[23] == "minor_arcana.wands.ace");
+
+    // A custom suit follows the four canonical ones
+    CHECK(ids.back() == "minor_arcana.stars.ace");
+}
+
 TEST_CASE("card back designs are read from the deck.toml", "[loader]")
 {
     auto const d = build_from(R"([deck]
@@ -329,6 +395,29 @@ name = "n"
     REQUIRE(ansi.has_value());
     CHECK(ansi->kind == arcana::image_kind::ansi);
     CHECK(ansi->lines == 32);
+}
+
+TEST_CASE("1.0 artwork resolves through proper extension chain", "[loader]")
+{
+    arcana_test::temp_dir deck;
+    deck.write("h1200/major_arcana/00.jpg");
+    deck.write("h1200/major_arcana/00.png");
+    deck.write("h1200/major_arcana/01.txt");
+
+    auto const d = build_from(
+        R"([deck]
+name = "n"
+)",
+        deck.path()
+    );
+
+    // Whichever file directory_iterator yielded first used to win this
+    auto const& fool = card_named(d, "major_arcana.00");
+    REQUIRE(fool.images.size() == 1);
+    CHECK(fool.images.front().path.filename() == "00.png");
+
+    // An extension off the chain supplies nothing in a raster root
+    CHECK(card_named(d, "major_arcana.01").images.empty());
 }
 
 TEST_CASE("card backs on disk are discovered and sorted after declared ones", "[loader]")
