@@ -237,9 +237,7 @@ std::vector<card_image> images_with_key(
     return found;
 }
 
-// The card's default artwork: the variant `default_variant` names, or the
-// unsuffixed file. A declared default naming a variant the card does not have
-// is a validation matter, so fall back rather than resolve to nothing
+// The card's default artwork
 std::vector<card_image> default_images(card const& c)
 {
     if (c.default_variant)
@@ -316,11 +314,7 @@ std::vector<card_image> card::images_for_variant(std::string_view variant_key) c
 {
     auto requested = images_with_key(images, variant_key);
 
-    // §5.7.5: a request for a variant the card lacks resolves to its default
-    if (requested.empty())
-        return default_images(*this);
-
-    return requested;
+    return requested.empty() ? default_images(*this) : requested;
 }
 
 std::optional<card_image> card::scalable_image() const

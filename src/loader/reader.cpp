@@ -50,8 +50,7 @@ std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& no
     return terms;
 }
 
-// What a [cards."<ref>"] entry supplies. Discovery creates the card; this only
-// annotates one it already made
+// What a [cards."<ref>"] entry supplies.
 struct card_annotation
 {
     std::optional<std::string> name;
@@ -236,7 +235,7 @@ class reader
     std::map<std::string, card_annotation> annotations_;
 
     // canonical ID -> variant key -> the `image` a [cards."<ref>:<key>"] entry
-    // declares. Such an entry creates the variant where no file does (§3.1.2)
+    // declares. Such an entry creates the variant where no file does
     std::map<std::string, std::map<std::string, std::string>> variant_images_;
 
     // Rank keys the deck uses, so that [name.rank] is read for each of them
@@ -380,11 +379,7 @@ void reader::read_annotations()
 
         if (auto const colon = reference.find(':'); colon != std::string::npos)
         {
-            // A variant-reference entry supplies that variant's image. Its
-            // strings, alt text and origin have nowhere to live in a model with
-            // no variant entity and are dropped. `number`, `position` and
-            // `default_variant` belong to the card, and §4.3 says an
-            // application MUST ignore all three declared on a variant
+            // A variant-reference entry supplies that variant's image.
             if (auto image = get_string(entry["image"]))
                 variant_images_[reference.substr(0, colon)].insert_or_assign(
                     reference.substr(colon + 1), *std::move(image)
@@ -465,9 +460,6 @@ void reader::attach_images(card& c) const
     auto by_variant = discovered_images(c);
     auto const canonical = c.canonical_id();
 
-    // An explicit `image` path wins outright over discovery, for the one
-    // artwork it names: a card entry's for the default artwork, a variant
-    // entry's for that variant
     auto const declare = [&](std::string const& variant_key, std::string const& relative)
     {
         card_image image{.source_dir = {}, .path = root_ / relative, .kind = image_kind::scalable};
@@ -502,8 +494,7 @@ void reader::resolve_default_variant(card& c) const
         return;
 
     // A card with variant files and no unsuffixed file MUST declare
-    // `default_variant` (§4.3). Where it does not, that is for a validator to
-    // report: the deck still loads, on the first variant key
+    // `default_variant`, so let's pull in the first variant key
     if (auto const keys = c.variant_keys(); !keys.empty())
         c.default_variant = keys.front();
 }

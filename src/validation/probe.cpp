@@ -25,9 +25,6 @@ constexpr std::size_t ansi_sniff_bytes = 64UL * 1024UL;
 // How much is read at a time
 constexpr std::size_t ansi_sniff_chunk = 4096;
 
-// Enough for the longest signature we sniff.
-constexpr std::size_t max_signature_bytes = 8;
-
 }  // namespace
 
 bool contains_ansi_escapes(std::filesystem::path const& file)
@@ -62,7 +59,7 @@ bool is_baseline_image_format(std::filesystem::path const& file)
     if (!stream)
         return false;
 
-    std::array<std::byte, max_signature_bytes> head{};
+    std::array<std::byte, data::image_signature_bytes> head{};
     stream.read(reinterpret_cast<char*>(head.data()), head.size());  // NOLINT(*-reinterpret-cast)
 
     auto const got = static_cast<std::size_t>(stream.gcount());

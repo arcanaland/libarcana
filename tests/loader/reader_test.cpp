@@ -3,6 +3,8 @@
 
 #include "temp_dir.hpp"
 
+#include <image_headers.hpp>
+
 #include <arcana/card.hpp>
 #include <arcana/deck.hpp>
 
@@ -144,7 +146,7 @@ TEST_CASE("files create cards", "[loader][v2][discovery]")
 [cards."major_arcana.23"]
 number = "XXIII"
 )");
-        dir.write("h1200/major_arcana/23.png", "\x89PNG");
+        dir.write("h1200/major_arcana/23.png", arcana_test::png_header);
 
         auto const deck = load(dir);
 

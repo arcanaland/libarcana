@@ -144,8 +144,7 @@ struct card_image
     std::optional<int> height;  // raster only
     std::optional<int> lines;   // ansi only
 
-    // The artwork variant this file supplies, e.g. "two_women" for
-    // 06.two_women.png. nullopt for the unsuffixed file
+    // nullopt if not a variant
     std::optional<std::string> variant_key;
 };
 
@@ -174,9 +173,7 @@ struct card
 
     // Which variant a bare reference to this card resolves to
     //
-    // nullopt where the unsuffixed file is the default artwork, which is the
-    // usual case. Set where the deck declares `default_variant`, and where the
-    // card has variant files but no unsuffixed one
+    // nullopt where the unsuffixed file is the default, which is the usual case
     std::optional<std::string> default_variant;
 
     // Every artwork of the card: the default one and each variant
@@ -185,13 +182,13 @@ struct card
     // Shorthand for id.to_canonical()
     [[nodiscard]] std::string canonical_id() const;
 
-    // The keys of the card's variants, sorted, excluding the default artwork
+    // The keys of the card's variants excluding the default artwork
     [[nodiscard]] std::vector<std::string> variant_keys() const;
 
-    // The artwork a request for `variant_key` resolves to
+    // The artwork a request for variant_key resolves to
     //
     // Where the card has no variant under that key the default variant's
-    // artwork is returned instead, which is not an error
+    // artwork is returned instead
     [[nodiscard]] std::vector<card_image> images_for_variant(std::string_view variant_key) const;
 
     // The raster image closest to target_height in pixels.
