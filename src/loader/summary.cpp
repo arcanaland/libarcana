@@ -3,14 +3,21 @@
 
 #include "summary.hpp"
 
+#include "discovery.hpp"
 #include "document.hpp"
+#include "schema_version.hpp"
 #include "standard_cards.hpp"
 #include "toml_read.hpp"
+#include "v1_compat/summary.hpp"
 
 #include <arcana/card.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <format>
+#include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace arcana::detail
@@ -19,57 +26,27 @@ namespace arcana::detail
 namespace
 {
 
-bool is_excluded(std::vector<std::string> const& excluded, std::string const& canonical_id)
+// How many cards a 2.0 deck has
+//
+// 2.0 discovers its cards from the directory tree rather than listing them, so
+// counting them means walking it. The set is the reader's: every canonical ID a
+// file creates, plus the seventy-eight slots that exist for every deck, less
+// what [excluded_cards] removes.
+std::size_t count_cards(toml::table const& document, std::filesystem::path const& deck_directory)
 {
-    return std::ranges::find(excluded, canonical_id) != excluded.end();
-}
-
-// How many standard cards there are after exclusions
-std::size_t count_standard_cards(std::vector<std::string> const& excluded)
-{
-    std::size_t count = 0;
+    auto cards = discover_card_ids(deck_directory);
 
     for (int number = 0; number <= max_major_arcana_number; ++number)
-        if (!is_excluded(excluded, card_id::standard_major(number).to_canonical()))
-            ++count;
+        cards.insert(std::format("major_arcana.{:02}", number));
 
     for (auto const s : standard_suits)
         for (auto const r : standard_ranks)
-            if (!is_excluded(excluded, card_id::standard_minor(s, r).to_canonical()))
-                ++count;
+            cards.insert(std::format("minor_arcana.{}.{}", to_string(s), to_string(r)));
 
-    return count;
-}
+    for (auto const& excluded : get_string_array(document["excluded_cards"]["cards"]))
+        cards.erase(excluded);
 
-std::size_t count_custom_cards(toml::table const& document)
-{
-    auto const* custom = document["custom_cards"].as_table();
-    if (custom == nullptr)
-        return 0;
-
-    std::size_t count = 0;
-
-    if (auto const* major = (*custom)["major_arcana"].as_table())
-        for (auto const& [key, value] : *major)
-            if (value.as_table() != nullptr)
-                ++count;
-
-    if (auto const* minor = (*custom)["minor_arcana"].as_table())
-    {
-        for (auto const& [key, value] : *minor)
-        {
-            auto const* suit_table = value.as_table();
-            if (suit_table == nullptr)
-                continue;
-
-            if (auto const* cards = (*suit_table)["cards"].as_array())
-                for (auto const& element : *cards)
-                    if (element.as_table() != nullptr)
-                        ++count;
-        }
-    }
-
-    return count;
+    return cards.size();
 }
 
 }  // namespace
@@ -82,6 +59,10 @@ std::expected<deck_summary, error> load_deck_summary(std::filesystem::path const
 
     toml::table const& table = (*document)->table;
 
+    auto version = read_schema_version(table, deck_directory);
+    if (!version)
+        return std::unexpected(std::move(version.error()));
+
     toml::table const& deck_table = *table["deck"].as_table();
 
     deck_summary summary{
@@ -93,8 +74,7 @@ std::expected<deck_summary, error> load_deck_summary(std::filesystem::path const
         .artist = get_string(deck_table["artist"]),
         .icon = std::nullopt,
         .card_count =
-            count_standard_cards(get_string_array(deck_table["excluded_cards"]["cards"])) +
-            count_custom_cards(table)
+            version->major == 1 ? v1_compat::count_cards(table) : count_cards(table, deck_directory)
     };
 
     if (auto const icon = get_string(deck_table["icon"]); icon && !icon->empty())

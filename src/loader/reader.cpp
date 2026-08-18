@@ -302,7 +302,7 @@ void reader::discover_majors(image_root const& root, root_index& index)
     for (auto& asset :
          discover_directory(root.path / "major_arcana", root.kind, /*allow_variants=*/true))
     {
-        auto const id = card_id::parse(std::format("major_arcana.{}", asset.base));
+        auto const id = major_asset_id(asset.base);
         if (!id)
             continue;
 
@@ -321,14 +321,12 @@ void reader::discover_minors(image_root const& root, root_index& index)
             continue;
 
         auto const suit_key = entry.path().filename().string();
-        if (!suit_from_string(suit_key) && !is_custom_name(suit_key))
+        if (!is_suit_directory(suit_key))
             continue;
 
         for (auto& asset : discover_directory(entry.path(), root.kind, /*allow_variants=*/true))
         {
-            auto const id = card_id::parse(std::format("minor_arcana.{}.{}", suit_key, asset.base));
-
-            // TODO: A canonical suit holding a custom rank key
+            auto const id = minor_asset_id(suit_key, asset.base);
             if (!id)
                 continue;
 

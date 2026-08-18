@@ -12,7 +12,13 @@
 namespace arcana::detail
 {
 
-// Load a summary of a deck computed from its manifest without walking the directory tree
+// Load a summary of a deck, dispatched on [deck].schema_version
+//
+// A 1.0 summary is read from the manifest alone. A 2.0 one walks the image
+// roots, because 2.0 discovers its cards from the tree rather than listing
+// them and a count that disagreed with load_deck would be worse than a slow
+// one — the library list and the loaded deck would describe the same deck
+// differently.
 [[nodiscard]] std::expected<deck_summary, error> load_deck_summary(
     std::filesystem::path const& deck_directory
 );

@@ -30,6 +30,7 @@ target_sources(
             summary.hpp
             toml_read.hpp
             v1_compat/reader.hpp
+            v1_compat/summary.hpp
             v1_compat/tables.hpp
     PRIVATE
         discovery.cpp
@@ -41,6 +42,7 @@ target_sources(
         schema_version.cpp
         summary.cpp
         v1_compat/reader.cpp
+        v1_compat/summary.cpp
 )
 
 target_compile_features(arcana-loader PUBLIC cxx_std_26)

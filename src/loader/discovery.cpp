@@ -7,7 +7,9 @@
 
 #include <algorithm>
 #include <charconv>
+#include <format>
 #include <map>
+#include <string>
 #include <system_error>
 #include <utility>
 
@@ -101,6 +103,22 @@ card_image image_at(image_root const& root, fs::path path)
     };
 }
 
+std::expected<card_id, error> major_asset_id(std::string_view base)
+{
+    return card_id::parse(std::format("major_arcana.{}", base));
+}
+
+std::expected<card_id, error> minor_asset_id(std::string_view suit_key, std::string_view base)
+{
+    // TODO: A canonical suit holding a custom rank key
+    return card_id::parse(std::format("minor_arcana.{}.{}", suit_key, base));
+}
+
+bool is_suit_directory(std::string_view name)
+{
+    return suit_from_string(name).has_value() || is_custom_name(name);
+}
+
 asset_filename split_asset_filename(std::string_view filename) noexcept
 {
     asset_filename result;
@@ -184,6 +202,45 @@ std::vector<discovered_asset> discover_directory(
         );
 
     return assets;
+}
+
+namespace
+{
+
+// One image root's major_arcana/ and minor_arcana/<suit>/ contribution
+void collect_card_ids(image_root const& root, std::set<std::string>& ids)
+{
+    for (auto const& asset :
+         discover_directory(root.path / "major_arcana", root.kind, /*allow_variants=*/true))
+        if (auto const id = major_asset_id(asset.base))
+            ids.insert(id->to_canonical());
+
+    std::error_code ec;
+    for (auto const& entry : fs::directory_iterator(root.path / "minor_arcana", ec))
+    {
+        if (!entry.is_directory(ec))
+            continue;
+
+        auto const suit_key = entry.path().filename().string();
+        if (!is_suit_directory(suit_key))
+            continue;
+
+        for (auto const& asset :
+             discover_directory(entry.path(), root.kind, /*allow_variants=*/true))
+            if (auto const id = minor_asset_id(suit_key, asset.base))
+                ids.insert(id->to_canonical());
+    }
+}
+
+}  // namespace
+
+std::set<std::string> discover_card_ids(fs::path const& deck_root)
+{
+    std::set<std::string> ids;
+
+    for (auto const& root : find_image_roots(deck_root)) collect_card_ids(root, ids);
+
+    return ids;
 }
 
 }  // namespace arcana::detail
