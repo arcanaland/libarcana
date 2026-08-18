@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -196,10 +197,25 @@ NB_MODULE(_core, m)  // NOLINT
         // Shape: std::vector<T> by value.
         .def_rw("images", &card::images)
         .def("canonical_id", &card::canonical_id)
-        // Shape: std::optional<T> by value.
-        .def("best_raster_for_height", &card::best_raster_for_height, nb::arg("target_height"))
-        .def("best_ansi_for_lines", &card::best_ansi_for_lines, nb::arg("target_lines"))
-        .def("scalable_image", &card::scalable_image);
+        // Shape: std::optional<T> by value. Each of the three is overloaded on
+        // a variant key, which layer 8 of TASK-032 binds; until then the cast
+        // names the unsuffixed arm so the pointer is not ambiguous.
+        .def(
+            "best_raster_for_height",
+            static_cast<std::optional<card_image> (card::*)(int) const>(
+                &card::best_raster_for_height
+            ),
+            nb::arg("target_height")
+        )
+        .def(
+            "best_ansi_for_lines",
+            static_cast<std::optional<card_image> (card::*)(int) const>(&card::best_ansi_for_lines),
+            nb::arg("target_lines")
+        )
+        .def(
+            "scalable_image",
+            static_cast<std::optional<card_image> (card::*)() const>(&card::scalable_image)
+        );
 
     nb::class_<origin_term>(m, "origin_term")
         .def(nb::init<>())

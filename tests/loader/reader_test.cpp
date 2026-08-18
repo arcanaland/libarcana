@@ -73,6 +73,14 @@ arcana::card const& card_at(arcana::deck const& d, std::string_view canonical)
     return *at;
 }
 
+arcana::card_variant const& variant_at(arcana::card const& c, std::string_view key)
+{
+    auto const at = std::ranges::find(c.variants, key, &arcana::card_variant::key);
+
+    REQUIRE(at != c.variants.end());
+    return *at;
+}
+
 }  // namespace
 
 TEST_CASE("a 2.0 deck always has the seventy-eight canonical slots", "[loader][v2]")
@@ -468,6 +476,160 @@ default_variant = "two_men"
 
         // The card kept its place, so `position` did not reach it
         CHECK(ids[6] == "major_arcana.06");
+    }
+}
+
+TEST_CASE("a variant is an entity with its own strings", "[loader][v2][variants]")
+{
+    SECTION("a manifest entry names the variant")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06:two_women"]
+name = "The Lovers, Two Women"
+alt_text = "Two women beneath an angel."
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+
+        REQUIRE(lovers.variants.size() == 1);
+
+        auto const& two_women = variant_at(lovers, "two_women");
+        CHECK(two_women.display_name == "The Lovers, Two Women");
+        CHECK(two_women.alt_text == "Two women beneath an angel.");
+    }
+
+    SECTION("a name file wins over the manifest")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06:two_women"]
+name = "The Lovers, Two Women"
+alt_text = "Two women beneath an angel."
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+        dir.write("names/en.toml", R"(
+[name.variant]
+"major_arcana.06:two_women" = "Les Amoureuses"
+
+[alt_text.variant]
+"major_arcana.06:two_women" = "Deux femmes sous un ange."
+)");
+
+        auto const deck = load(dir);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+        auto const& two_women = variant_at(lovers, "two_women");
+
+        CHECK(two_women.display_name == "Les Amoureuses");
+        CHECK(two_women.alt_text == "Deux femmes sous un ange.");
+    }
+
+    SECTION("a variant the deck names nowhere takes the card's own strings")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06"]
+alt_text = "Two figures beneath an angel."
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_men.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+
+        // Sorted by key, one per variant_keys() entry
+        REQUIRE(lovers.variants.size() == 2);
+        CHECK(lovers.variants.front().key == "two_men");
+        CHECK(lovers.variants.back().key == "two_women");
+
+        // The card's resolved name, not a title-cased key
+        for (auto const& variant : lovers.variants)
+        {
+            CAPTURE(variant.key);
+            CHECK(variant.display_name == "The Lovers");
+            CHECK(variant.alt_text == "Two figures beneath an angel.");
+        }
+    }
+
+    SECTION("a variant entry for a key with no artwork makes no variant")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06:two_women"]
+name = "The Lovers, Two Women"
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+
+        CHECK(lovers.variant_keys().empty());
+        CHECK(lovers.variants.empty());
+    }
+
+    SECTION("a variant entry carrying an image creates the variant it names")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06:two_women"]
+name = "The Lovers, Two Women"
+image = "extra/two_women.tiff"
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("extra/two_women.tiff", "tiff");
+
+        auto const deck = load(dir);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+
+        REQUIRE(lovers.variants.size() == 1);
+        CHECK(variant_at(lovers, "two_women").display_name == "The Lovers, Two Women");
+    }
+
+    SECTION("origin inherits one link at a time")
+    {
+        auto dir = make_deck(R"(
+[deck.origin]
+"iptc-dst" = "print"
+"x_studio" = "house"
+
+[cards."major_arcana.06"]
+origin = { "x_studio" = "guest" }
+
+[cards."major_arcana.06:two_women"]
+origin = { "iptc-dst" = "trainedAlgorithmicMedia" }
+)");
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_men.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+
+        // Sorted by system, as everywhere else origin is resolved
+        CHECK(
+            variant_at(lovers, "two_women").origin ==
+            std::vector<arcana::origin_term>{
+                {.system = "iptc-dst", .term = "trainedAlgorithmicMedia"},
+                {.system = "x_studio", .term = "guest"}
+            }
+        );
+
+        // A variant that declares nothing is its card's, deck's link included
+        CHECK(
+            variant_at(lovers, "two_men").origin ==
+            std::vector<arcana::origin_term>{
+                {.system = "iptc-dst", .term = "print"}, {.system = "x_studio", .term = "guest"}
+            }
+        );
+    }
+
+    SECTION("a card with no variants carries none")
+    {
+        auto dir = make_deck();
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        CHECK(card_at(deck, "major_arcana.06").variants.empty());
     }
 }
 

@@ -148,6 +148,27 @@ struct card_image
     std::optional<std::string> variant_key;
 };
 
+// One artwork of a card, named and credited in its own right
+//
+// A variant exists because a file or an explicit `image` created it; a
+// [cards."<ref>:<key>"] entry naming a key with no artwork makes none.
+struct card_variant
+{
+    // The variant key, e.g. "two_women"; never empty
+    std::string key;
+
+    // Resolved; the card's own name where the deck names no variant
+    std::string display_name;
+
+    // Resolved; the card's own alt text where the deck gives the variant none
+    std::optional<std::string> alt_text;
+
+    // Effective: the variant's declared terms, the card's for the rest
+    std::vector<origin_term> origin;
+
+    friend bool operator==(card_variant const&, card_variant const&) = default;
+};
+
 // The main card model.
 struct card
 {
@@ -178,6 +199,12 @@ struct card
 
     // Every artwork of the card: the default one and each variant
     std::vector<card_image> images;
+
+    // One entry per key in variant_keys(), sorted by key
+    //
+    // The artwork itself stays on `images` under its variant_key: a variant
+    // spans one file per image root, so this is not an images container
+    std::vector<card_variant> variants;
 
     // Shorthand for id.to_canonical()
     [[nodiscard]] std::string canonical_id() const;
