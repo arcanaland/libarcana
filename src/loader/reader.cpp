@@ -50,6 +50,19 @@ std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& no
     return terms;
 }
 
+// an artwork that declares no term for a system takes the term of the artwork it sits under
+std::vector<origin_term> inherit_origin(
+    std::vector<origin_term>&& declared, std::vector<origin_term> const& inherited
+)
+{
+    for (auto const& term : inherited)
+        if (std::ranges::find(declared, term.system, &origin_term::system) == declared.end())
+            declared.push_back(term);
+
+    std::ranges::sort(declared, {}, &origin_term::system);
+    return declared;
+}
+
 // What a [cards."<ref>"] entry supplies.
 struct card_annotation
 {
@@ -59,6 +72,15 @@ struct card_annotation
     std::optional<int> position;
     std::optional<std::string> image;
     std::optional<std::string> default_variant;
+    std::vector<origin_term> origin;
+};
+
+// What a [cards."<ref>:<key>"] entry supplies.
+struct variant_annotation
+{
+    std::optional<std::string> name;
+    std::optional<std::string> alt_text;
+    std::optional<std::string> image;
     std::vector<origin_term> origin;
 };
 
@@ -184,6 +206,12 @@ class reader
     void read_card_backs();
 
     void resolve_names();
+
+    [[nodiscard]] variant_annotation const* annotation_for(
+        card const& c, std::string const& key
+    ) const;
+    [[nodiscard]] card_variant make_variant(card const& c, std::string const& key) const;
+    void build_variants();
     void resolve_suit_names();
     void resolve_rank_names();
     void resolve_card_names();
@@ -210,12 +238,7 @@ class reader
         std::vector<origin_term>&& declared
     ) const
     {
-        for (auto const& term : deck_origin_)
-            if (std::ranges::find(declared, term.system, &origin_term::system) == declared.end())
-                declared.push_back(term);
-
-        std::ranges::sort(declared, {}, &origin_term::system);
-        return declared;
+        return inherit_origin(std::move(declared), deck_origin_);
     }
 
     fs::path root_;
@@ -234,9 +257,10 @@ class reader
 
     std::map<std::string, card_annotation> annotations_;
 
-    // canonical ID -> variant key -> the `image` a [cards."<ref>:<key>"] entry
-    // declares. Such an entry creates the variant where no file does
-    std::map<std::string, std::map<std::string, std::string>> variant_images_;
+    // canonical ID -> variant key -> what its [cards."<ref>:<key>"] entry
+    // supplies. Such an entry creates the variant where no file does, but only
+    // by carrying an `image`
+    std::map<std::string, std::map<std::string, variant_annotation>> variant_annotations_;
 
     // Rank keys the deck uses, so that [name.rank] is read for each of them
     std::set<std::string> rank_keys_;
@@ -379,11 +403,15 @@ void reader::read_annotations()
 
         if (auto const colon = reference.find(':'); colon != std::string::npos)
         {
-            // A variant-reference entry supplies that variant's image.
-            if (auto image = get_string(entry["image"]))
-                variant_images_[reference.substr(0, colon)].insert_or_assign(
-                    reference.substr(colon + 1), *std::move(image)
-                );
+            variant_annotation annotation;
+            annotation.name = get_string(entry["name"]);
+            annotation.alt_text = get_string(entry["alt_text"]);
+            annotation.image = get_string(entry["image"]);
+            annotation.origin = read_origin(entry["origin"]);
+
+            variant_annotations_[reference.substr(0, colon)].insert_or_assign(
+                reference.substr(colon + 1), std::move(annotation)
+            );
 
             continue;
         }
@@ -473,8 +501,11 @@ void reader::attach_images(card& c) const
         if (auto const& declared = annotation->second.image)
             declare({}, *declared);
 
-    if (auto const declared = variant_images_.find(canonical); declared != variant_images_.end())
-        for (auto const& [variant_key, relative] : declared->second) declare(variant_key, relative);
+    if (auto const declared = variant_annotations_.find(canonical);
+        declared != variant_annotations_.end())
+        for (auto const& [variant_key, annotation] : declared->second)
+            if (annotation.image)
+                declare(variant_key, *annotation.image);
 
     // The unsuffixed artwork first, then the variants by key
     for (auto& entry : by_variant) std::ranges::move(entry.second, std::back_inserter(c.images));
@@ -627,6 +658,62 @@ void reader::read_card_backs()
     }
 }
 
+// What a [cards."<ref>:<key>"] entry supplied for one variant, if anything
+variant_annotation const* reader::annotation_for(card const& c, std::string const& key) const
+{
+    auto const entries = variant_annotations_.find(c.canonical_id());
+    if (entries == variant_annotations_.end())
+        return nullptr;
+
+    auto const found = entries->second.find(key);
+    return found == entries->second.end() ? nullptr : &found->second;
+}
+
+// Ceate a variant of a card and resolve its strings / origin
+card_variant reader::make_variant(card const& c, std::string const& key) const
+{
+    auto const* const annotation = annotation_for(c, key);
+
+    auto const reference = std::format("{}:{}", c.canonical_id(), key);
+
+    std::array const name_path{
+        std::string_view{"name"}, std::string_view{"variant"}, std::string_view{reference}
+    };
+
+    std::array const alt_path{
+        std::string_view{"alt_text"}, std::string_view{"variant"}, std::string_view{reference}
+    };
+
+    card_variant variant{.key = key};
+
+    if (auto const named = from_names(name_path))
+        variant.display_name = *named;
+    else if (annotation != nullptr && annotation->name)
+        variant.display_name = *annotation->name;
+    else
+        variant.display_name = c.display_name;
+
+    if (auto const alt = from_names(alt_path))
+        variant.alt_text = *alt;
+    else if (annotation != nullptr && annotation->alt_text)
+        variant.alt_text = annotation->alt_text;
+    else
+        variant.alt_text = c.alt_text;
+
+    // a variant that declares no term for a system takes its card's term
+    auto own = annotation == nullptr ? std::vector<origin_term>{} : annotation->origin;
+    variant.origin = inherit_origin(std::move(own), c.origin);
+
+    return variant;
+}
+
+void reader::build_variants()
+{
+    for (auto& c : deck_.cards)
+        // variant_keys() is sorted, so `variants` comes out sorted by key
+        for (auto const& key : c.variant_keys()) c.variants.push_back(make_variant(c, key));
+}
+
 void reader::resolve_suit_names()
 {
     for (auto& info : deck_.suits)
@@ -769,6 +856,7 @@ deck reader::read()
     build_cards();
     read_card_backs();
     resolve_names();
+    build_variants();
 
     sort_cards(deck_.cards, deck_.suits);
 

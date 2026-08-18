@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -196,10 +197,23 @@ NB_MODULE(_core, m)  // NOLINT
         // Shape: std::vector<T> by value.
         .def_rw("images", &card::images)
         .def("canonical_id", &card::canonical_id)
-        // Shape: std::optional<T> by value.
-        .def("best_raster_for_height", &card::best_raster_for_height, nb::arg("target_height"))
-        .def("best_ansi_for_lines", &card::best_ansi_for_lines, nb::arg("target_lines"))
-        .def("scalable_image", &card::scalable_image);
+        // TODO: get rid of these static_casts
+        .def(
+            "best_raster_for_height",
+            static_cast<std::optional<card_image> (card::*)(int) const>(
+                &card::best_raster_for_height
+            ),
+            nb::arg("target_height")
+        )
+        .def(
+            "best_ansi_for_lines",
+            static_cast<std::optional<card_image> (card::*)(int) const>(&card::best_ansi_for_lines),
+            nb::arg("target_lines")
+        )
+        .def(
+            "scalable_image",
+            static_cast<std::optional<card_image> (card::*)() const>(&card::scalable_image)
+        );
 
     nb::class_<origin_term>(m, "origin_term")
         .def(nb::init<>())

@@ -148,6 +148,19 @@ struct card_image
     std::optional<std::string> variant_key;
 };
 
+// One variant artwork of a card
+struct card_variant
+{
+    std::string key;
+    std::string display_name;
+    std::optional<std::string> alt_text;
+
+    // Effective: the variant's declared terms, the card's for the rest
+    std::vector<origin_term> origin;
+
+    friend bool operator==(card_variant const&, card_variant const&) = default;
+};
+
 // The main card model.
 struct card
 {
@@ -178,6 +191,9 @@ struct card
 
     // Every artwork of the card: the default one and each variant
     std::vector<card_image> images;
+
+    // One entry per key in variant_keys(), sorted by key
+    std::vector<card_variant> variants;
 
     // Shorthand for id.to_canonical()
     [[nodiscard]] std::string canonical_id() const;
