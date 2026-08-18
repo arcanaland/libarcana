@@ -197,9 +197,7 @@ NB_MODULE(_core, m)  // NOLINT
         // Shape: std::vector<T> by value.
         .def_rw("images", &card::images)
         .def("canonical_id", &card::canonical_id)
-        // Shape: std::optional<T> by value. Each of the three is overloaded on
-        // a variant key, which layer 8 of TASK-032 binds; until then the cast
-        // names the unsuffixed arm so the pointer is not ambiguous.
+        // TODO: get rid of these static_casts
         .def(
             "best_raster_for_height",
             static_cast<std::optional<card_image> (card::*)(int) const>(

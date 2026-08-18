@@ -50,8 +50,7 @@ std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& no
     return terms;
 }
 
-// §4.1.8's inheritance: an artwork that declares no term for a system takes the
-// term of the artwork it sits under
+// an artwork that declares no term for a system takes the term of the artwork it sits under
 std::vector<origin_term> inherit_origin(
     std::vector<origin_term>&& declared, std::vector<origin_term> const& inherited
 )
@@ -77,9 +76,6 @@ struct card_annotation
 };
 
 // What a [cards."<ref>:<key>"] entry supplies.
-//
-// §4.3's card-level keys -- `number`, `position`, `default_variant` -- are
-// ignored on a variant reference, so they are not read here.
 struct variant_annotation
 {
     std::optional<std::string> name;
@@ -673,20 +669,17 @@ variant_annotation const* reader::annotation_for(card const& c, std::string cons
     return found == entries->second.end() ? nullptr : &found->second;
 }
 
-// One variant of a card, its strings and origin resolved at the door
-//
-// §6.3's two variant rows both end at the card's own strings, so this reads a
-// card resolve_names() has already been over
+// Ceate a variant of a card and resolve its strings / origin
 card_variant reader::make_variant(card const& c, std::string const& key) const
 {
     auto const* const annotation = annotation_for(c, key);
 
-    // §3.6: a variant reference is one whole TOML key, dots and all
     auto const reference = std::format("{}:{}", c.canonical_id(), key);
 
     std::array const name_path{
         std::string_view{"name"}, std::string_view{"variant"}, std::string_view{reference}
     };
+
     std::array const alt_path{
         std::string_view{"alt_text"}, std::string_view{"variant"}, std::string_view{reference}
     };
@@ -707,8 +700,7 @@ card_variant reader::make_variant(card const& c, std::string const& key) const
     else
         variant.alt_text = c.alt_text;
 
-    // §4.1.8: a variant that declares no term for a system takes its card's
-    // effective term, which is already the deck's where the card declared none
+    // a variant that declares no term for a system takes its card's term
     auto own = annotation == nullptr ? std::vector<origin_term>{} : annotation->origin;
     variant.origin = inherit_origin(std::move(own), c.origin);
 
