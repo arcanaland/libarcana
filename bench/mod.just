@@ -9,19 +9,14 @@ set working-directory := '..'
 bench_bin := build_dir / "bench/arcana-bench"
 micro_bin := build_dir / "bench/arcana-bench-micro"
 
-# The library the podman shim mounts the host's decks at. Override with
-# ARCANA_BENCH_LIBRARY on the host to point the mount somewhere else.
+# The library the podman shim mounts the host's decks at
 library := "/decks"
 
-# hyperfine needs the workload repeated in-process: starting a linked binary
-# costs ~1.2ms, twice what load_deck does, so one call per process would be
-# mostly exec noise. 1000 puts startup at ~0.2% of the run.
 repeat := "1000"
 
 default:
     @just --list bench
 
-# Every workload the harness knows.
 [script]
 list: build
     {{bench_bin}} --list
@@ -37,7 +32,7 @@ micro deck="" *args: build
     ARCANA_BENCH_LIBRARY_DIR={{library}} {{micro_bin}} '[.bench]' \
         {{ if deck == "" { "" } else { "-c " + quote(deck) } }} {{args}}
 
-[doc('One workload under hyperfine, e.g. `just bench run load wisdom-of-pooh-tarot`.')]
+[doc('One workload under hyperfine, e.g. `just bench run load my-tarot`.')]
 [group('bench')]
 [script]
 run workload deck="" *args: build
@@ -56,7 +51,7 @@ sweep workload *args: build
         -n '{{workload}} {deck}' \
         "{{bench_bin}} {{workload}} --deck {{library}}/{deck} --repeat {{repeat}} --quiet"
 
-[doc('Every workload once, as a plain table. The quick "did I regress" pass.')]
+[doc('Run every workload once.')]
 [group('bench')]
 [script]
 table deck="": build

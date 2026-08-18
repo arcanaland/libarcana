@@ -1,16 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// The in-process front end: per-call cost with Catch2's own timing.
-//
-// This is the one to reach for when the question is "which function costs
-// what". Catch2 estimates the clock's resolution, warms up, times each
-// iteration and reports mean/median/stddev with outlier analysis, none of which
-// is contaminated by process startup. Use hyperfine over `arcana-bench` when
-// the question is instead "is this build faster than that build".
-//
-// Every case is tagged [.bench] - the leading dot is Catch2's hidden tag, so
-// `just test` never runs these. `just bench micro` asks for them by name.
+// The in-process benchmark front end
 
 #include "workloads.hpp"
 
@@ -27,7 +18,6 @@ namespace
 
 namespace fs = std::filesystem;
 
-// Where the decks are, overridable so this can be pointed at any library
 fs::path library_root()
 {
     if (auto const* const from_env = std::getenv("ARCANA_BENCH_LIBRARY_DIR"))

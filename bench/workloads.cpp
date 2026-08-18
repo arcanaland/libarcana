@@ -27,18 +27,18 @@ namespace fs = std::filesystem;
 std::array const registry{
     workload{
         .name = "document",
-        .description = "parse deck.toml and nothing else",
+        .description = "parse deck.toml",
         .run = [](context const& c)
         { return detail::load_deck_document(c.deck).has_value() ? std::size_t{1} : 0; }
     },
     workload{
         .name = "discover",
-        .description = "walk the image roots for the card IDs a 2.0 deck has",
+        .description = "walk the image roots for the card IDs",
         .run = [](context const& c) { return detail::discover_card_ids(c.deck).size(); }
     },
     workload{
         .name = "summary",
-        .description = "load_deck_summary, the library-scan unit",
+        .description = "load_deck_summary",
         .run =
             [](context const& c)
         {
@@ -48,7 +48,7 @@ std::array const registry{
     },
     workload{
         .name = "load",
-        .description = "load_deck, the whole model",
+        .description = "load_deck",
         .run =
             [](context const& c)
         {
@@ -66,9 +66,6 @@ std::array const registry{
             if (!d)
                 return std::size_t{0};
 
-            // The cards are in the sink because a clean deck has no
-            // diagnostics, and a zero sink is how the runner spots a workload
-            // that has stopped doing anything
             return d->cards.size() + validate(*d).size();
         }
     },

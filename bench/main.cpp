@@ -1,16 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// arcana-bench: the payload hyperfine drives.
-//
-// Starting and exiting a linked binary in the build container costs ~1.2 ms,
-// which is twice what load_deck costs. A benchmark of one call would therefore
-// be two-thirds process noise, so this repeats the workload in-process and
-// hyperfine measures the whole run. --repeat 1000 puts startup at ~0.2% of it.
-//
-// For the per-call cost of one function, use the Catch2 front end instead
-// (`just bench micro`), which times each iteration in-process.
-
 #include "workloads.hpp"
 
 #include <chrono>
@@ -42,12 +32,11 @@ int usage(int status)
     return status;
 }
 
-// The build type, so nobody publishes a number measured on a debug build
 constexpr std::string_view build_type =
 #ifdef NDEBUG
     "optimized";
 #else
-    "DEBUG - do not trust these numbers";
+    "DEBUG BUILD";
 #endif
 
 }  // namespace
@@ -112,9 +101,6 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    // Summed rather than discarded so the optimizer has to do the work, and so
-    // a workload that quietly stopped finding anything reads as a zero instead
-    // of as a speed-up
     std::size_t sink = 0;
 
     auto const start = std::chrono::steady_clock::now();
@@ -133,7 +119,7 @@ int main(int argc, char** argv)
 
     if (sink == 0)
     {
-        std::println(stderr, "arcana-bench: '{}' produced nothing - wrong path?", chosen->name);
+        std::println(stderr, "arcana-bench: '{}' wrong path?", chosen->name);
         return EXIT_FAILURE;
     }
 
