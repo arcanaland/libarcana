@@ -1312,9 +1312,10 @@ static_assert(
 
 [[nodiscard]] consteval std::size_t rules_at_major_one()
 {
-    return std::count_if(std::begin(catalogue), std::end(catalogue), [](auto const& rule) {
-        return rule.applies_to.min == 1;
-    });
+    return std::count_if(
+        std::begin(catalogue), std::end(catalogue),
+        [](auto const& rule) { return rule.applies_to.min == 1; }
+    );
 }
 
 constexpr std::size_t known_v1_rules = 31;
