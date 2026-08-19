@@ -50,3 +50,30 @@ def write_broken_deck(root: Path, directory_name: str) -> Path:
     deck_dir.mkdir(parents=True)
     (deck_dir / "deck.toml").write_text("this is not [valid toml at all\n")
     return deck_dir
+
+
+PNG_HEADER = b"\x89PNG\r\n\x1a\n"
+
+
+def write_v2_deck(
+    root: Path,
+    directory_name: str = "deck-v2",
+    manifest: str = "",
+    files: dict[str, bytes | str] | None = None,
+) -> Path:
+    """A 2.0 deck carrying `manifest` as the body of deck.toml after [deck]."""
+    deck_dir = root / directory_name
+    deck_dir.mkdir(parents=True)
+    (deck_dir / "deck.toml").write_text(
+        f'[deck]\nschema_version = "2.0"\nname = "{directory_name}"\nversion = "1.0"\n{manifest}\n'
+    )
+
+    for relative, content in (files or {}).items():
+        path = deck_dir / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(content, bytes):
+            path.write_bytes(content)
+        else:
+            path.write_text(content)
+
+    return deck_dir

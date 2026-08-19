@@ -182,7 +182,29 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("path", &card_image::path)
         .def_rw("kind", &card_image::kind)
         .def_rw("height", &card_image::height)
-        .def_rw("lines", &card_image::lines);
+        .def_rw("lines", &card_image::lines)
+        .def_rw("variant_key", &card_image::variant_key);
+
+    nb::class_<origin_term>(m, "origin_term")
+        .def(nb::init<>())
+        .def_rw("system", &origin_term::system)
+        .def_rw("term", &origin_term::term)
+        .def(nb::self == nb::self)  // NOLINT(misc-redundant-expression)
+        .def(
+            "__repr__", [](origin_term const& self)
+            { return "<origin_term " + self.system + "=" + self.term + ">"; }
+        );
+
+    nb::class_<card_variant>(m, "card_variant")
+        .def(nb::init<>())
+        .def_rw("key", &card_variant::key)
+        .def_rw("display_name", &card_variant::display_name)
+        .def_rw("alt_text", &card_variant::alt_text)
+        .def_rw("origin", &card_variant::origin)
+        .def(nb::self == nb::self)  // NOLINT(misc-redundant-expression)
+        .def(
+            "__repr__", [](card_variant const& self) { return "<card_variant " + self.key + ">"; }
+        );
 
     nb::class_<card>(m, "card")
         .def(nb::init<>())
@@ -196,8 +218,13 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("origin", &card::origin)
         // Shape: std::vector<T> by value.
         .def_rw("images", &card::images)
+        .def_rw("default_variant", &card::default_variant)
+        .def_rw("variants", &card::variants)
         .def("canonical_id", &card::canonical_id)
-        // TODO: get rid of these static_casts
+        .def("variant_keys", &card::variant_keys)
+        .def("images_for_variant", &card::images_for_variant, nb::arg("variant_key"))
+        // Each accessor is bound twice, once per C++ overload: the bare form and
+        // the one that takes a variant key. The static_casts pick the overload.
         .def(
             "best_raster_for_height",
             static_cast<std::optional<card_image> (card::*)(int) const>(
@@ -206,19 +233,35 @@ NB_MODULE(_core, m)  // NOLINT
             nb::arg("target_height")
         )
         .def(
+            "best_raster_for_height",
+            static_cast<std::optional<card_image> (card::*)(int, std::string_view) const>(
+                &card::best_raster_for_height
+            ),
+            nb::arg("target_height"), nb::arg("variant_key")
+        )
+        .def(
             "best_ansi_for_lines",
             static_cast<std::optional<card_image> (card::*)(int) const>(&card::best_ansi_for_lines),
             nb::arg("target_lines")
         )
         .def(
+            "best_ansi_for_lines",
+            static_cast<std::optional<card_image> (card::*)(int, std::string_view) const>(
+                &card::best_ansi_for_lines
+            ),
+            nb::arg("target_lines"), nb::arg("variant_key")
+        )
+        .def(
             "scalable_image",
             static_cast<std::optional<card_image> (card::*)() const>(&card::scalable_image)
+        )
+        .def(
+            "scalable_image",
+            static_cast<std::optional<card_image> (card::*)(std::string_view) const>(
+                &card::scalable_image
+            ),
+            nb::arg("variant_key")
         );
-
-    nb::class_<origin_term>(m, "origin_term")
-        .def(nb::init<>())
-        .def_rw("system", &origin_term::system)
-        .def_rw("term", &origin_term::term);
 
     nb::class_<suit_info>(m, "suit_info")
         .def(nb::init<>())
@@ -228,19 +271,39 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("standard", &suit_info::standard)
         .def_rw("excluded", &suit_info::excluded);
 
+    nb::class_<card_back_design>(m, "card_back_design")
+        .def(nb::init<>())
+        .def_rw("id", &card_back_design::id)
+        .def_rw("name", &card_back_design::name)
+        .def_rw("image_ref", &card_back_design::image_ref)
+        .def_rw("image", &card_back_design::image)
+        .def_rw("description", &card_back_design::description)
+        .def_rw("alt_text", &card_back_design::alt_text)
+        .def_rw("origin", &card_back_design::origin)
+        .def_rw("declared", &card_back_design::declared);
+
     nb::class_<deck_metadata>(m, "deck_metadata")
         .def(nb::init<>())
         .def_rw("identifier", &deck_metadata::identifier)
         .def_rw("schema_version", &deck_metadata::schema_version)
         .def_rw("name", &deck_metadata::name)
         .def_rw("version", &deck_metadata::version)
+        .def_rw("icon", &deck_metadata::icon)
         .def_rw("creator", &deck_metadata::creator)
         .def_rw("artist", &deck_metadata::artist)
         .def_rw("license", &deck_metadata::license)
+        .def_rw("attribution", &deck_metadata::attribution)
         .def_rw("description", &deck_metadata::description)
+        .def_rw("publisher", &deck_metadata::publisher)
+        .def_rw("website", &deck_metadata::website)
         .def_rw("aspect_ratio", &deck_metadata::aspect_ratio)
         .def_rw("tags", &deck_metadata::tags)
-        .def_rw("origin", &deck_metadata::origin);
+        .def_rw("origin", &deck_metadata::origin)
+        // Populated only for a 1.0 deck; 2.0 states neither
+        .def_rw("created_date", &deck_metadata::created_date)
+        .def_rw("updated_date", &deck_metadata::updated_date);
+
+    m.def("schema_major", &schema_major, nb::arg("metadata"));
 
     nb::class_<deck_summary>(m, "deck_summary")
         .def(nb::init<>())
@@ -265,6 +328,9 @@ NB_MODULE(_core, m)  // NOLINT
         .def_ro("metadata", &deck::metadata)
         .def_ro("cards", &deck::cards)
         .def_ro("suits", &deck::suits)
+        .def_ro("default_card_back", &deck::default_card_back)
+        .def_ro("card_backs", &deck::card_backs)
+        .def("default_card_back_design", &deck::default_card_back_design)
         .def("cards_of_kind", &deck::cards_of_kind, nb::arg("kind"))
         .def("cards_in_suit", &deck::cards_in_suit, nb::arg("key"))
         .def("find_card", &deck::find_card, nb::arg("id"))
