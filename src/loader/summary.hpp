@@ -13,8 +13,7 @@ namespace arcana::detail
 {
 
 // Load a summary of a deck
-[[nodiscard]] auto load_deck_summary(
-    std::filesystem::path const& deck_directory
-) -> std::expected<deck_summary, error> ;
+[[nodiscard]] auto load_deck_summary(std::filesystem::path const& deck_directory)
+    -> std::expected<deck_summary, error>;
 
 }  // namespace arcana::detail

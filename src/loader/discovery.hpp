@@ -84,6 +84,8 @@ struct discovered_asset
 );
 
 // Every canonical ID the files under a deck's image roots create
-[[nodiscard]] std::unordered_set<std::string> discover_card_ids(std::filesystem::path const& deck_root);
+[[nodiscard]] std::unordered_set<std::string> discover_card_ids(
+    std::filesystem::path const& deck_root
+);
 
 }  // namespace arcana::detail

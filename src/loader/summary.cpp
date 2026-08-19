@@ -46,7 +46,8 @@ std::size_t count_cards(toml::table const& document, std::filesystem::path const
 
 }  // namespace
 
-[[nodiscard]] auto load_deck_summary(std::filesystem::path const& deck_directory) -> std::expected<deck_summary, error> 
+[[nodiscard]] auto load_deck_summary(std::filesystem::path const& deck_directory)
+    -> std::expected<deck_summary, error>
 {
     auto document = load_deck_document(deck_directory);
     if (!document)
