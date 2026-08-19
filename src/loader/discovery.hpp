@@ -4,11 +4,14 @@
 #pragma once
 
 #include <arcana/card.hpp>
+#include <arcana/error.hpp>
 
+#include <expected>
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 namespace arcana::detail
@@ -62,11 +65,27 @@ struct discovered_asset
 // The model's view of one file found under `root`
 [[nodiscard]] card_image image_at(image_root const& root, std::filesystem::path path);
 
+// The card a file based `base` under an image root's major_arcana/ names
+[[nodiscard]] std::expected<card_id, error> major_asset_id(std::string_view base);
+
+// The card a file based `base` under minor_arcana/<suit_key>/ names
+[[nodiscard]] std::expected<card_id, error> minor_asset_id(
+    std::string_view suit_key, std::string_view base
+);
+
+// Whether a directory under an image root's minor_arcana/ names a suit
+[[nodiscard]] bool is_suit_directory(std::string_view name);
+
 // All files nested in dir as (base, variant key), sorted by base
 //
 // @param allow_variants False for a card back directory
 [[nodiscard]] std::vector<discovered_asset> discover_directory(
     std::filesystem::path const& dir, image_kind kind, bool allow_variants
+);
+
+// Every canonical ID the files under a deck's image roots create
+[[nodiscard]] std::unordered_set<std::string> discover_card_ids(
+    std::filesystem::path const& deck_root
 );
 
 }  // namespace arcana::detail

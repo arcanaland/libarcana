@@ -12,9 +12,8 @@
 namespace arcana::detail
 {
 
-// Load a summary of a deck computed from its manifest without walking the directory tree
-[[nodiscard]] std::expected<deck_summary, error> load_deck_summary(
-    std::filesystem::path const& deck_directory
-);
+// Load a summary of a deck
+[[nodiscard]] auto load_deck_summary(std::filesystem::path const& deck_directory)
+    -> std::expected<deck_summary, error>;
 
 }  // namespace arcana::detail

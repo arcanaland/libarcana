@@ -13,6 +13,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         python3-pip \
         python3-devel \
         gdb \
+        hyperfine \
         libasan \
         libubsan \
     && dnf clean all

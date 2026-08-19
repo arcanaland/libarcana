@@ -18,6 +18,7 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 option(ARCANA_BUILD_TESTS "Build the arcana test suite" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_INSTALL "Generate arcana install rules" ${PROJECT_IS_TOP_LEVEL})
 option(ARCANA_BUILD_PYTHON "Build the Python binding" OFF)
+option(ARCANA_BUILD_BENCH "Build the benchmark harness" ${PROJECT_IS_TOP_LEVEL})
 
 set(ARCANA_TOMLPLUSPLUS_TAG v3.4.0 CACHE STRING
     "Tag of marzer/tomlplusplus to fetch when find_package(tomlplusplus) fails")
@@ -44,6 +45,10 @@ add_subdirectory(src)
 if(ARCANA_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(ARCANA_BUILD_BENCH)
+    add_subdirectory(bench)
 endif()
 
 if(ARCANA_BUILD_PYTHON)

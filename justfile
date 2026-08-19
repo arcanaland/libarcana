@@ -3,6 +3,7 @@
 
 import 'just/common.just'
 
+mod bench 'bench/mod.just'
 mod python 'python/mod.just'
 
 stage := build_dir / "stage"
