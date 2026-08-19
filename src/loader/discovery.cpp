@@ -208,7 +208,7 @@ namespace
 {
 
 // One image root's major_arcana/ and minor_arcana/<suit>/ contribution
-void collect_card_ids(image_root const& root, std::set<std::string>& ids)
+void collect_card_ids(image_root const& root, std::unordered_set<std::string>& ids)
 {
     for (auto const& asset :
          discover_directory(root.path / "major_arcana", root.kind, /*allow_variants=*/true))
@@ -234,9 +234,9 @@ void collect_card_ids(image_root const& root, std::set<std::string>& ids)
 
 }  // namespace
 
-std::set<std::string> discover_card_ids(fs::path const& deck_root)
+std::unordered_set<std::string> discover_card_ids(fs::path const& deck_root)
 {
-    std::set<std::string> ids;
+    std::unordered_set<std::string> ids;
 
     for (auto const& root : find_image_roots(deck_root)) collect_card_ids(root, ids);
 

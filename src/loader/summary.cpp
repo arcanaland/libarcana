@@ -26,12 +26,7 @@ namespace arcana::detail
 namespace
 {
 
-// How many cards a 2.0 deck has
-//
-// 2.0 discovers its cards from the directory tree rather than listing them, so
-// counting them means walking it. The set is the reader's: every canonical ID a
-// file creates, plus the seventy-eight slots that exist for every deck, less
-// what [excluded_cards] removes.
+// Walk the directory tree to count how many cards a deck has
 std::size_t count_cards(toml::table const& document, std::filesystem::path const& deck_directory)
 {
     auto cards = discover_card_ids(deck_directory);
@@ -51,7 +46,7 @@ std::size_t count_cards(toml::table const& document, std::filesystem::path const
 
 }  // namespace
 
-std::expected<deck_summary, error> load_deck_summary(std::filesystem::path const& deck_directory)
+[[nodiscard]] auto load_deck_summary(std::filesystem::path const& deck_directory) -> std::expected<deck_summary, error> 
 {
     auto document = load_deck_document(deck_directory);
     if (!document)

@@ -9,9 +9,9 @@
 #include <expected>
 #include <filesystem>
 #include <optional>
-#include <set>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 namespace arcana::detail
@@ -84,9 +84,6 @@ struct discovered_asset
 );
 
 // Every canonical ID the files under a deck's image roots create
-//
-// This is the set the reader discovers, without the artwork it hangs off it, so
-// that a summary can count a 2.0 deck's cards without building one.
-[[nodiscard]] std::set<std::string> discover_card_ids(std::filesystem::path const& deck_root);
+[[nodiscard]] std::unordered_set<std::string> discover_card_ids(std::filesystem::path const& deck_root);
 
 }  // namespace arcana::detail
