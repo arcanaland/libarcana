@@ -33,7 +33,7 @@ constexpr std::array catalogue{
         .explanation =
             "This ANSI file is not under an ANSI image root and is ignored. ANSI art is discovered "
             "only under a top-level directory named for the terminal rows it occupies.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -56,7 +56,7 @@ constexpr std::array catalogue{
         .explanation =
             "This card asset's width-to-height ratio differs from the deck's declared aspect_ratio "
             "by more than a tenth. Correct the artwork, or declare the ratio it actually has.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -154,7 +154,7 @@ constexpr std::array catalogue{
         .spec_ref = "DECK.md#3.2; DECK.md#3.5; DECK.md#9.4",
         .explanation = "A key custom key deck does not match the custom-name grammar: lowercase "
                        "ASCII letters, digits and underscores, never starting with a digit.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -365,7 +365,7 @@ constexpr std::array catalogue{
         .explanation = "The license field is not a well-formed SPDX expression. Terms with no SPDX "
                        "identifier are written as a custom LicenseRef- identifier, with the actual "
                        "terms recorded under license_files.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -377,7 +377,7 @@ constexpr std::array catalogue{
         .explanation = "This TOML file begins with a byte order mark, which is not part of TOML "
                        "1.0.0. A parser that does not skip it fails on the first key. Save the "
                        "file without a signature.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -389,7 +389,7 @@ constexpr std::array catalogue{
         .explanation = "The deck has several card back designs and declares no default, so the "
                        "default falls to the lexicographically first key. Declare a default, or "
                        "name the intended design default.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -401,7 +401,7 @@ constexpr std::array catalogue{
         .explanation = "A card back design is supplied in neither PNG nor JPEG. Backs have no "
                        "reference deck to fall back on, so an application that cannot decode the "
                        "design substitutes a generic back.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -411,7 +411,7 @@ constexpr std::array catalogue{
         .needs = phase::filesystem,
         .spec_ref = "DECK.md#5.7.4; DECK.md#9.4",
         .explanation = "There are no PNG, JPEG or WebP assets for a card.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -455,7 +455,7 @@ constexpr std::array catalogue{
         .explanation =
             "The deck has no card assets. Cards are discovered from the directory structure, so "
             "the artwork must sit under an image root, arranged by card type and suit.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -515,7 +515,7 @@ constexpr std::array catalogue{
         .explanation =
             "Two major arcana declare the same position. Ordering stays well defined, since ties "
             "break by key, but the resulting order is not the one either declaration asked for.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -527,7 +527,7 @@ constexpr std::array catalogue{
         .explanation = "Two files in one directory share a stem and carry two different "
                        "extension-chain formats. Resolution is well defined, but one of the two is "
                        "usually a conversion tool's leftover.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -587,7 +587,7 @@ constexpr std::array catalogue{
         .explanation =
             "A card listed as excluded ships artwork anyway. Discovery reads the files rather than "
             "the declaration, so the card resolves. Remove it from the list, or remove its files.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -610,7 +610,7 @@ constexpr std::array catalogue{
         .explanation = "This file in a card back directory defines no design: its stem is not a "
                        "custom name, or its extension is outside the chain. Rename it, or point a "
                        "design's image path at it.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -622,7 +622,7 @@ constexpr std::array catalogue{
         .explanation = "This top-level directory nearly matches the image root pattern but is not "
                        "one, so discovery ignores it and its contents are not cards. It holds a "
                        "major or minor arcana subtree.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -646,7 +646,7 @@ constexpr std::array catalogue{
         .explanation = "Two name files carry tags differing only in case. Applications compare "
                        "tags case-insensitively, so the deck resolves to one file on one platform "
                        "and the other elsewhere.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -777,7 +777,7 @@ constexpr std::array catalogue{
         .explanation = "The deck declares a license but ships no license text. An SPDX expression "
                        "names terms without conveying them. List the text under license_files, or "
                        "put a LICENSE file at the deck root.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -866,7 +866,7 @@ constexpr std::array catalogue{
         .spec_ref = "DECK.md#2.3",
         .explanation = "This deck.toml is not encoded as UTF-8. TOML 1.0.0 defines no other "
                        "encoding, so the file is not a TOML document whatever its bytes parse as.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -936,7 +936,7 @@ constexpr std::array catalogue{
         .spec_ref = "DECK.md#5.3",
         .explanation = "This raster image is not under a height-named image root and is therefore "
                        "not a card asset. Discovery ignores it, and it will never be shown.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -972,7 +972,7 @@ constexpr std::array catalogue{
         .explanation =
             "A key the deck coined is one of the reserved canonical names: major_arcana, "
             "minor_arcana, the four canonical suits, or the fourteen canonical ranks.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -996,7 +996,7 @@ constexpr std::array catalogue{
         .explanation = "Two files in one directory have stems differing only in case. Applications "
                        "compare stems case-insensitively, so this is one name with two files "
                        "behind it. Rename one of the two.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -1055,7 +1055,7 @@ constexpr std::array catalogue{
         .spec_ref = "DECK.md#5.2",
         .explanation = "This SVG is not under the scalable directory and is therefore not a card "
                        "asset. Discovery ignores it, and it will never be shown.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -1068,7 +1068,7 @@ constexpr std::array catalogue{
             "A symbolic link inside the deck leads outside the deck root. A deck "
             "arrives from outside the system, so this reads a file its packager chose on "
             "a machine they do not own.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -1249,7 +1249,7 @@ constexpr std::array catalogue{
         .explanation = "A path in deck.toml begins with a slash, contains a parent-directory "
                        "segment, or resolves outside the deck root. Applications must reject such "
                        "a path rather than resolve it.",
-        .applies_to = {.min = 2, .max = 2},
+        .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
     rule{
@@ -1308,6 +1308,19 @@ static_assert(
 static_assert(
     std::ranges::adjacent_find(catalogue, {}, &rule::code) == catalogue.end(),
     "the catalogue shouldn't have duplicate codes"
+);
+
+[[nodiscard]] consteval std::size_t rules_at_major_one()
+{
+    return std::count_if(std::begin(catalogue), std::end(catalogue), [](auto const& rule) {
+        return rule.applies_to.min == 1;
+    });
+}
+
+constexpr std::size_t known_v1_rules = 31;
+static_assert(
+    rules_at_major_one() == known_v1_rules,
+    "a rule changed major without the criterion being re-read"
 );
 
 consteval bool checks_cover_catalogue()
