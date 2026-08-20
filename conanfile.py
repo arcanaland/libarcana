@@ -7,7 +7,7 @@ from conan.tools.cmake import CMakeDeps, CMakeToolchain, cmake_layout
 
 class LibarcanaConan(ConanFile):
     name = "libarcana"
-    version = "0.1.0"
+    version = "0.2.0"
     settings = "os", "compiler", "build_type", "arch"
 
     requires = "tomlplusplus/3.4.0"

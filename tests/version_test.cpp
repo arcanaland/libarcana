@@ -7,5 +7,5 @@
 
 TEST_CASE("library_version reports the project version", "[version]")
 {
-    REQUIRE(arcana::library_version() == "0.1.0");
+    REQUIRE(arcana::library_version() == "0.2.0");
 }

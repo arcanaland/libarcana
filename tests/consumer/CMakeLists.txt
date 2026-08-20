@@ -9,10 +9,10 @@ project(arcana-consumer LANGUAGES CXX)
 list(PREPEND CMAKE_PREFIX_PATH ${ARCANA_PREFIX})
 
 if(ARCANA_FORCE_SCRIPT_CONFIG)
-    find_package(arcana 0.1.0 REQUIRED CONFIGS arcanaConfig.cmake)
+    find_package(arcana 0.2.0 REQUIRED CONFIGS arcanaConfig.cmake)
     set(expected_extension ".cmake")
 else()
-    find_package(arcana 0.1.0 REQUIRED)
+    find_package(arcana 0.2.0 REQUIRED)
     set(expected_extension ".cps")
 endif()
 

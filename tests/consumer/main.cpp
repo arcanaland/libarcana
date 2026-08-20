@@ -8,5 +8,5 @@
 int main()
 {
     std::printf("%s\n", arcana::library_version().data());
-    return arcana::library_version() == "0.1.0" ? 0 : 1;
+    return arcana::library_version() == "0.2.0" ? 0 : 1;
 }
