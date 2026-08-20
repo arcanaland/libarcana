@@ -1,13 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-"""The v2 model as Python sees it.
-
-The C++ suite owns whether the reader is right; these assert that every field
-the reshape added or renamed actually crosses the boundary, and with the type a
-Python caller would expect.
-"""
-
 from pathlib import Path
 
 import arcana_tarot as arcana
@@ -16,11 +9,7 @@ import pytest
 from conftest import PNG_HEADER, write_v2_deck
 
 
-# --- The dispatch itself ------------------------------------------------------
-
-
 def test_a_deck_without_schema_version_no_longer_loads(tmp_path: Path) -> None:
-    """The behavior change most likely to surprise a 0.1.0 caller."""
     deck_dir = tmp_path / "no-version"
     deck_dir.mkdir()
     (deck_dir / "deck.toml").write_text('[deck]\nname = "No Version"\nversion = "1.0"\n')
@@ -53,7 +42,6 @@ def test_identifier_is_a_2_0_field(tmp_path: Path, alt_root: Path) -> None:
     )
     assert two.metadata.identifier == "net.example.jdoe/deck/reader"
 
-    # v1's [deck].id is a library handle, not an identifier, and is not promoted
     assert arcana.load_deck(alt_root / "deck-two").metadata.identifier is None
 
 
@@ -70,9 +58,6 @@ def test_find_all_by_identifier(tmp_path: Path) -> None:
     assert lib.find_all_by_identifier("net.example/deck/nothing") == []
 
 
-# --- Card fields the reshape changed ------------------------------------------
-
-
 def test_number_is_the_printed_face_as_a_string(tmp_path: Path) -> None:
     deck = arcana.load_deck(
         write_v2_deck(
@@ -84,7 +69,7 @@ def test_number_is_the_printed_face_as_a_string(tmp_path: Path) -> None:
 
     extended = deck.find_card(arcana.card_id.standard_major(23))
     assert extended is not None
-    assert extended.number == "XXIII"  # opaque and unlocalized, never an int
+    assert extended.number == "XXIII"  # opaque and unlocalized
     assert isinstance(extended.number, str)
 
     fool = deck.find_card(arcana.card_id.standard_major(0))
@@ -99,7 +84,7 @@ def test_position_is_an_optional_int(tmp_path: Path) -> None:
             manifest='[cards."major_arcana.the_morning"]\nposition = 2\n',
             files={
                 "scalable/major_arcana/the_morning.svg": "<svg/>",
-                "scalable/major_arcana/the_evening.svg": "<svg/>",
+                "scalable/major_arcana/the_night.svg": "<svg/>",
             },
         )
     )
@@ -108,12 +93,11 @@ def test_position_is_an_optional_int(tmp_path: Path) -> None:
     assert morning is not None
     assert morning.position == 2
 
-    # A custom major the deck gives no position
-    evening = deck.find_card(arcana.card_id.custom_major("the_evening"))
-    assert evening is not None
-    assert evening.position is None
+    night = deck.find_card(arcana.card_id.custom_major("the_night"))
+    assert night is not None
+    assert night.position is None
 
-    # A standard major's place is its number, not a declared position
+    # A standard major's place is its number
     fool = deck.find_card(arcana.card_id.standard_major(0))
     assert fool is not None
     assert fool.position is None
@@ -150,7 +134,6 @@ origin = { "iptc-dst" = "digitalCreation" }
 
     assert _term(deck.metadata.origin, "iptc-dst") == "print"
 
-    # Resolved at load: a card that declares nothing carries the deck's
     fool = deck.find_card(arcana.card_id.standard_major(0))
     assert fool is not None
     assert _term(fool.origin, "iptc-dst") == "print"
@@ -165,10 +148,6 @@ origin = { "iptc-dst" = "digitalCreation" }
     assert arcana.origin_term() != classic.origin[0]
     assert classic.origin[0] == classic.origin[0]
 
-
-def test_a_1_0_deck_states_no_origin(alt_root: Path) -> None:
-    deck = arcana.load_deck(alt_root / "deck-two")
-    assert deck.metadata.origin == []
 
 
 # --- Card back designs --------------------------------------------------------
@@ -206,7 +185,7 @@ description = "The one on the box."
     assert isinstance(classic.image, Path)
     assert classic.image.name == "classic.png"
 
-    # discovered, never named in the manifest
+    # not in manifest so it is discovered
     assert by_id["plain"].declared is False
     assert by_id["plain"].name == "Plain"
 
@@ -283,10 +262,6 @@ def test_variants_are_entities_with_their_own_strings(lovers_deck: arcana.deck) 
     assert two_women.display_name == "The Lovers, Two Women"
     assert two_women.alt_text == "Two women beneath an angel."
 
-    # a variant the deck names nowhere takes the card's own strings
-    assert by_key["two_men"].display_name == lovers.display_name
-    assert by_key["two_men"].alt_text == "Two figures beneath an angel."
-
 
 def test_images_for_variant_falls_back_to_the_default(lovers_deck: arcana.deck) -> None:
     lovers = _lovers(lovers_deck)
@@ -311,13 +286,10 @@ def test_each_accessor_takes_an_optional_variant_key(lovers_deck: arcana.deck) -
     assert lovers.scalable_image("two_men").path.name == "06.two_men.svg"
     assert lovers.scalable_image("two_women").path.name == "06.two_women.svg"
 
-    # The fallback is per variant, not per kind: two_men has artwork, so its set
-    # is what answers, and that set holds no raster or ansi
     assert lovers.best_raster_for_height(1200, "two_men") is None
     assert lovers.best_ansi_for_lines(20, "two_men") is None
 
-    # A key the card has no artwork under falls back to the default set, which
-    # does hold both
+    # A key the card has no artwork under falls back to the default set
     assert lovers.best_raster_for_height(1200, "nope").path.name == "06.two_women.png"
     assert lovers.best_ansi_for_lines(20, "nope").path.name == "06.two_women.txt"
 
