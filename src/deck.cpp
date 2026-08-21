@@ -123,9 +123,9 @@ std::optional<card> deck::random_card(std::uint64_t seed) const
 
 std::optional<card_back_design> deck::default_card_back_design() const
 {
-    if (default_card_back)
+    if (default_card_back_)
     {
-        auto const it = std::ranges::find(card_backs, *default_card_back, &card_back_design::id);
+        auto const it = std::ranges::find(card_backs, *default_card_back_, &card_back_design::id);
         if (it != card_backs.end())
             return *it;
     }

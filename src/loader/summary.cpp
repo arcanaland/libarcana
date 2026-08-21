@@ -31,7 +31,7 @@ std::size_t count_cards(toml::table const& document, std::filesystem::path const
 {
     auto cards = discover_card_ids(deck_directory);
 
-    for (int number = 0; number <= max_major_arcana_number; ++number)
+    for (int number = 0; number <= max_canonical_major_arcana_number; ++number)
         cards.insert(std::format("major_arcana.{:02}", number));
 
     for (auto const s : standard_suits)

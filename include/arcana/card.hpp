@@ -16,10 +16,7 @@
 namespace arcana
 {
 
-// The highest number of the twenty-two canonical major arcana
-inline constexpr int max_major_arcana_number = 21;
-
-// The highest number a two-digit major arcana key grammar admists
+inline constexpr int max_canonical_major_arcana_number = 21;
 inline constexpr int max_extended_major_arcana_number = 99;
 
 enum class arcana_kind : std::uint8_t

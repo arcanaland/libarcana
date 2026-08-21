@@ -127,7 +127,6 @@ struct deck
     deck_metadata metadata;
     std::vector<esoterica_companion> companions;
 
-    std::optional<std::string> default_card_back;  // `[card_backs].default`
     std::vector<card_back_design> card_backs;
 
     excluded_cards excluded;
@@ -169,6 +168,14 @@ struct deck
     // nullopt for an empty deck
     [[nodiscard]] std::optional<card> random_card(std::uint64_t seed) const;
 
+    // `[card_backs].default`, the design key the deck names as its default
+    //
+    // nullopt when the deck names none
+    [[nodiscard]] std::optional<std::string> const& default_card_back() const noexcept
+    {
+        return default_card_back_;
+    }
+
     [[nodiscard]] std::optional<card_back_design> default_card_back_design() const;
 
     // The deck.toml re-serialized
@@ -176,6 +183,9 @@ struct deck
 
   private:
     friend struct detail::deck_access;
+
+    // `[card_backs].default`. Set at load through detail::deck_access
+    std::optional<std::string> default_card_back_;
 
     // Rank key -> the display name this deck resolved for it. Filled at load
     // from [aliases.courts] in 1.0 and from a name file's [name.rank] in 2.0;

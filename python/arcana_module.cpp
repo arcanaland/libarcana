@@ -328,7 +328,7 @@ NB_MODULE(_core, m)  // NOLINT
         .def_ro("metadata", &deck::metadata)
         .def_ro("cards", &deck::cards)
         .def_ro("suits", &deck::suits)
-        .def_ro("default_card_back", &deck::default_card_back)
+        .def_prop_ro("default_card_back", &deck::default_card_back)
         .def_ro("card_backs", &deck::card_backs)
         .def("default_card_back_design", &deck::default_card_back_design)
         .def("cards_of_kind", &deck::cards_of_kind, nb::arg("kind"))

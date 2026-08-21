@@ -294,7 +294,7 @@ void reader::read_metadata()
     deck_.excluded.cards = get_string_array(excluded["cards"]);
     deck_.excluded.reason = get_string(excluded["reason"]);
 
-    deck_.default_card_back = get_string(table()["card_backs"]["default"]);
+    deck_access::set_default_card_back(deck_, get_string(table()["card_backs"]["default"]));
 }
 
 void reader::discover_majors(image_root const& root, root_index& index)
@@ -434,7 +434,7 @@ std::set<std::string> reader::wanted_cards() const
     std::set<std::string> wanted = discovered_;
 
     // The seventy-eight canonical slots exist for every deck
-    for (int number = 0; number <= max_major_arcana_number; ++number)
+    for (int number = 0; number <= max_canonical_major_arcana_number; ++number)
         wanted.insert(std::format("major_arcana.{:02}", number));
 
     for (auto const s : standard_suits)
@@ -757,7 +757,9 @@ void reader::name_major(card& c)
         c.display_name = *named;
     else if (auto const declared = annotated_name(c.canonical_id()))
         c.display_name = *declared;
-    else if (c.id.cls == card_class::standard_major && c.id.number <= max_major_arcana_number)
+    else if (
+        c.id.cls == card_class::standard_major && c.id.number <= max_canonical_major_arcana_number
+    )
         c.display_name = default_major_arcana_names[static_cast<std::size_t>(c.id.number)];
     else
         // fallback

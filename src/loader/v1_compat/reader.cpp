@@ -184,7 +184,7 @@ void deck_reader::parse_card_backs()
 
     if (auto const* card_backs = document["card_backs"].as_table())
     {
-        deck_.default_card_back = get_string((*card_backs)["default"]);
+        deck_access::set_default_card_back(deck_, get_string((*card_backs)["default"]));
 
         if (auto const* variants = (*card_backs)["variants"].as_table())
         {
@@ -500,7 +500,7 @@ void deck_reader::build_suits()
 
 void deck_reader::build_standard_majors()
 {
-    for (int i = 0; i <= max_major_arcana_number; ++i)
+    for (int i = 0; i <= max_canonical_major_arcana_number; ++i)
     {
         auto id = card_id::standard_major(i);
         if (is_excluded(id.to_canonical()))

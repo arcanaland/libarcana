@@ -8,6 +8,7 @@
 #include <arcana/deck.hpp>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -25,6 +26,10 @@ struct deck_access
     [[nodiscard]] static std::shared_ptr<deck_document const>& document(deck& d) noexcept
     {
         return d.document_;
+    }
+    static void set_default_card_back(deck& d, std::optional<std::string> chosen) noexcept
+    {
+        d.default_card_back_ = std::move(chosen);
     }
 };
 
