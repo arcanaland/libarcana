@@ -18,6 +18,7 @@ target_sources(
         FILE_SET HEADERS
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
+            asset_grammar.hpp
             identifiers.hpp
             image_signature.hpp
             language_tag.hpp
@@ -30,6 +31,7 @@ target_sources(
     PRIVATE
         # ascii.hpp is internal
         ascii.hpp
+        asset_grammar.cpp
         identifiers.cpp
         image_signature.cpp
         language_tag.cpp
@@ -38,5 +40,7 @@ target_sources(
         tables.cpp
         uri.cpp
 )
+
+target_include_directories(arcana-data PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 target_compile_features(arcana-data PUBLIC cxx_std_26)

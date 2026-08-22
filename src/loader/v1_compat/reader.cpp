@@ -184,7 +184,7 @@ void deck_reader::parse_card_backs()
 
     if (auto const* card_backs = document["card_backs"].as_table())
     {
-        deck_.default_card_back = get_string((*card_backs)["default"]);
+        deck_access::set_default_card_back(deck_, get_string((*card_backs)["default"]));
 
         if (auto const* variants = (*card_backs)["variants"].as_table())
         {
@@ -402,7 +402,10 @@ card_image deck_reader::image_from_relative_path(std::string_view relative_path)
     auto const slash = relative_path.find('/');
     std::string source_dir{relative_path.substr(0, slash)};
 
-    if (auto const root = classify_image_root(root_ / source_dir))
+    // Deck spec 1.0 defines three root forms; surrogate/ arrived in 2.0, so to
+    // a 1.0 deck it is an ordinary directory under no recognizable root
+    auto const root = classify_image_root(root_ / source_dir);
+    if (root && root->kind != image_kind::surrogate)
         return image_at(*root, root_ / relative_path);
 
     // A path under no recognizable root carries no kind of its own
@@ -500,7 +503,7 @@ void deck_reader::build_suits()
 
 void deck_reader::build_standard_majors()
 {
-    for (int i = 0; i <= max_major_arcana_number; ++i)
+    for (int i = 0; i <= max_canonical_major_arcana_number; ++i)
     {
         auto id = card_id::standard_major(i);
         if (is_excluded(id.to_canonical()))

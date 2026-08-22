@@ -3,8 +3,7 @@
 
 #include "assets.hpp"
 
-#include "../data/ascii.hpp"
-#include "../data/text.hpp"
+#include "../data/asset_grammar.hpp"
 
 #include <toml++/toml.hpp>
 
@@ -23,46 +22,6 @@ namespace arcana::validation
 
 namespace
 {
-
-bool is_root_size(std::string_view digits) noexcept
-{
-    if (digits.empty() || digits.front() == '0')
-        return false;
-
-    return std::ranges::all_of(digits, data::is_digit);
-}
-
-// The components of a deck-root-relative path.
-struct path_parts
-{
-    // The deepest a location for a file, for example:
-    //    <deck-root>/minor_arcana/<suit>/<file>
-    static constexpr std::size_t location_depth = 4;
-    std::array<std::string_view, location_depth> parts;
-    std::size_t size = 0;
-
-    std::string_view operator[](std::size_t index) const noexcept
-    {
-        return parts[index];
-    }
-};
-
-path_parts components_of(std::filesystem::path const& relative) noexcept
-{
-    // We'll need to update this strategy when we support Windows
-    static_assert(std::filesystem::path::preferred_separator == '/');
-
-    path_parts found;
-    for (auto const one : pieces(std::string_view{relative.native()}, '/'))
-    {
-        if (found.size == found.parts.size())
-            return {};
-
-        found.parts[found.size++] = one;
-    }
-
-    return found;
-}
 
 // Collects a path-valued key where it holds a string.
 void add_path(std::vector<std::string>& found, toml::node_view<toml::node const> value)
@@ -85,26 +44,9 @@ void add_image_paths(std::vector<std::string>& found, toml::node_view<toml::node
 
 }  // namespace
 
-std::optional<root_kind> parse_image_root(std::string_view name) noexcept
-{
-    if (name == "scalable")
-        return root_kind::scalable;
-
-    if (name == "surrogate")
-        return root_kind::surrogate;
-
-    if (name.starts_with("h") && is_root_size(name.substr(1)))
-        return root_kind::raster;
-
-    if (name.starts_with("ansi") && is_root_size(name.substr(4)))
-        return root_kind::ansi;
-
-    return std::nullopt;
-}
-
 std::optional<asset_location> locate_asset(std::filesystem::path const& relative)
 {
-    auto const parts = components_of(relative);
+    auto const parts = data::components_of(relative);
 
     // The top-level card back directory: card_backs/<file>.
     if (parts.size == 2 && parts[0] == "card_backs")
@@ -113,16 +55,16 @@ std::optional<asset_location> locate_asset(std::filesystem::path const& relative
     if (parts.size < 3)
         return std::nullopt;
 
-    auto const kind = parse_image_root(parts[0]);
-    if (!kind)
+    auto const root = data::parse_image_root(parts[0]);
+    if (!root)
         return std::nullopt;
 
     if (parts.size == 3 && (parts[1] == "major_arcana" || parts[1] == "card_backs"))
-        return asset_location{.kind = kind, .card_back = parts[1] == "card_backs"};
+        return asset_location{.kind = root->kind, .card_back = parts[1] == "card_backs"};
 
     // `<root>/minor_arcana/<suit>/<file>`.
     if (parts.size == 4 && parts[1] == "minor_arcana")
-        return asset_location{.kind = kind, .card_back = false};
+        return asset_location{.kind = root->kind, .card_back = false};
 
     return std::nullopt;
 }
@@ -151,51 +93,21 @@ chain_format chain_format_of(std::string_view extension) noexcept
     return chain_format::none;
 }
 
-bool chain_admits(std::optional<root_kind> kind, std::string_view extension) noexcept
+bool chain_admits(std::optional<image_kind> kind, std::string_view extension) noexcept
 {
-    auto const format = chain_format_of(extension);
-
     // The top-level card back directory carries backs of no declared kind, so
-    // it takes the raster chain.
-    if (!kind)
-        return format != chain_format::none && format != chain_format::svg &&
-               format != chain_format::toml;
-
-    switch (*kind)
-    {
-        case root_kind::ansi:
-            return true;
-
-        case root_kind::scalable:
-            return format == chain_format::svg;
-
-        case root_kind::surrogate:
-            return format == chain_format::toml;
-
-        case root_kind::raster:
-            return format == chain_format::png || format == chain_format::webp ||
-                   format == chain_format::avif || format == chain_format::jpeg;
-    }
-
-    return false;
+    // it takes the raster chain
+    return data::chain_rank(kind.value_or(image_kind::raster), extension).has_value();
 }
 
 std::string_view extension_of(std::string_view filename) noexcept
 {
-    auto const dot = filename.find_last_of('.');
-    if (dot == std::string_view::npos || dot == 0)
-        return {};
-
-    return filename.substr(dot + 1);
+    return data::split_asset_filename(filename).extension;
 }
 
 std::string_view stem_of(std::string_view filename) noexcept
 {
-    auto const dot = filename.find_last_of('.');
-    if (dot == std::string_view::npos || dot == 0)
-        return filename;
-
-    return filename.substr(0, dot);
+    return data::split_asset_filename(filename).stem;
 }
 
 std::vector<std::string> declared_paths(toml::table const& doc)

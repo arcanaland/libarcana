@@ -305,3 +305,19 @@ def test_a_card_with_no_variants(tmp_path: Path) -> None:
     assert fool.variants == []
     assert fool.variant_keys() == []
     assert fool.images[0].variant_key is None
+
+
+def test_image_kind_gained_surrogate_without_moving_the_others(
+    lovers_deck: arcana.deck,
+) -> None:
+    # DECK.md 5.7.1's fourth root form, appended to the enum in 0.2.0's order
+    assert arcana.image_kind.surrogate.value == 3
+
+    # and the three published before it still mean what they meant
+    assert arcana.image_kind.scalable.value == 0
+    assert arcana.image_kind.raster.value == 1
+    assert arcana.image_kind.ansi.value == 2
+
+    raster = _lovers(lovers_deck).best_raster_for_height(1200)
+    assert raster is not None
+    assert raster.kind == arcana.image_kind.raster
