@@ -129,7 +129,7 @@ void check_card_back_not_baseline_format(check_context const& ctx)
                 continue;
 
             files.push_back(back.file);
-            ansi_only = ansi_only && back.kind == root_kind::ansi;
+            ansi_only = ansi_only && back.kind == image_kind::ansi;
         }
 
         if (auto const named_by = declared.find(design); named_by != declared.end())

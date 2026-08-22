@@ -33,20 +33,6 @@ struct image_root
     std::optional<int> lines;   // ansi only
 };
 
-// A card asset filename split from its four parts
-struct asset_filename
-{
-    std::string_view base;
-
-    // Empty where the stem has no variant key
-    std::string_view variant_key;
-
-    // Empty where the filename holds no '.' at all
-    std::string_view extension;
-};
-
-[[nodiscard]] asset_filename split_asset_filename(std::string_view filename) noexcept;
-
 struct discovered_asset
 {
     std::string base;

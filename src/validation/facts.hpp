@@ -6,6 +6,8 @@
 #include "assets.hpp"
 #include "context.hpp"
 
+#include <arcana/card.hpp>
+
 #include <toml++/toml.hpp>
 
 #include <cstdint>
@@ -50,7 +52,7 @@ struct back_file
 {
     deck_file const* file;
     std::string stem;
-    std::optional<root_kind> kind;
+    std::optional<image_kind> kind;
 
     // True where discovery passes the file over
     bool ignored;
@@ -88,7 +90,7 @@ struct deck_facts
     [[nodiscard]] deck_file const* file_at(std::string_view relative) const;
 
     // True if in the manifest or discovery would find it
-    [[nodiscard]] bool reachable(deck_file const& file, root_kind wanted) const;
+    [[nodiscard]] bool reachable(deck_file const& file, image_kind wanted) const;
 };
 
 

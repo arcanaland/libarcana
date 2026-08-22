@@ -3,10 +3,12 @@
 
 #include "images.hpp"
 
-#include "../../data/text.hpp"
+#include "../../data/asset_grammar.hpp"
 #include "../assets.hpp"
 #include "../facts.hpp"
 #include "../probe.hpp"
+
+#include <arcana/card.hpp>
 
 #include <algorithm>
 #include <filesystem>
@@ -27,7 +29,7 @@ namespace
 
 // Reports one file per group that discovery cannot reach.
 void report_misplaced(
-    check_context const& ctx, root_kind wanted, chain_format format, std::string_view what
+    check_context const& ctx, image_kind wanted, chain_format format, std::string_view what
 )
 {
     for (auto const& file : ctx.files)
@@ -50,18 +52,18 @@ void report_misplaced(
 std::optional<std::string> card_of_raster(deck_file const& file)
 {
     auto const where = locate_asset(file.relative);
-    if (!where || where->card_back || where->kind != root_kind::raster)
+    if (!where || where->card_back || where->kind != image_kind::raster)
         return std::nullopt;
 
-    std::vector<std::string> parts;
-    for (auto const& one : file.relative) parts.push_back(one.string());
+    // locate_asset has vouched for the shape, so the path fits a location
+    auto const parts = data::components_of(file.relative);
 
-    auto const base = before(stem_of(parts.back()), '.');
+    auto const base = data::split_asset_filename(parts[parts.size - 1]).base;
     if (base.empty())
         return std::nullopt;
 
-    // locate_asset has already vouched for the shape, so the group is parts[1].
-    auto const between = parts.size() == 4 ? std::format("{}.", parts[2]) : std::string{};
+    // The card group is parts[1]
+    auto const between = parts.size == 4 ? std::format("{}.", parts[2]) : std::string{};
 
     return std::format("{}.{}{}", parts[1], between, base);
 }
@@ -102,14 +104,14 @@ void check_raster_outside_image_root(check_context const& ctx)
     for (auto const format :
          {chain_format::png, chain_format::webp, chain_format::avif, chain_format::jpeg})
         report_misplaced(
-            ctx, root_kind::raster, format, "is an image not in a h<height>/ directory"
+            ctx, image_kind::raster, format, "is an image not in a h<height>/ directory"
         );
 }
 
 void check_svg_outside_scalable(check_context const& ctx)
 {
     report_misplaced(
-        ctx, root_kind::scalable, chain_format::svg, "is an SVG outside the scalable/ directory"
+        ctx, image_kind::scalable, chain_format::svg, "is an SVG outside the scalable/ directory"
     );
 }
 
@@ -146,7 +148,7 @@ void check_duplicate_chain_extension(check_context const& ctx)
     auto const raster_format = [](deck_file const& file)
     {
         auto const where = locate_asset(file.relative);
-        if (!where || (where->kind && *where->kind != root_kind::raster))
+        if (!where || (where->kind && *where->kind != image_kind::raster))
             return chain_format::none;
 
         auto const name = file.relative.filename().string();
@@ -197,6 +199,8 @@ void check_ignored_image_root_lookalike(check_context const& ctx)
 
     for (auto const& file : ctx.files)
     {
+        // Not data::components_of: this check looks at a lookalike root at any
+        // depth, and components_of drops a path deeper than a discovery location
         std::vector<std::string> parts;
         for (auto const& one : file.relative) parts.push_back(one.string());
 
@@ -207,7 +211,7 @@ void check_ignored_image_root_lookalike(check_context const& ctx)
         if (parts[1] != "major_arcana" && parts[1] != "minor_arcana")
             continue;
 
-        if (parse_image_root(parts[0]) || std::ranges::contains(reported, parts[0]))
+        if (data::parse_image_root(parts[0]) || std::ranges::contains(reported, parts[0]))
             continue;
 
         reported.push_back(parts[0]);

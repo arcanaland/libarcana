@@ -603,6 +603,10 @@ void reader::read_card_backs()
                 return std::pair{1, -root.height.value_or(0)};
             case image_kind::ansi:
                 return std::pair{2, -root.lines.value_or(0)};
+            case image_kind::surrogate:
+                // Unreachable while find_image_roots skips surrogate roots, and
+                // last is where a lossy stand-in belongs once it does not
+                return std::pair{3, 0};
         }
 
         std::unreachable();

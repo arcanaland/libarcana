@@ -132,7 +132,8 @@ NB_MODULE(_core, m)  // NOLINT
     nb::enum_<image_kind>(m, "image_kind")
         .value("scalable", image_kind::scalable)
         .value("raster", image_kind::raster)
-        .value("ansi", image_kind::ansi);
+        .value("ansi", image_kind::ansi)
+        .value("surrogate", image_kind::surrogate);
 
     // --- Shape: free functions over string_view -------------------------------
 
