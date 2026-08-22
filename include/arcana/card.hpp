@@ -126,6 +126,11 @@ enum class image_kind : std::uint8_t
     scalable,
     raster,
     ansi,
+
+    // DECK.md §5.7.1's fourth image root form. A surrogate root holds TOML
+    // stand-ins rather than artwork; appended last so the three above keep
+    // their published values
+    surrogate,
 };
 
 // One resolved image on disk for a card

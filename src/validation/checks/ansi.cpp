@@ -3,10 +3,11 @@
 
 #include "ansi.hpp"
 
-#include "../../data/ascii.hpp"
+#include "../../data/asset_grammar.hpp"
 #include "../probe.hpp"
 
-#include <algorithm>
+#include <arcana/card.hpp>
+
 #include <format>
 #include <string_view>
 
@@ -16,17 +17,12 @@ namespace arcana::validation
 namespace
 {
 
-// Tighter than looks_like_ansi_root()
+// Whether a top-level directory name is an ansi<lines>/ root (DECK.md 5.7.1)
 bool is_ansi_root_name(std::string_view name)
 {
-    if (!name.starts_with("ansi"))
-        return false;
+    auto const root = data::parse_image_root(name);
 
-    auto const lines = name.substr(4);
-    if (lines.empty() || lines.front() == '0')
-        return false;
-
-    return std::ranges::all_of(lines, data::is_digit);
+    return root && root->kind == image_kind::ansi;
 }
 
 }  // namespace

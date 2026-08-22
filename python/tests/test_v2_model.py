@@ -305,3 +305,4 @@ def test_a_card_with_no_variants(tmp_path: Path) -> None:
     assert fool.variants == []
     assert fool.variant_keys() == []
     assert fool.images[0].variant_key is None
+

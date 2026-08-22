@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <arcana/card.hpp>
+
 #include <toml++/toml.hpp>
 
 #include <cstdint>
@@ -15,22 +17,11 @@
 namespace arcana::validation
 {
 
-enum class root_kind : std::uint8_t
-{
-    scalable,
-    raster,
-    ansi,
-    surrogate,
-};
-
-// Reads a top-level directory name as an image root if it is
-[[nodiscard]] std::optional<root_kind> parse_image_root(std::string_view name) noexcept;
-
 // Where in a deck tree discovery finds an asset.
 struct asset_location
 {
     // Empty for the top-level card_backs/
-    std::optional<root_kind> kind;
+    std::optional<image_kind> kind;
 
     bool card_back;
 };
@@ -52,12 +43,14 @@ enum class chain_format : std::uint8_t
 [[nodiscard]] chain_format chain_format_of(std::string_view extension) noexcept;
 
 // True where a root of this kind considers a file with this extension.
-[[nodiscard]] bool chain_admits(std::optional<root_kind> kind, std::string_view extension) noexcept;
+[[nodiscard]] bool chain_admits(
+    std::optional<image_kind> kind, std::string_view extension
+) noexcept;
 
 // Every path that is listed in deck.toml explicitly
 [[nodiscard]] std::vector<std::string> declared_paths(toml::table const& doc);
 
-// Filename extraction helpers
+// Filename extraction helpers, over DECK.md 5.7.2's parts
 [[nodiscard]] std::string_view extension_of(std::string_view filename) noexcept;
 [[nodiscard]] std::string_view stem_of(std::string_view filename) noexcept;
 

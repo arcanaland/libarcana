@@ -209,6 +209,8 @@ bool already_collected(std::vector<coined_name> const& found, std::string_view n
 // The names that can be inferred from a file's path
 void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
 {
+    // Not data::components_of: a suit directory names a suit however deeply the
+    // file below it is nested, and components_of drops a path that deep
     std::vector<std::string> parts;
     for (auto const& component : file.relative) parts.push_back(component.string());
 
@@ -273,7 +275,7 @@ deck_file const* deck_facts::file_at(std::string_view relative) const
     return found == by_path.end() ? nullptr : found->second;
 }
 
-bool deck_facts::reachable(deck_file const& file, root_kind wanted) const
+bool deck_facts::reachable(deck_file const& file, image_kind wanted) const
 {
     auto const where = locate_asset(file.relative);
 
