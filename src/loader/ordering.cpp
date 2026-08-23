@@ -42,30 +42,6 @@ struct card_order
     friend auto operator<=>(card_order const&, card_order const&) = default;
 };
 
-std::string major_key_of(card_id const& id)
-{
-    if (id.cls == card_class::standard_major)
-        return std::format("{:02}", id.number);
-
-    return id.custom_id;
-}
-
-std::string suit_key_of(card_id const& id)
-{
-    if (id.cls == card_class::standard_minor)
-        return std::string{to_string(id.standard_suit)};
-
-    return id.suit_key;
-}
-
-std::string rank_key_of(card_id const& id)
-{
-    if (id.cls == card_class::standard_minor)
-        return std::string{to_string(id.standard_rank)};
-
-    return id.custom_id;
-}
-
 // The four canonical suits come first in their canonical order, and every other
 // suit the deck has follows them sorted by key
 std::vector<std::string> suit_order_of(std::span<suit_info const> suits)
@@ -92,7 +68,7 @@ card_order order_of(
 {
     if (c.id.is_major())
     {
-        card_order result{.arcana = 0, .key = major_key_of(c.id)};
+        card_order result{.arcana = 0, .key = major_key(c.id)};
 
         if (c.position)
         {
@@ -112,20 +88,21 @@ card_order order_of(
         return result;
     }
 
-    auto const suit_key = suit_key_of(c.id);
-    auto const rank_key = rank_key_of(c.id);
+    auto const card_suit_key = suit_key(c.id);
+    auto const card_rank_key = rank_key(c.id);
 
-    card_order result{.arcana = 1, .key = rank_key};
+    card_order result{.arcana = 1, .key = card_rank_key};
 
-    auto const ordered = std::ranges::find(suit_order, suit_key);
+    auto const ordered = std::ranges::find(suit_order, card_suit_key);
     result.suit_order = ordered == suit_order.end()
                             ? static_cast<int>(suit_order.size())
                             : static_cast<int>(std::ranges::distance(suit_order.begin(), ordered));
 
     result.unranked = 1;
-    if (auto const info = std::ranges::find(suits, suit_key, &suit_info::key); info != suits.end())
+    if (auto const info = std::ranges::find(suits, card_suit_key, &suit_info::key);
+        info != suits.end())
     {
-        if (auto const ranked = std::ranges::find(info->ranks, rank_key);
+        if (auto const ranked = std::ranges::find(info->ranks, card_rank_key);
             ranked != info->ranks.end())
         {
             result.position = std::ranges::distance(info->ranks.begin(), ranked);

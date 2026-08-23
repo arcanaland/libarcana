@@ -99,4 +99,34 @@ std::optional<std::string> name_catalog::lookup(std::span<std::string_view const
     return get_string(node);
 }
 
+std::string compose_minor_name(std::string_view name_template, minor_parts const& parts)
+{
+    constexpr std::string_view rank_placeholder = "{rank}";
+    constexpr std::string_view suit_placeholder = "{suit}";
+
+    std::string result;
+    result.reserve(name_template.size());
+
+    for (std::size_t pos = 0; pos < name_template.size();)
+    {
+        if (name_template.compare(pos, rank_placeholder.size(), rank_placeholder) == 0)
+        {
+            result += parts.rank;
+            pos += rank_placeholder.size();
+        }
+        else if (name_template.compare(pos, suit_placeholder.size(), suit_placeholder) == 0)
+        {
+            result += parts.suit;
+            pos += suit_placeholder.size();
+        }
+        else
+        {
+            result.push_back(name_template[pos]);
+            ++pos;
+        }
+    }
+
+    return result;
+}
+
 }  // namespace arcana::detail

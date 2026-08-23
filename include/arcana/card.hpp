@@ -108,6 +108,21 @@ struct card_id
     friend bool operator==(card_id const&, card_id const&) = default;
 };
 
+// The major key of a card id.
+//
+// @return empty for minor arcanum ids
+[[nodiscard]] std::string major_key(card_id const& id);
+
+// The suit key of a card id.
+//
+// @return empty for major arcanum ids
+[[nodiscard]] std::string suit_key(card_id const& id);
+
+// The rank key of a card id.
+//
+// @return empty for major arcanum ids
+[[nodiscard]] std::string rank_key(card_id const& id);
+
 // How one artwork came to exist, in a named vocabulary
 //
 // One entry per vocabulary system, e.g. system "iptc-dst", term "print".

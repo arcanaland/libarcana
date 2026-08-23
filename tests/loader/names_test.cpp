@@ -34,20 +34,12 @@ constexpr std::string_view portuguese = R"([major_arcana]
 00 = "O Louco"
 )";
 
-// The catalog takes a key path of whole TOML keys; 1.0's name files are flat
-std::optional<std::string> at(
-    name_catalog const& names, std::initializer_list<std::string_view> path
-)
-{
-    return names.lookup(std::span{path.begin(), path.size()});
-}
-
 // [major_arcana].00 out of whichever file the language chain chooses
 std::optional<std::string> fool_in(
     arcana_test::temp_dir const& deck, std::vector<std::string> const& languages
 )
 {
-    return at(name_catalog::load(deck.path(), languages), {"major_arcana", "00"});
+    return name_catalog::load(deck.path(), languages).lookup({"major_arcana", "00"});
 }
 
 }  // namespace
@@ -59,8 +51,8 @@ TEST_CASE("a deck with no names directory yields an unloaded catalog", "[names]"
     auto const names = name_catalog::load(deck.path(), {"en"});
 
     CHECK_FALSE(names.loaded());
-    CHECK_FALSE(at(names, {"major_arcana", "00"}).has_value());
-    CHECK_FALSE(at(names, {"minor_arcana", "cups", "ace"}).has_value());
+    CHECK_FALSE(names.lookup({"major_arcana", "00"}).has_value());
+    CHECK_FALSE(names.lookup({"minor_arcana", "cups", "ace"}).has_value());
 }
 
 TEST_CASE("a names directory with no toml in it yields an unloaded catalog", "[names]")
@@ -80,7 +72,7 @@ TEST_CASE("the requested language wins when it is present", "[names]")
     auto const names = name_catalog::load(deck.path(), {"fr"});
 
     REQUIRE(names.loaded());
-    CHECK(at(names, {"major_arcana", "00"}) == "Le Mat");
+    CHECK(names.lookup({"major_arcana", "00"}) == "Le Mat");
 }
 
 TEST_CASE("english is the fallback when the requested language is missing", "[names]")
@@ -148,7 +140,7 @@ TEST_CASE("any toml is used when neither the request nor english is present", "[
     auto const names = name_catalog::load(deck.path(), {"es"});
 
     REQUIRE(names.loaded());
-    CHECK(at(names, {"major_arcana", "00"}) == "Le Mat");
+    CHECK(names.lookup({"major_arcana", "00"}) == "Le Mat");
 }
 
 TEST_CASE("a names file that fails to parse yields an unloaded catalog", "[names]")
@@ -167,9 +159,9 @@ TEST_CASE("lookups miss without failing", "[names]")
     auto const names = name_catalog::load(deck.path(), {"en"});
     REQUIRE(names.loaded());
 
-    CHECK(at(names, {"minor_arcana", "cups", "ace"}) == "Ace of Cups");
-    CHECK_FALSE(at(names, {"major_arcana", "21"}).has_value());
-    CHECK_FALSE(at(names, {"minor_arcana", "stars", "ace"}).has_value());
-    CHECK_FALSE(at(names, {"garbage", "00"}).has_value());
-    CHECK_FALSE(at(names, {"major_arcana", ""}).has_value());
+    CHECK(names.lookup({"minor_arcana", "cups", "ace"}) == "Ace of Cups");
+    CHECK_FALSE(names.lookup({"major_arcana", "21"}).has_value());
+    CHECK_FALSE(names.lookup({"minor_arcana", "stars", "ace"}).has_value());
+    CHECK_FALSE(names.lookup({"garbage", "00"}).has_value());
+    CHECK_FALSE(names.lookup({"major_arcana", ""}).has_value());
 }
