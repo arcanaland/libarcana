@@ -1,9 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# These drive the public validate() over a fixture deck, so they link the
-# assembled library rather than a check target. Nothing unit-tests a single
-# check against a synthesized check_context yet.
 arcana_add_test(ansi_test
     LIBS arcana::arcana
     DEFINES FIXTURES_DIR="${arcana_fixtures_dir}"

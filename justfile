@@ -7,6 +7,7 @@ mod bench 'bench/mod.just'
 mod python 'python/mod.just'
 
 stage := build_dir / "stage"
+graph_dir := build_dir / "graph"
 staged_prefix := stage + prefix
 
 default:
@@ -60,6 +61,31 @@ run-test bin *args: build
 [script]
 debug-test bin *args: build
     gdb -q -ex run --args {{build_dir}}/tests/{{bin}} --break {{args}}
+
+# e.g. `just graph`      internal libraries only
+#      `just graph all`  plus test executables and external packages
+[doc('Render the CMake target dependency graph to build/<type>/graph/arcana.png.')]
+[group('build')]
+[script]
+graph mode="libs": configure
+    mkdir -p {{ graph_dir }}
+
+    # --graphviz reads its knobs from a file in the binary dir
+    cat > {{ build_dir }}/CMakeGraphVizOptions.cmake <<'OPTS'
+    set(GRAPHVIZ_GRAPH_NAME "arcana")
+    set(GRAPHVIZ_GENERATE_PER_TARGET OFF)
+    set(GRAPHVIZ_GENERATE_DEPENDERS OFF)
+    set(GRAPHVIZ_EXECUTABLES {{ if mode == "all" { "ON" } else { "OFF" } }})
+    set(GRAPHVIZ_EXTERNAL_LIBS {{ if mode == "all" { "ON" } else { "OFF" } }})
+    # Conan's generated shim targets say nothing about our own layering.
+    set(GRAPHVIZ_IGNORE_TARGETS "^CONAN_LIB::" "_DEPS_TARGET$")
+    OPTS
+
+    cmake --graphviz={{ graph_dir }}/arcana.dot --preset {{ preset }} >/dev/null
+
+    # Left-to-right
+    dot -Tpng -Grankdir=LR -o {{ graph_dir }}/arcana.png {{ graph_dir }}/arcana.dot
+    echo "wrote {{ graph_dir }}/arcana.png"
 
 # clang-format in place.
 [group('lint')]

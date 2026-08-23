@@ -5,10 +5,3 @@ __pycache__/
 CMakeUserPresets.json
 agents/
 .claude/settings.local.json
-
-# Stray in-source CMake configure output. Real builds go to build/ via the
-# justfile; a bare `cmake .` at the root drops these here instead.
-/CMakeCache.txt
-/CMakeFiles/
-/_deps/
-/generated/

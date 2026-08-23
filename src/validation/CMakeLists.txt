@@ -4,9 +4,6 @@
 add_subdirectory(core)
 add_subdirectory(checks)
 
-# The catalogue and the compile-time registry that aggregates the checks by
-# name. This is the top of the validation graph: registry.hpp includes every
-# check header, so this target -- and nothing below it -- knows the check list.
 arcana_add_internal_library(
     validation
     HEADERS
@@ -17,8 +14,6 @@ arcana_add_internal_library(
         registry.cpp
 )
 
-# PUBLIC: registry.hpp includes every check header, which in turn need the
-# engine, so a consumer of <registry.hpp> needs all of them on its include path.
 arcana_link_internal(
     arcana-validation
     PUBLIC

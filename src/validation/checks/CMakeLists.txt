@@ -1,15 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# One target per check group. Each links the engine and nothing else in the
-# project except the vocabularies it actually scans with, so a check that starts
-# reaching for a sibling group's helper fails to link rather than compiling.
-#
-# BASE_DIR is the validation directory rather than this one: the headers are
-# spelled <checks/ids.hpp>, which keeps `names.hpp` and `deck.hpp` from
-# colliding with the loader's headers of the same name.
 set(arcana_checks_base ${PROJECT_SOURCE_DIR}/src/validation)
 
+# One target per check group.
 foreach(check IN ITEMS ansi backs cards deck ids images names surrogate)
     arcana_add_internal_library(
         check-${check}
