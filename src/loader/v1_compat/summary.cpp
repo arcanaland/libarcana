@@ -3,8 +3,8 @@
 
 #include "summary.hpp"
 
-#include "../standard_cards.hpp"
-#include "../toml_read.hpp"
+#include <standard_cards.hpp>
+#include <toml_read.hpp>
 
 #include <arcana/card.hpp>
 

@@ -9,6 +9,7 @@ add_subdirectory(bcp47)
 add_subdirectory(uri)
 add_subdirectory(model)
 add_subdirectory(vocab)
+add_subdirectory(discovery)
 add_subdirectory(loader)
 add_subdirectory(validation)
 
@@ -53,6 +54,10 @@ arcana_link_internal(
         arcana-uri
         arcana-model
         arcana-vocab
+        arcana-discovery
+        arcana-loader-core
+        arcana-loader-v1
+        arcana-loader-v2
         arcana-loader
         arcana-validation-core
         arcana-check-ansi

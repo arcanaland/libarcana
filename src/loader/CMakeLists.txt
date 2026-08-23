@@ -1,38 +1,20 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
+add_subdirectory(core)
+add_subdirectory(v1_compat)
+add_subdirectory(v2)
+
+# The dispatcher: reads schema_version and hands the document to one major's
+# reader. Nothing below this target knows the other major exists.
 arcana_add_internal_library(
     loader
-    HEADERS
-        deck_access.hpp
-        discovery.hpp
-        document.hpp
-        manifest.hpp
-        names.hpp
-        ordering.hpp
-        reader.hpp
-        schema_version.hpp
-        standard_cards.hpp
-        summary.hpp
-        toml_read.hpp
-        v1_compat/reader.hpp
-        v1_compat/summary.hpp
-        v1_compat/tables.hpp
+    HEADERS summary.hpp
     SOURCES
-        discovery.cpp
-        document.cpp
         loader.cpp
-        names.cpp
-        ordering.cpp
-        reader.cpp
-        schema_version.cpp
         summary.cpp
-        v1_compat/reader.cpp
-        v1_compat/summary.cpp
 )
 
-arcana_link_internal(arcana-loader PUBLIC arcana-model)
-arcana_link_internal(arcana-loader PRIVATE arcana-text arcana-vocab)
-
-target_link_libraries(arcana-loader PUBLIC tomlplusplus::tomlplusplus)
-target_compile_definitions(arcana-loader PUBLIC TOML_EXCEPTIONS=0)
+# PUBLIC: summary.hpp is stated in terms of <arcana/library.hpp>.
+arcana_link_internal(arcana-loader PUBLIC arcana-model arcana-loader-core)
+arcana_link_internal(arcana-loader PRIVATE arcana-discovery arcana-loader-v1 arcana-loader-v2)

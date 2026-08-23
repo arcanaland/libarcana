@@ -3,13 +3,13 @@
 
 #include "reader.hpp"
 
+#include <deck_access.hpp>
+#include <discovery.hpp>
+#include <names.hpp>
+#include <ordering.hpp>
+#include <standard_cards.hpp>
 #include <text.hpp>
-#include "deck_access.hpp"
-#include "discovery.hpp"
-#include "names.hpp"
-#include "ordering.hpp"
-#include "standard_cards.hpp"
-#include "toml_read.hpp"
+#include <toml_read.hpp>
 
 #include <algorithm>
 #include <array>

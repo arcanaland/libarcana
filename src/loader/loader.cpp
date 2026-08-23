@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-#include "document.hpp"
-#include "reader.hpp"
-#include "schema_version.hpp"
-#include "v1_compat/reader.hpp"
+#include <document.hpp>
+#include <schema_version.hpp>
+#include <v1_compat/reader.hpp>
+#include <v2/reader.hpp>
 
 #include <arcana/deck.hpp>
 #include <arcana/loader.hpp>

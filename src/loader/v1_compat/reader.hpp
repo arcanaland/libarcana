@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "../discovery.hpp"
-#include "../document.hpp"
-#include "../names.hpp"
+#include <discovery.hpp>
+#include <document.hpp>
+#include <names.hpp>
 #include "tables.hpp"
 
 #include <arcana/card.hpp>

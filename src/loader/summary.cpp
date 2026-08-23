@@ -3,12 +3,12 @@
 
 #include "summary.hpp"
 
-#include "discovery.hpp"
-#include "document.hpp"
-#include "schema_version.hpp"
-#include "standard_cards.hpp"
-#include "toml_read.hpp"
-#include "v1_compat/summary.hpp"
+#include <discovery.hpp>
+#include <document.hpp>
+#include <schema_version.hpp>
+#include <standard_cards.hpp>
+#include <toml_read.hpp>
+#include <v1_compat/summary.hpp>
 
 #include <arcana/card.hpp>
 

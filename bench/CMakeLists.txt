@@ -7,7 +7,7 @@ set(ARCANA_BENCH_LIBRARY_DIR "/decks" CACHE PATH
 find_package(Catch2 3 REQUIRED)
 
 add_library(arcana-bench-workloads STATIC workloads.cpp)
-target_link_libraries(arcana-bench-workloads PUBLIC arcana::arcana arcana::loader)
+target_link_libraries(arcana-bench-workloads PUBLIC arcana::arcana arcana::loader arcana::loader-core arcana::discovery)
 target_include_directories(arcana-bench-workloads PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # The exe hyperfine drives
