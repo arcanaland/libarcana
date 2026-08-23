@@ -72,6 +72,6 @@ struct path_parts
 // Splits a deck-relative path
 [[nodiscard]] path_parts components_of(std::filesystem::path const& relative) noexcept;
 
-path_parts components_of(std::filesystem::path&&) = delete; // must outlive input
+path_parts components_of(std::filesystem::path&&) = delete;  // must outlive input
 
 }  // namespace arcana::data
