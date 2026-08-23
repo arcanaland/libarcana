@@ -3,7 +3,7 @@
 
 #include "images.hpp"
 
-#include "../../data/asset_grammar.hpp"
+#include <asset_grammar.hpp>
 #include "../assets.hpp"
 #include "../facts.hpp"
 #include "../probe.hpp"

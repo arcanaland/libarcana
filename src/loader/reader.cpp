@@ -3,7 +3,7 @@
 
 #include "reader.hpp"
 
-#include "../data/text.hpp"
+#include <text.hpp>
 #include "deck_access.hpp"
 #include "discovery.hpp"
 #include "names.hpp"

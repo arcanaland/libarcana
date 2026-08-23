@@ -4,6 +4,7 @@
 #pragma once
 
 #include <arcana/deck.hpp>
+#include <arcana/loader.hpp>
 #include <arcana/validation.hpp>
 
 #include <catch2/catch_test_macros.hpp>

@@ -8,6 +8,7 @@
 
 #include <arcana/deck.hpp>
 #include <arcana/error.hpp>
+#include <arcana/loader.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>

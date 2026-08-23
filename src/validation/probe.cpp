@@ -3,7 +3,7 @@
 
 #include "probe.hpp"
 
-#include "../data/image_signature.hpp"
+#include <image_signature.hpp>
 
 #include <array>
 #include <cstddef>

@@ -3,7 +3,7 @@
 
 #include "schema_version.hpp"
 
-#include "../data/text.hpp"
+#include <text.hpp>
 #include "manifest.hpp"
 
 #include <charconv>

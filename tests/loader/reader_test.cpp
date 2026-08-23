@@ -7,6 +7,7 @@
 
 #include <arcana/card.hpp>
 #include <arcana/deck.hpp>
+#include <arcana/loader.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 

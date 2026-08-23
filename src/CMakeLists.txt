@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 add_subdirectory(data)
+add_subdirectory(model)
+add_subdirectory(vocab)
 add_subdirectory(loader)
 add_subdirectory(validation)
 
@@ -24,21 +26,27 @@ target_sources(
             ${PROJECT_SOURCE_DIR}/include/arcana/paths.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/card.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/deck.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/loader.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/library.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/validation.hpp
     PRIVATE
         version.cpp
         paths.cpp
-        card.cpp
-        deck.cpp
         library.cpp
         validation.cpp
-        $<TARGET_OBJECTS:arcana-data>
-        $<TARGET_OBJECTS:arcana-loader>
-        $<TARGET_OBJECTS:arcana-validation>
 )
 
 target_compile_features(arcana PUBLIC cxx_std_26)
+
+arcana_link_internal(
+    arcana
+    PRIVATE
+        arcana-data
+        arcana-model
+        arcana-vocab
+        arcana-loader
+        arcana-validation
+)
 
 # BUILD_INTERFACE so we keep toml++ out of the exports
 target_link_libraries(arcana PRIVATE $<BUILD_INTERFACE:tomlplusplus::tomlplusplus>)

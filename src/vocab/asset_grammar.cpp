@@ -3,8 +3,8 @@
 
 #include "asset_grammar.hpp"
 
-#include "ascii.hpp"
-#include "text.hpp"
+#include <ascii.hpp>
+#include <text.hpp>
 
 #include <algorithm>
 #include <charconv>

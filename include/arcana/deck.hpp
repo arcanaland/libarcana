@@ -7,7 +7,6 @@
 #include <arcana/error.hpp>
 
 #include <cstdint>
-#include <expected>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -195,14 +194,5 @@ struct deck
     // So toml++ stays out of this header
     std::shared_ptr<detail::deck_document const> document_;
 };
-
-// Load and fully parse a deck directory
-//
-// @param deck_directory The dir to load
-// @param languages A preference chain of languages. If empty or cannot be
-//                  satisfied, falls back to English
-std::expected<deck, error> load_deck(
-    std::filesystem::path const& deck_directory, std::vector<std::string> const& languages = {}
-);
 
 }  // namespace arcana

@@ -3,9 +3,9 @@
 
 #include "facts.hpp"
 
-#include "../data/ascii.hpp"
-#include "../data/identifiers.hpp"
-#include "../data/text.hpp"
+#include <ascii.hpp>
+#include <identifiers.hpp>
+#include <text.hpp>
 #include "assets.hpp"
 #include "context.hpp"
 #include "spec.hpp"

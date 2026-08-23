@@ -1,40 +1,26 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-add_library(arcana-validation OBJECT)
-add_library(arcana::validation ALIAS arcana-validation)
-
-set_target_properties(
-    arcana-validation
-    PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-        CXX_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN ON
-)
-
-target_sources(
-    arcana-validation
-    PUBLIC
-        FILE_SET HEADERS
-        BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
-        FILES
-            assets.hpp
-            catalogue.hpp
-            context.hpp
-            facts.hpp
-            probe.hpp
-            registry.hpp
-            spec.hpp
-            tree.hpp
-            checks/ansi.hpp
-            checks/backs.hpp
-            checks/cards.hpp
-            checks/deck.hpp
-            checks/ids.hpp
-            checks/images.hpp
-            checks/names.hpp
-            checks/surrogate.hpp
-    PRIVATE
+arcana_add_internal_library(
+    validation
+    HEADERS
+        assets.hpp
+        catalogue.hpp
+        context.hpp
+        facts.hpp
+        probe.hpp
+        registry.hpp
+        spec.hpp
+        tree.hpp
+        checks/ansi.hpp
+        checks/backs.hpp
+        checks/cards.hpp
+        checks/deck.hpp
+        checks/ids.hpp
+        checks/images.hpp
+        checks/names.hpp
+        checks/surrogate.hpp
+    SOURCES
         assets.cpp
         catalogue.cpp
         facts.cpp
@@ -52,9 +38,8 @@ target_sources(
         checks/surrogate.cpp
 )
 
-target_compile_features(arcana-validation PUBLIC cxx_std_26)
-
-target_include_directories(arcana-validation PUBLIC ${PROJECT_SOURCE_DIR}/include)
+arcana_link_internal(arcana-validation PUBLIC arcana-model)
+arcana_link_internal(arcana-validation PRIVATE arcana-data arcana-vocab)
 
 target_link_libraries(arcana-validation PUBLIC tomlplusplus::tomlplusplus)
 target_compile_definitions(arcana-validation PUBLIC TOML_EXCEPTIONS=0)

@@ -7,6 +7,7 @@
 #include "v1_compat/reader.hpp"
 
 #include <arcana/deck.hpp>
+#include <arcana/loader.hpp>
 
 #include <utility>
 

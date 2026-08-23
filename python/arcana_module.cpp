@@ -5,6 +5,7 @@
 #include <arcana/deck.hpp>
 #include <arcana/error.hpp>
 #include <arcana/library.hpp>
+#include <arcana/loader.hpp>
 #include <arcana/paths.hpp>
 #include <arcana/version.hpp>
 

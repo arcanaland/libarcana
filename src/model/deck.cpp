@@ -3,7 +3,7 @@
 
 #include <arcana/deck.hpp>
 
-#include "data/text.hpp"
+#include <text.hpp>
 
 #include <algorithm>
 #include <array>

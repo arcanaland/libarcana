@@ -5,10 +5,11 @@
 // which is why nothing here needs toml++.
 
 #include <arcana/library.hpp>
+#include <arcana/loader.hpp>
 #include <arcana/paths.hpp>
 
-#include "loader/manifest.hpp"
-#include "loader/summary.hpp"
+#include <manifest.hpp>
+#include <summary.hpp>
 
 #include <algorithm>
 #include <format>
