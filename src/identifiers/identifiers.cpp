@@ -3,8 +3,8 @@
 
 #include "identifiers.hpp"
 
-#include "ascii.hpp"
-#include "text.hpp"
+#include <ascii.hpp>
+#include <text.hpp>
 
 #include <algorithm>
 #include <array>

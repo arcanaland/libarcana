@@ -3,9 +3,9 @@
 
 #include "registry.hpp"
 
+#include <context.hpp>
+#include <facts.hpp>
 #include "catalogue.hpp"
-#include "context.hpp"
-#include "facts.hpp"
 
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>

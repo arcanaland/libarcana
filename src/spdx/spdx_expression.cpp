@@ -3,7 +3,7 @@
 
 #include "spdx_expression.hpp"
 
-#include "ascii.hpp"
+#include <ascii.hpp>
 #include "spdx_licenses.hpp"
 
 #include <algorithm>

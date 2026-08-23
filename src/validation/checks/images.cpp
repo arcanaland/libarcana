@@ -4,9 +4,9 @@
 #include "images.hpp"
 
 #include <asset_grammar.hpp>
-#include "../assets.hpp"
-#include "../facts.hpp"
-#include "../probe.hpp"
+#include <assets.hpp>
+#include <facts.hpp>
+#include <probe.hpp>
 
 #include <arcana/card.hpp>
 

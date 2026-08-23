@@ -3,11 +3,11 @@
 
 #include "backs.hpp"
 
+#include <assets.hpp>
+#include <facts.hpp>
 #include <identifiers.hpp>
-#include "../assets.hpp"
-#include "../facts.hpp"
-#include "../probe.hpp"
-#include "../spec.hpp"
+#include <probe.hpp>
+#include <spec.hpp>
 
 #include <arcana/deck.hpp>
 

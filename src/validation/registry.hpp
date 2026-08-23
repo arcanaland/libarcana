@@ -5,15 +5,15 @@
 
 #pragma once
 
-#include "checks/ansi.hpp"
-#include "checks/backs.hpp"
-#include "checks/cards.hpp"
-#include "checks/deck.hpp"
-#include "checks/ids.hpp"
-#include "checks/images.hpp"
-#include "checks/names.hpp"
-#include "checks/surrogate.hpp"
-#include "context.hpp"
+#include <checks/ansi.hpp>
+#include <checks/backs.hpp>
+#include <checks/cards.hpp>
+#include <checks/deck.hpp>
+#include <checks/ids.hpp>
+#include <checks/images.hpp>
+#include <checks/names.hpp>
+#include <checks/surrogate.hpp>
+#include <context.hpp>
 
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>

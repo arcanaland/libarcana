@@ -13,4 +13,4 @@ arcana_add_internal_library(
         deck.cpp
 )
 
-arcana_link_internal(arcana-model PRIVATE arcana-data)
+arcana_link_internal(arcana-model PRIVATE arcana-identifiers arcana-text)

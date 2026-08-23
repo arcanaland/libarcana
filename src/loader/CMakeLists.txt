@@ -32,7 +32,7 @@ arcana_add_internal_library(
 )
 
 arcana_link_internal(arcana-loader PUBLIC arcana-model)
-arcana_link_internal(arcana-loader PRIVATE arcana-data arcana-vocab)
+arcana_link_internal(arcana-loader PRIVATE arcana-text arcana-vocab)
 
 target_link_libraries(arcana-loader PUBLIC tomlplusplus::tomlplusplus)
 target_compile_definitions(arcana-loader PUBLIC TOML_EXCEPTIONS=0)

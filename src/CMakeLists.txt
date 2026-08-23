@@ -1,7 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-add_subdirectory(data)
+add_subdirectory(text)
+add_subdirectory(identifiers)
+add_subdirectory(imagesig)
+add_subdirectory(spdx)
+add_subdirectory(bcp47)
+add_subdirectory(uri)
 add_subdirectory(model)
 add_subdirectory(vocab)
 add_subdirectory(loader)
@@ -41,10 +46,23 @@ target_compile_features(arcana PUBLIC cxx_std_26)
 arcana_link_internal(
     arcana
     PRIVATE
-        arcana-data
+        arcana-identifiers
+        arcana-imagesig
+        arcana-spdx
+        arcana-bcp47
+        arcana-uri
         arcana-model
         arcana-vocab
         arcana-loader
+        arcana-validation-core
+        arcana-check-ansi
+        arcana-check-backs
+        arcana-check-cards
+        arcana-check-deck
+        arcana-check-ids
+        arcana-check-images
+        arcana-check-names
+        arcana-check-surrogate
         arcana-validation
 )
 

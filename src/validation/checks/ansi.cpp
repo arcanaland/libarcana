@@ -4,7 +4,7 @@
 #include "ansi.hpp"
 
 #include <asset_grammar.hpp>
-#include "../probe.hpp"
+#include <probe.hpp>
 
 #include <arcana/card.hpp>
 
