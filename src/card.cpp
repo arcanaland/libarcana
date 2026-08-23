@@ -184,7 +184,6 @@ std::string card_id::to_canonical() const
     if (is_major())
         return std::format("major_arcana.{}", major_key(*this));
 
-    // qualified: the `suit_key` data member shadows the free function in here
     return std::format("minor_arcana.{}.{}", arcana::suit_key(*this), rank_key(*this));
 }
 

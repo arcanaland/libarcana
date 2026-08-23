@@ -90,7 +90,7 @@ TEST_CASE("custom card ids round-trip and are marked custom", "[card]")
     CHECK(stars_ace->to_canonical() == "minor_arcana.stars.ace");
 }
 
-TEST_CASE("the three key accessors answer for their own position only", "[card]")
+TEST_CASE("key accessors", "[card]")
 {
     auto const fool = card_id::standard_major(0);
     CHECK(major_key(fool) == "00");
@@ -107,10 +107,10 @@ TEST_CASE("the three key accessors answer for their own position only", "[card]"
     CHECK(suit_key(ace_of_cups) == "cups");
     CHECK(rank_key(ace_of_cups) == "ace");
 
-    auto const stars_ace = card_id::custom_minor("stars", "ace");
-    CHECK(major_key(stars_ace).empty());
-    CHECK(suit_key(stars_ace) == "stars");
-    CHECK(rank_key(stars_ace) == "ace");
+    auto const stars_queen = card_id::custom_minor("stars", "queen");
+    CHECK(major_key(stars_queen).empty());
+    CHECK(suit_key(stars_queen) == "stars");
+    CHECK(rank_key(stars_queen) == "queen");
 }
 
 TEST_CASE("to_canonical is composed from the key accessors", "[card]")

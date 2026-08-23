@@ -108,12 +108,19 @@ struct card_id
     friend bool operator==(card_id const&, card_id const&) = default;
 };
 
-// The key the spec names for one position of a card id.
+// The major key of a card id.
 //
-// Each returns the empty string for a card that has no such position: major_key
-// for a minor, suit_key and rank_key for a major.
+// @return empty for minor arcanum ids
 [[nodiscard]] std::string major_key(card_id const& id);
+
+// The suit key of a card id.
+//
+// @return empty for major arcanum ids
 [[nodiscard]] std::string suit_key(card_id const& id);
+
+// The rank key of a card id.
+//
+// @return empty for major arcanum ids
 [[nodiscard]] std::string rank_key(card_id const& id);
 
 // How one artwork came to exist, in a named vocabulary
