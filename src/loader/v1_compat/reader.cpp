@@ -27,19 +27,12 @@ namespace
 
 namespace fs = std::filesystem;
 
-std::string capitalize(std::string_view word)
-{
-    std::string result{word};
-
-    if (!result.empty())
-        result[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(result[0])));
-
-    return result;
-}
-
 std::string default_minor_arcana_name(suit s, rank r)
 {
-    return std::format("{} of {}", capitalize(to_string(r)), capitalize(to_string(s)));
+    return compose_minor_name(
+        default_minor_name_template,
+        {.rank = titlecase_key(to_string(r)), .suit = titlecase_key(to_string(s))}
+    );
 }
 
 // Scrub a major arcana string
@@ -74,13 +67,6 @@ std::optional<std::string> coalesce_alt_text(
     return text;
 }
 
-
-std::optional<std::string> name_at(
-    name_catalog const& names, std::initializer_list<std::string_view> path
-)
-{
-    return names.lookup(std::span{path.begin(), path.size()});
-}
 
 }  // namespace
 
@@ -512,13 +498,12 @@ void deck_reader::build_standard_majors()
 
         card c;
         c.id = std::move(id);
-        c.display_name =
-            name_at(names_, {"major_arcana", key}).value_or(std::string(canonical_name));
+        c.display_name = names_.lookup({"major_arcana", key}).value_or(std::string(canonical_name));
 
         // 1.0 declares no face number; [remap_major_arcana] is a position
         auto const remapped = remapped_positions_.find(fold_major_arcana_name(canonical_name));
         c.position = remapped == remapped_positions_.end() ? i : remapped->second;
-        c.alt_text = name_at(names_, {"alt_text", key});
+        c.alt_text = names_.lookup({"alt_text", key});
         c.images = images_for("major_arcana", key);
 
         deck_.cards.push_back(std::move(c));
@@ -540,11 +525,11 @@ void deck_reader::build_standard_minors()
 
             card c;
             c.id = std::move(id);
-            c.display_name = name_at(names_, {"minor_arcana", suit_key, rank_key})
+            c.display_name = names_.lookup({"minor_arcana", suit_key, rank_key})
                                  .value_or(default_minor_arcana_name(s, r));
             c.display_suit = deck_.display_suit_name(s);
             c.display_rank = deck_.display_rank_name(r);
-            c.alt_text = name_at(names_, {"alt_text", suit_key, rank_key});
+            c.alt_text = names_.lookup({"alt_text", suit_key, rank_key});
             c.images = images_for(std::format("minor_arcana/{}", suit_key), rank_key);
 
             deck_.cards.push_back(std::move(c));
@@ -558,9 +543,9 @@ void deck_reader::build_custom_majors()
     {
         card c;
         c.id = card_id::custom_major(def.id);
-        c.display_name = name_at(names_, {"major_arcana", def.id}).value_or(def.name);
+        c.display_name = names_.lookup({"major_arcana", def.id}).value_or(def.name);
         c.position = def.position;  // nullopt unless the deck declared a position
-        c.alt_text = coalesce_alt_text(name_at(names_, {"alt_text", def.id}), def.alt_text);
+        c.alt_text = coalesce_alt_text(names_.lookup({"alt_text", def.id}), def.alt_text);
 
         // 1.0 gives a custom card its artwork by declaration only
         if (!def.image_ref.empty())
@@ -579,12 +564,11 @@ void deck_reader::build_custom_minors()
             card c;
             c.id = card_id::custom_minor(suit_def.key, def.id);
             c.display_name =
-                name_at(names_, {"minor_arcana", suit_def.key, def.id}).value_or(def.name);
+                names_.lookup({"minor_arcana", suit_def.key, def.id}).value_or(def.name);
             c.display_suit = deck_.display_suit_name(suit_def.key);
             c.display_rank = deck_.display_rank_name(def.id);
-            c.alt_text = coalesce_alt_text(
-                name_at(names_, {"alt_text", suit_def.key, def.id}), def.alt_text
-            );
+            c.alt_text =
+                coalesce_alt_text(names_.lookup({"alt_text", suit_def.key, def.id}), def.alt_text);
             if (!def.image_ref.empty())
                 c.images.push_back(image_from_relative_path(def.image_ref));
 

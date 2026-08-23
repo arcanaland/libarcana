@@ -90,6 +90,44 @@ TEST_CASE("custom card ids round-trip and are marked custom", "[card]")
     CHECK(stars_ace->to_canonical() == "minor_arcana.stars.ace");
 }
 
+TEST_CASE("the three key accessors answer for their own position only", "[card]")
+{
+    auto const fool = card_id::standard_major(0);
+    CHECK(major_key(fool) == "00");
+    CHECK(suit_key(fool).empty());
+    CHECK(rank_key(fool).empty());
+
+    auto const squirrel = card_id::custom_major("happy_squirrel");
+    CHECK(major_key(squirrel) == "happy_squirrel");
+    CHECK(suit_key(squirrel).empty());
+    CHECK(rank_key(squirrel).empty());
+
+    auto const ace_of_cups = card_id::standard_minor(suit::cups, rank::ace);
+    CHECK(major_key(ace_of_cups).empty());
+    CHECK(suit_key(ace_of_cups) == "cups");
+    CHECK(rank_key(ace_of_cups) == "ace");
+
+    auto const stars_ace = card_id::custom_minor("stars", "ace");
+    CHECK(major_key(stars_ace).empty());
+    CHECK(suit_key(stars_ace) == "stars");
+    CHECK(rank_key(stars_ace) == "ace");
+}
+
+TEST_CASE("to_canonical is composed from the key accessors", "[card]")
+{
+    for (int number = 0; number <= max_extended_major_arcana_number; ++number)
+    {
+        auto const id = card_id::standard_major(number);
+        CHECK(id.to_canonical() == std::format("major_arcana.{}", major_key(id)));
+    }
+
+    auto const stars_ace = card_id::custom_minor("stars", "ace");
+    CHECK(
+        stars_ace.to_canonical() ==
+        std::format("minor_arcana.{}.{}", suit_key(stars_ace), rank_key(stars_ace))
+    );
+}
+
 TEST_CASE("card_class is the single discriminant the named constructors set", "[card]")
 {
     CHECK(card_id::standard_major(0).cls == card_class::standard_major);

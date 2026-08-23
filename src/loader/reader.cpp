@@ -35,8 +35,6 @@ namespace
 
 namespace fs = std::filesystem;
 
-constexpr std::string_view default_minor_name_template = "{rank} of {suit}";
-
 // A vocabulary table such as [deck.origin] sorted by system
 std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& node)
 {
@@ -106,70 +104,6 @@ struct root_index
     std::map<std::string, fs::path> card_backs;
 };
 
-// The filename base a card's artwork is stored under
-//   - the two-digit key, the custom major key or the rank key
-std::string base_of(card_id const& id)
-{
-    switch (id.cls)
-    {
-        case card_class::standard_major:
-            return std::format("{:02}", id.number);
-        case card_class::custom_major:
-            return id.custom_id;
-        case card_class::standard_minor:
-            return std::string{to_string(id.standard_rank)};
-        case card_class::custom_minor:
-            return id.custom_id;
-    }
-
-    return {};
-}
-
-std::string suit_key_of(card_id const& id)
-{
-    if (id.cls == card_class::standard_minor)
-        return std::string{to_string(id.standard_suit)};
-
-    return id.suit_key;
-}
-
-// The two names §6.3.1 composes a minor arcanum's name from
-struct minor_parts
-{
-    std::string_view rank;
-    std::string_view suit;
-};
-
-std::string compose_minor_name(std::string_view name_template, minor_parts const& parts)
-{
-    constexpr std::string_view rank_placeholder = "{rank}";
-    constexpr std::string_view suit_placeholder = "{suit}";
-
-    std::string result;
-    result.reserve(name_template.size());
-
-    for (std::size_t pos = 0; pos < name_template.size();)
-    {
-        if (name_template.compare(pos, rank_placeholder.size(), rank_placeholder) == 0)
-        {
-            result += parts.rank;
-            pos += rank_placeholder.size();
-        }
-        else if (name_template.compare(pos, suit_placeholder.size(), suit_placeholder) == 0)
-        {
-            result += parts.suit;
-            pos += suit_placeholder.size();
-        }
-        else
-        {
-            result.push_back(name_template[pos]);
-            ++pos;
-        }
-    }
-
-    return result;
-}
-
 class reader
 {
   public:
@@ -222,6 +156,13 @@ class reader
     // The string a name file supplies at a key path, if any
     [[nodiscard]] std::optional<std::string> from_names(
         std::span<std::string_view const> path
+    ) const
+    {
+        return names_.lookup(path);
+    }
+
+    [[nodiscard]] std::optional<std::string> from_names(
+        std::initializer_list<std::string_view> path
     ) const
     {
         return names_.lookup(path);
@@ -320,20 +261,20 @@ void reader::discover_minors(image_root const& root, root_index& index)
         if (!entry.is_directory(ec))
             continue;
 
-        auto const suit_key = entry.path().filename().string();
-        if (!is_suit_directory(suit_key))
+        auto const suit_dir = entry.path().filename().string();
+        if (!is_suit_directory(suit_dir))
             continue;
 
         for (auto& asset : discover_directory(entry.path(), root.kind, /*allow_variants=*/true))
         {
-            auto const id = minor_asset_id(suit_key, asset.base);
+            auto const id = minor_asset_id(suit_dir, asset.base);
             if (!id)
                 continue;
 
-            discovered_suits_.insert(suit_key);
+            discovered_suits_.insert(suit_dir);
             discovered_.insert(id->to_canonical());
 
-            index.minors[suit_key][asset.base].emplace(asset.variant_key, std::move(asset.path));
+            index.minors[suit_dir][asset.base].emplace(asset.variant_key, std::move(asset.path));
         }
     }
 }
@@ -448,7 +389,8 @@ std::set<std::string> reader::wanted_cards() const
 // unsuffixed file
 artwork_by_variant reader::discovered_images(card const& c) const
 {
-    auto const base = base_of(c.id);
+    // the filename base is the major key for a major and the rank key for a minor
+    auto const base = c.id.is_major() ? major_key(c.id) : rank_key(c.id);
 
     artwork_by_variant by_variant;
 
@@ -458,7 +400,7 @@ artwork_by_variant reader::discovered_images(card const& c) const
 
         if (c.id.is_major())
             level = &index.majors;
-        else if (auto const suit = index.minors.find(suit_key_of(c.id)); suit != index.minors.end())
+        else if (auto const suit = index.minors.find(suit_key(c.id)); suit != index.minors.end())
             level = &suit->second;
 
         if (level == nullptr)
@@ -558,7 +500,7 @@ void reader::build_cards()
         resolve_default_variant(c);
 
         if (!id->is_major())
-            rank_keys_.insert(base_of(*id));
+            rank_keys_.insert(rank_key(*id));
 
         deck_.cards.push_back(std::move(c));
     }
@@ -571,7 +513,7 @@ void reader::mark_excluded_suits()
     for (auto& info : deck_.suits)
         info.excluded = std::ranges::none_of(
             deck_.cards,
-            [&](card const& c) { return !c.id.is_major() && suit_key_of(c.id) == info.key; }
+            [&](card const& c) { return !c.id.is_major() && suit_key(c.id) == info.key; }
         );
 }
 
@@ -668,24 +610,16 @@ card_variant reader::make_variant(card const& c, std::string const& key) const
 
     auto const reference = std::format("{}:{}", c.canonical_id(), key);
 
-    std::array const name_path{
-        std::string_view{"name"}, std::string_view{"variant"}, std::string_view{reference}
-    };
-
-    std::array const alt_path{
-        std::string_view{"alt_text"}, std::string_view{"variant"}, std::string_view{reference}
-    };
-
     card_variant variant{.key = key};
 
-    if (auto const named = from_names(name_path))
+    if (auto const named = from_names({"name", "variant", reference}))
         variant.display_name = *named;
     else if (annotation != nullptr && annotation->name)
         variant.display_name = *annotation->name;
     else
         variant.display_name = c.display_name;
 
-    if (auto const alt = from_names(alt_path))
+    if (auto const alt = from_names({"alt_text", "variant", reference}))
         variant.alt_text = *alt;
     else if (annotation != nullptr && annotation->alt_text)
         variant.alt_text = annotation->alt_text;
@@ -709,14 +643,8 @@ void reader::build_variants()
 void reader::resolve_suit_names()
 {
     for (auto& info : deck_.suits)
-    {
-        std::array const path{
-            std::string_view{"name"}, std::string_view{"suit"}, std::string_view{info.key}
-        };
-
-        if (auto const named = from_names(path))
+        if (auto const named = from_names({"name", "suit", info.key}))
             info.name = *named;
-    }
 }
 
 void reader::resolve_rank_names()
@@ -724,30 +652,15 @@ void reader::resolve_rank_names()
     auto& rank_names = deck_access::rank_names(deck_);
 
     for (auto const& key : rank_keys_)
-    {
-        std::array const path{
-            std::string_view{"name"}, std::string_view{"rank"}, std::string_view{key}
-        };
-
-        if (auto const named = from_names(path))
+        if (auto const named = from_names({"name", "rank", key}))
             rank_names.emplace(key, *named);
-    }
 }
 
 void reader::name_major(card& c)
 {
-    auto const base = base_of(c.id);
+    auto const base = major_key(c.id);
 
-    std::array const path{
-        std::string_view{"name"}, std::string_view{"card"}, std::string_view{"major_arcana"},
-        std::string_view{base}
-    };
-    std::array const alt_path{
-        std::string_view{"alt_text"}, std::string_view{"card"}, std::string_view{"major_arcana"},
-        std::string_view{base}
-    };
-
-    if (auto const named = from_names(path))
+    if (auto const named = from_names({"name", "card", "major_arcana", base}))
         c.display_name = *named;
     else if (auto const declared = annotated_name(c.canonical_id()))
         c.display_name = *declared;
@@ -759,28 +672,19 @@ void reader::name_major(card& c)
         // fallback
         c.display_name = titlecase_key(base);
 
-    if (auto const alt = from_names(alt_path))
+    if (auto const alt = from_names({"alt_text", "card", "major_arcana", base}))
         c.alt_text = *alt;
 }
 
 void reader::name_minor(card& c, std::string_view name_template)
 {
-    auto const base = base_of(c.id);
-    auto const suit_key = suit_key_of(c.id);
+    auto const base = rank_key(c.id);
+    auto const card_suit_key = suit_key(c.id);
 
-    c.display_suit = deck_.display_suit_name(suit_key);
+    c.display_suit = deck_.display_suit_name(card_suit_key);
     c.display_rank = deck_.display_rank_name(base);
 
-    std::array const path{
-        std::string_view{"name"}, std::string_view{"card"}, std::string_view{"minor_arcana"},
-        std::string_view{suit_key}, std::string_view{base}
-    };
-    std::array const alt_path{
-        std::string_view{"alt_text"}, std::string_view{"card"}, std::string_view{"minor_arcana"},
-        std::string_view{suit_key}, std::string_view{base}
-    };
-
-    if (auto const named = from_names(path))
+    if (auto const named = from_names({"name", "card", "minor_arcana", card_suit_key, base}))
         c.display_name = *named;
     else if (auto const declared = annotated_name(c.canonical_id()))
         c.display_name = *declared;
@@ -789,18 +693,14 @@ void reader::name_minor(card& c, std::string_view name_template)
         c.display_name =
             compose_minor_name(name_template, {.rank = c.display_rank, .suit = c.display_suit});
 
-    if (auto const alt = from_names(alt_path))
+    if (auto const alt = from_names({"alt_text", "card", "minor_arcana", card_suit_key, base}))
         c.alt_text = *alt;
 }
 
 void reader::resolve_card_names()
 {
-    std::array const template_path{
-        std::string_view{"name"}, std::string_view{"card"}, std::string_view{"minor_arcana"},
-        std::string_view{"name_template"}
-    };
-    auto const name_template =
-        from_names(template_path).value_or(std::string{default_minor_name_template});
+    auto const name_template = from_names({"name", "card", "minor_arcana", "name_template"})
+                                   .value_or(std::string{default_minor_name_template});
 
     for (auto& c : deck_.cards)
         if (c.id.is_major())
@@ -813,19 +713,12 @@ void reader::resolve_back_names()
 {
     for (auto& design : deck_.card_backs)
     {
-        std::array const path{
-            std::string_view{"name"}, std::string_view{"card_back"}, std::string_view{design.id}
-        };
-        std::array const alt_path{
-            std::string_view{"alt_text"}, std::string_view{"card_back"}, std::string_view{design.id}
-        };
-
-        if (auto const named = from_names(path))
+        if (auto const named = from_names({"name", "card_back", design.id}))
             design.name = *named;
         else if (design.name.empty())
             design.name = titlecase_key(design.id);
 
-        if (auto const alt = from_names(alt_path))
+        if (auto const alt = from_names({"alt_text", "card_back", design.id}))
             design.alt_text = *alt;
     }
 }

@@ -108,6 +108,14 @@ struct card_id
     friend bool operator==(card_id const&, card_id const&) = default;
 };
 
+// The key the spec names for one position of a card id.
+//
+// Each returns the empty string for a card that has no such position: major_key
+// for a minor, suit_key and rank_key for a major.
+[[nodiscard]] std::string major_key(card_id const& id);
+[[nodiscard]] std::string suit_key(card_id const& id);
+[[nodiscard]] std::string rank_key(card_id const& id);
+
 // How one artwork came to exist, in a named vocabulary
 //
 // One entry per vocabulary system, e.g. system "iptc-dst", term "print".

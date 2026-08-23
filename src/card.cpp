@@ -131,23 +131,61 @@ bool card_id::is_custom() const noexcept
     return cls == card_class::custom_major || cls == card_class::custom_minor;
 }
 
-std::string card_id::to_canonical() const
+std::string major_key(card_id const& id)
 {
-    switch (cls)
+    switch (id.cls)
     {
         case card_class::standard_major:
-            return std::format("major_arcana.{:02d}", number);
+            return std::format("{:02d}", id.number);
         case card_class::custom_major:
-            return std::format("major_arcana.{}", custom_id);
+            return id.custom_id;
         case card_class::standard_minor:
-            return std::format(
-                "minor_arcana.{}.{}", to_string(standard_suit), to_string(standard_rank)
-            );
         case card_class::custom_minor:
-            return std::format("minor_arcana.{}.{}", suit_key, custom_id);
+            return {};
     }
 
     return {};
+}
+
+std::string suit_key(card_id const& id)
+{
+    switch (id.cls)
+    {
+        case card_class::standard_minor:
+            return std::string{to_string(id.standard_suit)};
+        case card_class::custom_minor:
+            return id.suit_key;
+        case card_class::standard_major:
+        case card_class::custom_major:
+            return {};
+    }
+
+    return {};
+}
+
+std::string rank_key(card_id const& id)
+{
+    switch (id.cls)
+    {
+        case card_class::standard_minor:
+            return std::string{to_string(id.standard_rank)};
+        case card_class::custom_minor:
+            return id.custom_id;
+        case card_class::standard_major:
+        case card_class::custom_major:
+            return {};
+    }
+
+    return {};
+}
+
+std::string card_id::to_canonical() const
+{
+    if (is_major())
+        return std::format("major_arcana.{}", major_key(*this));
+
+    // qualified: the `suit_key` data member shadows the free function in here
+    return std::format("minor_arcana.{}.{}", arcana::suit_key(*this), rank_key(*this));
 }
 
 bool is_valid_identifier(std::string_view text) noexcept
