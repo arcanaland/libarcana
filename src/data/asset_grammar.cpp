@@ -19,7 +19,6 @@ namespace arcana::data
 namespace
 {
 
-// The <height> of an h<n>/ root or the <lines> of an ansi<n>/ root
 std::optional<int> parse_root_size(std::string_view digits) noexcept
 {
     if (digits.empty() || !std::ranges::all_of(digits, is_digit))

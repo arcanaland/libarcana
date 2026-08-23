@@ -50,7 +50,7 @@ enum class chain_format : std::uint8_t
 // Every path that is listed in deck.toml explicitly
 [[nodiscard]] std::vector<std::string> declared_paths(toml::table const& doc);
 
-// Filename extraction helpers, over DECK.md 5.7.2's parts
+// Filename extraction helpers
 [[nodiscard]] std::string_view extension_of(std::string_view filename) noexcept;
 [[nodiscard]] std::string_view stem_of(std::string_view filename) noexcept;
 

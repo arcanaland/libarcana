@@ -30,7 +30,6 @@ std::optional<image_root> classify_image_root(fs::path const& path)
     if (!parsed)
         return std::nullopt;
 
-    // The shared grammar carries one size; the model splits it by kind
     return image_root{
         .path = path,
         .name = name,
@@ -81,8 +80,7 @@ std::vector<image_root> find_image_roots(fs::path const& deck_root)
         if (!root)
             continue;
 
-        // Surrogate assets are representable but not yet loaded; see the
-        // follow-up to RFC-034 for what a surrogate card_image would mean
+        // TODO
         if (root->kind == image_kind::surrogate)
             continue;
 

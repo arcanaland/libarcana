@@ -27,41 +27,29 @@ struct image_root_name
 };
 
 // Reads a top-level directory name as an image root if it is one
-//
-// §5.7.1: scalable/, h<height>/, ansi<lines>/ and surrogate/, where the size is
-// a decimal integer greater than zero written without a sign, leading zeroes or
-// separators. A size too large to hold in an `int` names no root.
 [[nodiscard]] std::optional<image_root_name> parse_image_root(std::string_view name) noexcept;
 
 // Where an extension sits in `kind`'s chain, or nullopt where the chain ignores it
-//
-// §5.7.4: png, webp, avif, then jpeg and jpg together for raster; svg alone in
-// scalable/; toml alone in surrogate/; anything or nothing in an ANSI root.
-// Lower ranks win.
 [[nodiscard]] std::optional<int> chain_rank(image_kind kind, std::string_view extension) noexcept;
 
-// Whether an extension names one of §5.7.4's three baseline formats
+// if is one of the baseline formats
 [[nodiscard]] bool is_baseline_extension(std::string_view extension) noexcept;
 
-// A card asset filename split into §5.7.2's parts
+// A card asset filename split into parts
 struct asset_filename
 {
-    // Everything before the last '.'
+    // Everything before the last .
     std::string_view stem;
 
-    // The part of the stem before the first '.'
+    // The part of the stem before the first .
     std::string_view base;
 
-    // Empty where the stem has no variant key
+    // Empty if no variant
     std::string_view variant_key;
 
-    // Empty where the filename holds no '.' at all
     std::string_view extension;
 
-    // Splits a filename at the first and last '.' per §5.7.2
-    //
-    // A name that is nothing but an extension, such as `.hidden`, yields an
-    // empty base; callers reject that. The parts borrow from `filename`.
+    // Splits a filename at the first and last '.'
     [[nodiscard]] static asset_filename from_filename(std::string_view filename) noexcept;
 };
 
@@ -81,13 +69,9 @@ struct path_parts
     }
 };
 
-// Splits a deck-relative path, or yields nothing where it runs deeper than
-// `location_depth` — no such path is a place discovery looks.
-//
-// The pieces borrow from `relative`, which must outlive the result.
+// Splits a deck-relative path
 [[nodiscard]] path_parts components_of(std::filesystem::path const& relative) noexcept;
 
-// The pieces would dangle
-path_parts components_of(std::filesystem::path&&) = delete;
+path_parts components_of(std::filesystem::path&&) = delete; // must outlive input
 
 }  // namespace arcana::data

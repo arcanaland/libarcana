@@ -402,8 +402,6 @@ card_image deck_reader::image_from_relative_path(std::string_view relative_path)
     auto const slash = relative_path.find('/');
     std::string source_dir{relative_path.substr(0, slash)};
 
-    // Deck spec 1.0 defines three root forms; surrogate/ arrived in 2.0, so to
-    // a 1.0 deck it is an ordinary directory under no recognizable root
     auto const root = classify_image_root(root_ / source_dir);
     if (root && root->kind != image_kind::surrogate)
         return image_at(*root, root_ / relative_path);

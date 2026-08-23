@@ -577,22 +577,14 @@ void reader::mark_excluded_suits()
 
 void reader::read_card_backs()
 {
-    // The designs a deck has are the union of the stems found across every card
-    // back directory, plus every declared key carrying an explicit `image`
     std::map<std::string, fs::path> found;
 
-    // The top-level card_backs/ is a root of no declared kind or size, so
-    // neither chain alone describes it: the raster chain is the documented
-    // simple form and scalable fills in for a design shipped only as SVG. It
-    // seeds the map, so any image root below overwrites what it supplies
+    // top-level card_backs/
     for (auto const kind : {image_kind::scalable, image_kind::raster})
         for (auto& asset : discover_directory(root_ / "card_backs", kind, /*allow_variants=*/false))
             if (is_custom_name(asset.base))
                 found.insert_or_assign(asset.base, std::move(asset.path));
 
-    // The model holds one image per design where the spec resolves per kind and
-    // size, so a preference is unavoidable: scalable, then the largest raster,
-    // then the largest ANSI. Lower wins
     auto const preference = [](image_root const& root)
     {
         switch (root.kind)
@@ -604,8 +596,6 @@ void reader::read_card_backs()
             case image_kind::ansi:
                 return std::pair{2, -root.lines.value_or(0)};
             case image_kind::surrogate:
-                // Unreachable while find_image_roots skips surrogate roots, and
-                // last is where a lossy stand-in belongs once it does not
                 return std::pair{3, 0};
         }
 
