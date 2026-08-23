@@ -22,16 +22,14 @@ using arcana::data::parse_image_root;
 namespace
 {
 
-// The kind a directory name names, or nullopt where it names no root
-std::optional<image_kind> kind_of(std::string_view name)
+std::optional<image_kind> kind_of_directory(std::string_view name)
 {
     auto const root = parse_image_root(name);
 
     return root ? std::optional{root->kind} : std::nullopt;
 }
 
-// The size a directory name carries, flattening "not a root" into nullopt
-std::optional<int> size_of(std::string_view name)
+std::optional<int> size_of_directory(std::string_view name)
 {
     auto const root = parse_image_root(name);
 
@@ -40,25 +38,23 @@ std::optional<int> size_of(std::string_view name)
 
 }  // namespace
 
-// --- DECK.md 5.7.1: the four image root forms --------------------------------
-
-TEST_CASE("the four image root forms are read", "[asset_grammar]")
+TEST_CASE("the four image root forms", "[asset_grammar]")
 {
-    CHECK(kind_of("scalable") == image_kind::scalable);
-    CHECK(size_of("scalable") == std::nullopt);
+    CHECK(kind_of_directory("scalable") == image_kind::scalable);
+    CHECK(size_of_directory("scalable") == std::nullopt);
 
-    CHECK(kind_of("surrogate") == image_kind::surrogate);
-    CHECK(size_of("surrogate") == std::nullopt);
+    CHECK(kind_of_directory("surrogate") == image_kind::surrogate);
+    CHECK(size_of_directory("surrogate") == std::nullopt);
 
-    CHECK(kind_of("h1200") == image_kind::raster);
-    CHECK(size_of("h1200") == 1200);
-    CHECK(kind_of("h1") == image_kind::raster);
-    CHECK(size_of("h1") == 1);
+    CHECK(kind_of_directory("h1200") == image_kind::raster);
+    CHECK(size_of_directory("h1200") == 1200);
+    CHECK(kind_of_directory("h1") == image_kind::raster);
+    CHECK(size_of_directory("h1") == 1);
 
-    CHECK(kind_of("ansi32") == image_kind::ansi);
-    CHECK(size_of("ansi32") == 32);
-    CHECK(kind_of("ansi1") == image_kind::ansi);
-    CHECK(size_of("ansi1") == 1);
+    CHECK(kind_of_directory("ansi32") == image_kind::ansi);
+    CHECK(size_of_directory("ansi32") == 32);
+    CHECK(kind_of_directory("ansi1") == image_kind::ansi);
+    CHECK(size_of_directory("ansi1") == 1);
 }
 
 TEST_CASE("a directory that is not one of the four forms is no image root", "[asset_grammar]")
@@ -66,19 +62,17 @@ TEST_CASE("a directory that is not one of the four forms is no image root", "[as
     auto const name = GENERATE(
         // A size must be present, positive and free of leading zeroes
         "h", "h0", "h00", "h01", "h-1", "h+1", "h1.5", "hx", "h 1", "h1_200",
-        // 5.7.1 gives no upper bound; a size that will not fit an int names no root
+        // doesn't fit in an int
         "h99999999999999999999", "ansi99999999999999999999",
-        // ansi<lines> takes the same size grammar
+        // ansi
         "ansi", "ansi0", "ansi01", "ansiX",
-        // Near misses on the two fixed names
+        // misc
         "", "scalable2", "Scalable", "surrogates", "svg", "major_arcana", "card_backs", "names"
     );
 
     CAPTURE(name);
     CHECK_FALSE(parse_image_root(name).has_value());
 }
-
-// --- DECK.md 5.7.4: the extension chain --------------------------------------
 
 TEST_CASE("the raster chain is png, webp, avif, then jpeg and jpg", "[asset_grammar]")
 {
@@ -133,7 +127,7 @@ TEST_CASE("the baseline formats are png, webp and jpeg", "[asset_grammar]")
     CHECK_FALSE(is_baseline_extension(""));
 }
 
-// --- DECK.md 5.7.2: extensions, stems and bases ------------------------------
+// --- extensions, stems and bases ------------------------------
 
 TEST_CASE("a filename splits at the first and last dot", "[asset_grammar]")
 {
@@ -153,13 +147,13 @@ TEST_CASE("a filename splits at the first and last dot", "[asset_grammar]")
     CHECK(deep.variant_key == "b.c");
     CHECK(deep.extension == "png");
 
-    // No dot at all: an ANSI candidate, with no extension
+    // No dot at all (ANSI?)
     auto const none = asset_filename::from_filename("00");
     CHECK(none.base == "00");
     CHECK(none.variant_key.empty());
     CHECK(none.extension.empty());
 
-    // A dotfile is all extension and no base, and every caller rejects that
+    // A dotfile is all extension and no base
     auto const hidden = asset_filename::from_filename(".hidden");
     CHECK(hidden.base.empty());
     CHECK(hidden.variant_key.empty());
@@ -169,8 +163,6 @@ TEST_CASE("a filename splits at the first and last dot", "[asset_grammar]")
     CHECK(empty.base.empty());
     CHECK(empty.extension.empty());
 }
-
-// --- Deck-relative paths -----------------------------------------------------
 
 TEST_CASE("a deck-relative path splits into its components", "[asset_grammar]")
 {
@@ -184,6 +176,7 @@ TEST_CASE("a deck-relative path splits into its components", "[asset_grammar]")
     std::filesystem::path const minor_path{"h1200/minor_arcana/cups/ace.png"};
     auto const minors = components_of(minor_path);
     REQUIRE(minors.size == 4);
+    CHECK(minors[2] == "cups");
     CHECK(minors[3] == "ace.png");
 
     std::filesystem::path const manifest{"deck.toml"};
