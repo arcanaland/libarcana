@@ -152,8 +152,8 @@ TEST_CASE("aliases, remapping and card backs", "[deck]")
     // A key this deck does not define at all still renders
     CHECK(d.display_suit_name("shooting_stars") == "Shooting Stars");
 
-    REQUIRE(d.default_card_back.has_value());
-    CHECK(*d.default_card_back == "classic");
+    REQUIRE(d.default_card_back().has_value());
+    CHECK(*d.default_card_back() == "classic");
 
     // One declared plus one discovered
     REQUIRE(d.card_backs.size() == 2);

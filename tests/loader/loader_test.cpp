@@ -330,7 +330,7 @@ name = "Ornate"
 )");
 
     REQUIRE(d.card_backs.size() == 2);
-    CHECK(d.default_card_back == "plain");
+    CHECK(d.default_card_back() == "plain");
 
     auto const chosen = d.default_card_back_design();
     REQUIRE(chosen.has_value());

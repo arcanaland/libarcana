@@ -132,7 +132,8 @@ NB_MODULE(_core, m)  // NOLINT
     nb::enum_<image_kind>(m, "image_kind")
         .value("scalable", image_kind::scalable)
         .value("raster", image_kind::raster)
-        .value("ansi", image_kind::ansi);
+        .value("ansi", image_kind::ansi)
+        .value("surrogate", image_kind::surrogate);
 
     // --- Shape: free functions over string_view -------------------------------
 
@@ -328,7 +329,7 @@ NB_MODULE(_core, m)  // NOLINT
         .def_ro("metadata", &deck::metadata)
         .def_ro("cards", &deck::cards)
         .def_ro("suits", &deck::suits)
-        .def_ro("default_card_back", &deck::default_card_back)
+        .def_prop_ro("default_card_back", &deck::default_card_back)
         .def_ro("card_backs", &deck::card_backs)
         .def("default_card_back_design", &deck::default_card_back_design)
         .def("cards_of_kind", &deck::cards_of_kind, nb::arg("kind"))

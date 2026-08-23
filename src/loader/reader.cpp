@@ -294,7 +294,7 @@ void reader::read_metadata()
     deck_.excluded.cards = get_string_array(excluded["cards"]);
     deck_.excluded.reason = get_string(excluded["reason"]);
 
-    deck_.default_card_back = get_string(table()["card_backs"]["default"]);
+    deck_access::set_default_card_back(deck_, get_string(table()["card_backs"]["default"]));
 }
 
 void reader::discover_majors(image_root const& root, root_index& index)
@@ -434,7 +434,7 @@ std::set<std::string> reader::wanted_cards() const
     std::set<std::string> wanted = discovered_;
 
     // The seventy-eight canonical slots exist for every deck
-    for (int number = 0; number <= max_major_arcana_number; ++number)
+    for (int number = 0; number <= max_canonical_major_arcana_number; ++number)
         wanted.insert(std::format("major_arcana.{:02}", number));
 
     for (auto const s : standard_suits)
@@ -577,22 +577,14 @@ void reader::mark_excluded_suits()
 
 void reader::read_card_backs()
 {
-    // The designs a deck has are the union of the stems found across every card
-    // back directory, plus every declared key carrying an explicit `image`
     std::map<std::string, fs::path> found;
 
-    // The top-level card_backs/ is a root of no declared kind or size, so
-    // neither chain alone describes it: the raster chain is the documented
-    // simple form and scalable fills in for a design shipped only as SVG. It
-    // seeds the map, so any image root below overwrites what it supplies
+    // top-level card_backs/
     for (auto const kind : {image_kind::scalable, image_kind::raster})
         for (auto& asset : discover_directory(root_ / "card_backs", kind, /*allow_variants=*/false))
             if (is_custom_name(asset.base))
                 found.insert_or_assign(asset.base, std::move(asset.path));
 
-    // The model holds one image per design where the spec resolves per kind and
-    // size, so a preference is unavoidable: scalable, then the largest raster,
-    // then the largest ANSI. Lower wins
     auto const preference = [](image_root const& root)
     {
         switch (root.kind)
@@ -603,6 +595,8 @@ void reader::read_card_backs()
                 return std::pair{1, -root.height.value_or(0)};
             case image_kind::ansi:
                 return std::pair{2, -root.lines.value_or(0)};
+            case image_kind::surrogate:
+                return std::pair{3, 0};
         }
 
         std::unreachable();
@@ -757,7 +751,9 @@ void reader::name_major(card& c)
         c.display_name = *named;
     else if (auto const declared = annotated_name(c.canonical_id()))
         c.display_name = *declared;
-    else if (c.id.cls == card_class::standard_major && c.id.number <= max_major_arcana_number)
+    else if (
+        c.id.cls == card_class::standard_major && c.id.number <= max_canonical_major_arcana_number
+    )
         c.display_name = default_major_arcana_names[static_cast<std::size_t>(c.id.number)];
     else
         // fallback

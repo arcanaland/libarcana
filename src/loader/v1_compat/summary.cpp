@@ -28,7 +28,7 @@ std::size_t count_standard_cards(std::vector<std::string> const& excluded)
 {
     std::size_t count = 0;
 
-    for (int number = 0; number <= max_major_arcana_number; ++number)
+    for (int number = 0; number <= max_canonical_major_arcana_number; ++number)
         if (!is_excluded(excluded, card_id::standard_major(number).to_canonical()))
             ++count;
 
