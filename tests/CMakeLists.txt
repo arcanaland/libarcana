@@ -30,10 +30,8 @@ else()
     set(arcana_reference_decks_dir "")
 endif()
 
-option(ARCANA_FETCH_SPECIFICATION "Download the specification text the anchor gate reads" ON)
+option(ARCANA_FETCH_SPECIFICATION "Download the specification text" ON)
 
-# One commit per schema major. The v1.0 text predates the README.md -> DECK.md
-# rename at e7da516, so the two majors do not live under the same filename.
 set(ARCANA_SPECIFICATION_V1_TAG
     29f2184b8fc29e1db016c1f4a3d0c96bac8a4217 CACHE STRING
     "Commit of arcanaland/specifications the major-1 citations are derived from")
@@ -43,8 +41,7 @@ set(ARCANA_SPECIFICATION_V2_TAG
     "Commit of arcanaland/specifications the major-2 citations are derived from")
 
 set(ARCANA_SPECIFICATION_DIR "" CACHE PATH
-    "Read README.md and DECK.md from this directory instead of downloading them. \
-An escape hatch: nothing checks that they are the pinned revisions")
+    "Read specs from this directory instead of downloading them.")
 
 if(ARCANA_SPECIFICATION_DIR)
     set(arcana_specification_v1_file ${ARCANA_SPECIFICATION_DIR}/README.md)

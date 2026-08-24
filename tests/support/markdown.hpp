@@ -23,18 +23,14 @@ struct heading
     // How many leading '#' the heading carried.
     std::size_t level;
 
-    // The heading text, trimmed, exactly as the document writes it.
+    // The heading text trimmed
     std::string text;
 
-    // The GitHub anchor the text produces, without the leading '#'.
+    // The GitHub anchor without the leading #
     std::string slug;
 };
 
 // Lowercase, drop everything outside [a-z0-9 -_], spaces to hyphens.
-//
-// This is GitHub's rule with one omission: a repeated slug gets a "-1", "-2"
-// suffix there and nothing here. The caller asserts no two headings collide
-// instead, which is the honest thing to do while no collision exists.
 inline std::string slugify(std::string_view text)
 {
     std::string slug;
@@ -51,10 +47,8 @@ inline std::string slugify(std::string_view text)
     return slug;
 }
 
-// Every ATX heading in `text`, skipping fenced code blocks.
+// Every heading in text
 //
-// A '#' opening a comment inside a ``` fence is not a heading, and the
-// specification's TOML examples are full of them.
 inline std::vector<heading> headings_of(std::string_view text)
 {
     std::vector<heading> found;
@@ -70,6 +64,7 @@ inline std::vector<heading> headings_of(std::string_view text)
         if (start == std::string::npos)
             continue;
 
+        // Skip inside ``` fences because we have lots of comments there
         if (line.compare(start, 3, "```") == 0)
         {
             fenced = !fenced;
@@ -94,7 +89,6 @@ inline std::vector<heading> headings_of(std::string_view text)
     return found;
 }
 
-// The whole file, or an empty string where it cannot be opened.
 inline std::string read_file(std::string const& path)
 {
     std::ifstream in{path, std::ios::binary};
