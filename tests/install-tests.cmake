@@ -3,9 +3,7 @@
 
 # Install verification: build tests/consumer/ against a DESTDIR-staged tree,
 # once per package-discovery mechanism.
-#
-# tests/consumer/ is a CMake project of its own, configured standalone by
-# --build-and-test, which is why the harness lives here and not in it.
+
 
 set(arcana_stage_dir ${PROJECT_BINARY_DIR}/stage)
 set(arcana_staged_prefix ${arcana_stage_dir}${CMAKE_INSTALL_PREFIX})
