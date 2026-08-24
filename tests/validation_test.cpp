@@ -144,7 +144,7 @@ TEST_CASE("every rule is fully populated", "[validation]")
         INFO("rule: " << r.code);
         CHECK_FALSE(r.code.empty());
         CHECK_FALSE(r.area.empty());
-        CHECK_FALSE(r.spec_ref.empty());
+        CHECK_FALSE(r.cites.empty());
         CHECK_FALSE(r.explanation.empty());
     }
 }
@@ -205,12 +205,15 @@ TEST_CASE("every schema range names a major this specification has", "[validatio
     }
 }
 
-TEST_CASE("no rule citing DECK.md#9.4 sits below the specification's floor", "[validation]")
+TEST_CASE(
+    "no rule listed in the 9.4 rule table sits below the specification's floor", "[validation]"
+)
 {
     for (auto const& r : rules())
     {
         INFO("rule: " << r.code);
-        if (r.spec_ref.find("#9.4") != std::string_view::npos)
+
+        if (r.in_rules_table)
             CHECK(r.default_level >= severity::warning);
     }
 }

@@ -14,8 +14,10 @@
 #include <tree.hpp>
 
 #include <algorithm>
+#include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -36,6 +38,16 @@ rule const* find_rule(std::string_view code) noexcept
 std::optional<rule_state> state_of(std::string_view code) noexcept
 {
     return validation::state_of_code(code);
+}
+
+std::string_view spec_revision(std::uint8_t schema_major) noexcept
+{
+    return validation::revision_of(schema_major);
+}
+
+std::string spec_url(spec_section section)
+{
+    return validation::url_of(section);
 }
 
 std::vector<diagnostic> validate(deck const& d)

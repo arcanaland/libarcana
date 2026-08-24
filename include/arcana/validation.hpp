@@ -5,6 +5,9 @@
 
 #include <arcana/deck.hpp>
 
+#include <array>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -50,26 +53,77 @@ struct schema_range
     }
 };
 
+struct spec_section
+{
+    std::uint8_t schema_major;
+
+    // slug of section heading without the leading #
+    std::string_view anchor;
+};
+
+// The v2 text's rule table
+inline constexpr spec_section rule_table_section{
+    .schema_major = 2, .anchor = "94-validation-rules"
+};
+
+struct spec_citations
+{
+    static constexpr std::size_t capacity = 5;
+    std::array<spec_section, capacity> entries;
+
+    std::uint8_t count;
+
+    constexpr spec_citations() noexcept : entries{}, count{0} {}
+
+    template <std::same_as<spec_section>... Sections>
+        requires(sizeof...(Sections) >= 1)
+    constexpr spec_citations(Sections... sections) noexcept
+        : entries{sections...}, count{static_cast<std::uint8_t>(sizeof...(sections))}
+    {
+        static_assert(sizeof...(sections) < capacity);
+    }
+
+    [[nodiscard]] constexpr spec_section const* begin() const noexcept
+    {
+        return entries.data();
+    }
+
+    [[nodiscard]] constexpr spec_section const* end() const noexcept
+    {
+        return entries.data() + count;
+    }
+
+    [[nodiscard]] constexpr std::size_t size() const noexcept
+    {
+        return count;
+    }
+
+    [[nodiscard]] constexpr bool empty() const noexcept
+    {
+        return count == 0;
+    }
+};
+
 // One entry of the diagnostic catalogue.
-//
-// Every field here is derived from the deck specification and reviewed as prose.
 struct rule
 {
-    // Flat kebab-case, e.g. "orphan-image". This is API and is never renamed.
+    // Flat kebab-case, e.g. "orphan-image".
     std::string_view code;
 
-    // The severity a consumer gets unless it re-levels the rule itself.
+    // The severity a consumer gets
     severity default_level;
 
     // One of: deck, ids, images, backs, cards, names, ansi, surrogate.
     std::string_view area;
 
-    // The strongest phase this check requires over the whole schema range it
-    // applies to.
+    // document/filesystem/library
     phase needs;
 
-    // Sections of the spec joined by semicolons: "DECK.md#5.5; DECK.md#9.4"
-    std::string_view spec_ref;
+    // Where the spec states this rule
+    spec_citations cites;
+
+    // Whether the v2 text's rule table lists this rule.
+    bool in_rules_table;
 
     // Static non-interpolated explanation of rule
     std::string_view explanation;
@@ -79,6 +133,18 @@ struct rule
 
     // A new check (excluded from the default set)
     bool experimental;
+
+    // Every section this rule cites
+    [[nodiscard]] constexpr spec_citations citations() const noexcept
+    {
+        if (!in_rules_table)
+            return cites;
+
+        spec_citations all = cites;
+        all.entries[all.count++] = rule_table_section;
+
+        return all;
+    }
 };
 
 // Whether a rule is actually implemented
@@ -102,6 +168,14 @@ enum class rule_state : std::uint8_t
 
 // Whether this rule is implemented
 [[nodiscard]] std::optional<rule_state> state_of(std::string_view code) noexcept;
+
+// The commit of arcanaland/specifications this major's citations were read
+// against, or empty for a major the catalogue carries no text for.
+[[nodiscard]] std::string_view spec_revision(std::uint8_t schema_major) noexcept;
+
+// A URL resolving to the cited section, built from that major's pin. Empty
+// where the major has no pin.
+[[nodiscard]] std::string spec_url(spec_section section);
 
 // One finding about one deck.
 struct diagnostic
