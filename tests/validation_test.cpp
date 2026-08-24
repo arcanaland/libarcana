@@ -144,7 +144,7 @@ TEST_CASE("every rule is fully populated", "[validation]")
         INFO("rule: " << r.code);
         CHECK_FALSE(r.code.empty());
         CHECK_FALSE(r.area.empty());
-        CHECK_FALSE(r.spec_refs.empty());
+        CHECK_FALSE(r.cites.empty());
         CHECK_FALSE(r.explanation.empty());
     }
 }
@@ -205,21 +205,39 @@ TEST_CASE("every schema range names a major this specification has", "[validatio
     }
 }
 
-TEST_CASE("no rule citing the 9.4 rule table sits below the specification's floor", "[validation]")
+TEST_CASE(
+    "no rule listed in the 9.4 rule table sits below the specification's floor", "[validation]"
+)
 {
-    constexpr spec_section rule_table{2, "94-validation-rules"};
-
     for (auto const& r : rules())
     {
         INFO("rule: " << r.code);
 
-        bool const cites_rule_table = std::ranges::any_of(
-            r.spec_refs, [](spec_section const& s)
-            { return s.schema_major == rule_table.schema_major && s.anchor == rule_table.anchor; }
+        if (r.in_rules_table)
+            CHECK(r.default_level >= severity::warning);
+    }
+}
+
+TEST_CASE("the rule table is a flag and never written as a citation", "[validation]")
+{
+    for (auto const& r : rules())
+    {
+        INFO("rule: " << r.code);
+
+        // Writing it inline would double it up in `citations()`, and is the
+        // hand-copying the flag exists to remove.
+        CHECK(
+            std::ranges::find(r.cites, arcana::rule_table_section.anchor, &spec_section::anchor) ==
+            r.cites.end()
         );
 
-        if (cites_rule_table)
-            CHECK(r.default_level >= severity::warning);
+        spec_citations const all = r.citations();
+
+        CHECK(all.size() == r.cites.size() + (r.in_rules_table ? 1U : 0U));
+
+        // Appended last, which is the order the catalogue documents.
+        if (r.in_rules_table)
+            CHECK(all.entries[all.size() - 1].anchor == arcana::rule_table_section.anchor);
     }
 }
 
@@ -258,9 +276,8 @@ TEST_CASE("every rule spanning both majors cites v1.0 or is named as unfounded",
 
         INFO("rule: " << r.code);
 
-        bool const cites_v1 = std::ranges::any_of(
-            r.spec_refs, [](spec_section const& s) { return s.schema_major == 1; }
-        );
+        bool const cites_v1 =
+            std::ranges::any_of(r.cites, [](spec_section const& s) { return s.schema_major == 1; });
 
         CHECK(cites_v1 != (std::ranges::find(no_v1_basis, r.code) != no_v1_basis.end()));
     }

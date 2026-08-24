@@ -123,7 +123,7 @@ TEST_CASE("every citation names a heading of the text it cites", "[spec]")
 
     for (auto const& r : rules())
     {
-        for (spec_section const& section : r.spec_refs)
+        for (spec_section const& section : r.citations())
         {
             INFO(
                 "rule " << r.code << " cites #" << section.anchor << " of schema major "

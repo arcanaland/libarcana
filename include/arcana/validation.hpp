@@ -5,6 +5,9 @@
 
 #include <arcana/deck.hpp>
 
+#include <array>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -63,6 +66,62 @@ struct spec_section
     std::string_view anchor;
 };
 
+// The v2 text's rule table, which lists every rule rather than any one of them.
+// `rule::in_rules_table` stands in for a citation of it.
+inline constexpr spec_section rule_table_section{
+    .schema_major = 2, .anchor = "94-validation-rules"
+};
+
+// The sections one rule cites, in the order the specification writes them.
+//
+// A fixed-capacity value and not a `std::span`, so that a rule's citations are
+// written at the rule. A span would need an array with static storage to point
+// at, which is a table of its own hoisted away from the rules it describes.
+struct spec_citations
+{
+    // Four cited sections, plus the slot `rule::citations()` appends the rule
+    // table into. No rule cites more than three sections today.
+    static constexpr std::size_t capacity = 5;
+
+    std::array<spec_section, capacity> entries;
+
+    std::uint8_t count;
+
+    constexpr spec_citations() noexcept : entries{}, count{0} {}
+
+    // Written as a braced list at the rule: `.cites = {v2("41-deck")}`.
+    template <std::same_as<spec_section>... Sections>
+        requires(sizeof...(Sections) >= 1)
+    constexpr spec_citations(Sections... sections) noexcept
+        : entries{sections...}, count{static_cast<std::uint8_t>(sizeof...(sections))}
+    {
+        static_assert(
+            sizeof...(sections) < capacity,
+            "a rule cites at most four sections; the last slot is the rule table"
+        );
+    }
+
+    [[nodiscard]] constexpr spec_section const* begin() const noexcept
+    {
+        return entries.data();
+    }
+
+    [[nodiscard]] constexpr spec_section const* end() const noexcept
+    {
+        return entries.data() + count;
+    }
+
+    [[nodiscard]] constexpr std::size_t size() const noexcept
+    {
+        return count;
+    }
+
+    [[nodiscard]] constexpr bool empty() const noexcept
+    {
+        return count == 0;
+    }
+};
+
 // One entry of the diagnostic catalogue.
 //
 // Every field here is derived from the deck specification and reviewed as prose.
@@ -81,9 +140,20 @@ struct rule
     // applies to.
     phase needs;
 
-    // Where the specification states this rule, in the order the sections are
-    // written. Where the rule table of 9.4 is cited it comes last.
-    std::span<spec_section const> spec_refs;
+    // Where the specification states this rule specifically, in the order the
+    // sections are written. The rule table is not among these; see
+    // `in_rules_table` below and `citations()`.
+    spec_citations cites;
+
+    // Whether the v2 text's rule table, section 9.4, lists this rule. That
+    // section lists every rule, so citing it distinguishes nothing: 94 of the
+    // catalogue's 112 entries carried the identical anchor by hand. It is a
+    // flag here, and `citations()` appends it last.
+    //
+    // The v1.0 text's unnumbered "Validation Rules" section is written inline
+    // as an ordinary citation instead. Six rules name it, and at that count it
+    // still tells one rule from another.
+    bool in_rules_table;
 
     // Static non-interpolated explanation of rule
     std::string_view explanation;
@@ -93,6 +163,20 @@ struct rule
 
     // A new check (excluded from the default set)
     bool experimental;
+
+    // Every section this rule cites, with the rule table appended where
+    // `in_rules_table` is set. This is what a consumer rendering a diagnostic
+    // wants; `cites` is what the catalogue is written in terms of.
+    [[nodiscard]] constexpr spec_citations citations() const noexcept
+    {
+        if (!in_rules_table)
+            return cites;
+
+        spec_citations all = cites;
+        all.entries[all.count++] = rule_table_section;
+
+        return all;
+    }
 };
 
 // Whether a rule is actually implemented
