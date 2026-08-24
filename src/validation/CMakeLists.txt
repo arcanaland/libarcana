@@ -9,6 +9,7 @@ arcana_add_internal_library(
     HEADERS
         catalogue.hpp
         registry.hpp
+        spec_pin.hpp
     SOURCES
         catalogue.cpp
         registry.cpp

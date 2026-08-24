@@ -144,7 +144,7 @@ TEST_CASE("every rule is fully populated", "[validation]")
         INFO("rule: " << r.code);
         CHECK_FALSE(r.code.empty());
         CHECK_FALSE(r.area.empty());
-        CHECK_FALSE(r.spec_ref.empty());
+        CHECK_FALSE(r.spec_refs.empty());
         CHECK_FALSE(r.explanation.empty());
     }
 }
@@ -205,13 +205,64 @@ TEST_CASE("every schema range names a major this specification has", "[validatio
     }
 }
 
-TEST_CASE("no rule citing DECK.md#9.4 sits below the specification's floor", "[validation]")
+TEST_CASE("no rule citing the 9.4 rule table sits below the specification's floor", "[validation]")
 {
+    constexpr spec_section rule_table{2, "94-validation-rules"};
+
     for (auto const& r : rules())
     {
         INFO("rule: " << r.code);
-        if (r.spec_ref.find("#9.4") != std::string_view::npos)
+
+        bool const cites_rule_table = std::ranges::any_of(
+            r.spec_refs, [](spec_section const& s)
+            { return s.schema_major == rule_table.schema_major && s.anchor == rule_table.anchor; }
+        );
+
+        if (cites_rule_table)
             CHECK(r.default_level >= severity::warning);
+    }
+}
+
+TEST_CASE("every rule spanning both majors cites v1.0 or is named as unfounded", "[validation]")
+{
+    // v1.0 states no basis for these, so their citations are v2-only. They are
+    // therefore candidates to narrow to applies_to = {2, 2}, which is
+    // ADR-029's call and not this catalogue's: the list is a finding, not a
+    // decision. Shrinking it means finding the v1.0 section, not deleting a row.
+    constexpr std::array<std::string_view, 19> no_v1_basis{
+        "aspect-ratio-mismatch",
+        "bad-custom-name",
+        "bad-spdx-expression",
+        "bom-in-toml",
+        "card-back-not-baseline-format",
+        "card-not-baseline-format",
+        "deck-has-no-cards",
+        "duplicate-card-position",
+        "duplicate-chain-extension",
+        "excluded-card-has-image",
+        "ignored-card-back-file",
+        "language-tag-case-collision",
+        "missing-license-text",
+        "non-utf8-name-file",
+        "non-utf8-toml",
+        "reserved-custom-name",
+        "stem-case-collision",
+        "symlink-escapes-deck-root",
+        "unsafe-path",
+    };
+
+    for (auto const& r : rules())
+    {
+        if (r.applies_to.min != 1)
+            continue;
+
+        INFO("rule: " << r.code);
+
+        bool const cites_v1 = std::ranges::any_of(
+            r.spec_refs, [](spec_section const& s) { return s.schema_major == 1; }
+        );
+
+        CHECK(cites_v1 != (std::ranges::find(no_v1_basis, r.code) != no_v1_basis.end()));
     }
 }
 

@@ -50,6 +50,19 @@ struct schema_range
     }
 };
 
+// One citation: a section of one schema major's specification text.
+//
+// `anchor` is the GitHub slug of that section's heading, without the leading
+// '#', e.g. "574-the-extension-chain". Never a bare section number -- the v1.0
+// text has no numbered headings at all, and a fragment naming one resolves to
+// nothing.
+struct spec_section
+{
+    std::uint8_t schema_major;
+
+    std::string_view anchor;
+};
+
 // One entry of the diagnostic catalogue.
 //
 // Every field here is derived from the deck specification and reviewed as prose.
@@ -68,8 +81,9 @@ struct rule
     // applies to.
     phase needs;
 
-    // Sections of the spec joined by semicolons: "DECK.md#5.5; DECK.md#9.4"
-    std::string_view spec_ref;
+    // Where the specification states this rule, in the order the sections are
+    // written. Where the rule table of 9.4 is cited it comes last.
+    std::span<spec_section const> spec_refs;
 
     // Static non-interpolated explanation of rule
     std::string_view explanation;
@@ -102,6 +116,14 @@ enum class rule_state : std::uint8_t
 
 // Whether this rule is implemented
 [[nodiscard]] std::optional<rule_state> state_of(std::string_view code) noexcept;
+
+// The commit of arcanaland/specifications this major's citations were read
+// against, or empty for a major the catalogue carries no text for.
+[[nodiscard]] std::string_view spec_revision(std::uint8_t schema_major) noexcept;
+
+// A URL resolving to the cited section, built from that major's pin. Empty
+// where the major has no pin.
+[[nodiscard]] std::string spec_url(spec_section section);
 
 // One finding about one deck.
 struct diagnostic

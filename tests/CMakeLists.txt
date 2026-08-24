@@ -30,6 +30,48 @@ else()
     set(arcana_reference_decks_dir "")
 endif()
 
+option(ARCANA_FETCH_SPECIFICATION "Download the specification text the anchor gate reads" ON)
+
+# One commit per schema major. The v1.0 text predates the README.md -> DECK.md
+# rename at e7da516, so the two majors do not live under the same filename.
+set(ARCANA_SPECIFICATION_V1_TAG
+    29f2184b8fc29e1db016c1f4a3d0c96bac8a4217 CACHE STRING
+    "Commit of arcanaland/specifications the major-1 citations are derived from")
+
+set(ARCANA_SPECIFICATION_V2_TAG
+    f32d330cdcd84190a80e357ec7b826c4befe5446 CACHE STRING
+    "Commit of arcanaland/specifications the major-2 citations are derived from")
+
+set(ARCANA_SPECIFICATION_DIR "" CACHE PATH
+    "Read README.md and DECK.md from this directory instead of downloading them. \
+An escape hatch: nothing checks that they are the pinned revisions")
+
+if(ARCANA_SPECIFICATION_DIR)
+    set(arcana_specification_v1_file ${ARCANA_SPECIFICATION_DIR}/README.md)
+    set(arcana_specification_v2_file ${ARCANA_SPECIFICATION_DIR}/DECK.md)
+elseif(ARCANA_FETCH_SPECIFICATION)
+    include(FetchContent)
+
+    FetchContent_Declare(specification_v1
+        GIT_REPOSITORY https://github.com/arcanaland/specifications.git
+        GIT_TAG ${ARCANA_SPECIFICATION_V1_TAG}
+        GIT_SHALLOW FALSE
+        SOURCE_SUBDIR no-cmake-here)
+    FetchContent_MakeAvailable(specification_v1)
+    set(arcana_specification_v1_file ${specification_v1_SOURCE_DIR}/README.md)
+
+    FetchContent_Declare(specification_v2
+        GIT_REPOSITORY https://github.com/arcanaland/specifications.git
+        GIT_TAG ${ARCANA_SPECIFICATION_V2_TAG}
+        GIT_SHALLOW FALSE
+        SOURCE_SUBDIR no-cmake-here)
+    FetchContent_MakeAvailable(specification_v2)
+    set(arcana_specification_v2_file ${specification_v2_SOURCE_DIR}/DECK.md)
+else()
+    set(arcana_specification_v1_file "")
+    set(arcana_specification_v2_file "")
+endif()
+
 set(arcana_support_dir ${CMAKE_CURRENT_SOURCE_DIR}/support)
 
 function(arcana_add_test name)
@@ -67,6 +109,9 @@ arcana_add_test(deck_test LIBS arcana::arcana DEFINES
     FIXTURES_DIR="${arcana_fixtures_dir}"
     REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}")
 arcana_add_test(validation_test LIBS arcana::arcana DEFINES FIXTURES_DIR="${arcana_fixtures_dir}")
+arcana_add_test(spec_anchor_test LIBS arcana::arcana DEFINES
+    SPECIFICATION_V1_FILE="${arcana_specification_v1_file}"
+    SPECIFICATION_V2_FILE="${arcana_specification_v2_file}")
 arcana_add_test(library_test
     LIBS arcana::arcana
     DEFINES FIXTURES_DIR="${arcana_fixtures_dir}"
