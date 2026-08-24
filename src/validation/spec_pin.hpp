@@ -10,13 +10,11 @@
 #include <array>
 #include <cstdint>
 #include <string_view>
+#include <utility>
 
 namespace arcana::validation
 {
 
-// A commit and not a branch. deck-v2's tip moved a dozen times while this
-// catalogue was written, so a branch URL would routinely resolve to text no
-// rule here was derived from.
 struct spec_pin
 {
     std::uint8_t schema_major;
@@ -25,9 +23,6 @@ struct spec_pin
     std::string_view repository;
 
     std::string_view revision;
-
-    // The v1.0 text predates the README.md -> DECK.md rename at e7da516, so
-    // the two majors are not the same file.
     std::string_view file;
 };
 
@@ -46,12 +41,20 @@ inline constexpr std::array spec_pins{
     },
 };
 
-// The pin for this major, or nullptr where the catalogue cites no text for it.
-[[nodiscard]] constexpr spec_pin const* pin_for(std::uint8_t schema_major) noexcept
+// Whether this file pins any text for this major.
+[[nodiscard]] constexpr bool has_pin(std::uint8_t schema_major) noexcept
+{
+    return std::ranges::find(spec_pins, schema_major, &spec_pin::schema_major) != spec_pins.end();
+}
+
+// The pin for this major.
+[[nodiscard]] constexpr spec_pin const& pin_for(std::uint8_t schema_major) noexcept
 {
     auto const found = std::ranges::find(spec_pins, schema_major, &spec_pin::schema_major);
+    if (found == spec_pins.end())
+        std::unreachable();
 
-    return found == spec_pins.end() ? nullptr : &*found;
+    return *found;
 }
 
 }  // namespace arcana::validation

@@ -53,52 +53,34 @@ struct schema_range
     }
 };
 
-// One citation: a section of one schema major's specification text.
-//
-// `anchor` is the GitHub slug of that section's heading, without the leading
-// '#', e.g. "574-the-extension-chain". Never a bare section number -- the v1.0
-// text has no numbered headings at all, and a fragment naming one resolves to
-// nothing.
 struct spec_section
 {
     std::uint8_t schema_major;
 
+    // slug of section heading without the leading #
     std::string_view anchor;
 };
 
-// The v2 text's rule table, which lists every rule rather than any one of them.
-// `rule::in_rules_table` stands in for a citation of it.
+// The v2 text's rule table
 inline constexpr spec_section rule_table_section{
     .schema_major = 2, .anchor = "94-validation-rules"
 };
 
-// The sections one rule cites, in the order the specification writes them.
-//
-// A fixed-capacity value and not a `std::span`, so that a rule's citations are
-// written at the rule. A span would need an array with static storage to point
-// at, which is a table of its own hoisted away from the rules it describes.
 struct spec_citations
 {
-    // Four cited sections, plus the slot `rule::citations()` appends the rule
-    // table into. No rule cites more than three sections today.
     static constexpr std::size_t capacity = 5;
-
     std::array<spec_section, capacity> entries;
 
     std::uint8_t count;
 
     constexpr spec_citations() noexcept : entries{}, count{0} {}
 
-    // Written as a braced list at the rule: `.cites = {v2("41-deck")}`.
     template <std::same_as<spec_section>... Sections>
         requires(sizeof...(Sections) >= 1)
     constexpr spec_citations(Sections... sections) noexcept
         : entries{sections...}, count{static_cast<std::uint8_t>(sizeof...(sections))}
     {
-        static_assert(
-            sizeof...(sections) < capacity,
-            "a rule cites at most four sections; the last slot is the rule table"
-        );
+        static_assert(sizeof...(sections) < capacity);
     }
 
     [[nodiscard]] constexpr spec_section const* begin() const noexcept
@@ -123,36 +105,24 @@ struct spec_citations
 };
 
 // One entry of the diagnostic catalogue.
-//
-// Every field here is derived from the deck specification and reviewed as prose.
 struct rule
 {
-    // Flat kebab-case, e.g. "orphan-image". This is API and is never renamed.
+    // Flat kebab-case, e.g. "orphan-image".
     std::string_view code;
 
-    // The severity a consumer gets unless it re-levels the rule itself.
+    // The severity a consumer gets
     severity default_level;
 
     // One of: deck, ids, images, backs, cards, names, ansi, surrogate.
     std::string_view area;
 
-    // The strongest phase this check requires over the whole schema range it
-    // applies to.
+    // document/filesystem/library
     phase needs;
 
-    // Where the specification states this rule specifically, in the order the
-    // sections are written. The rule table is not among these; see
-    // `in_rules_table` below and `citations()`.
+    // Where the spec states this rule
     spec_citations cites;
 
-    // Whether the v2 text's rule table, section 9.4, lists this rule. That
-    // section lists every rule, so citing it distinguishes nothing: 94 of the
-    // catalogue's 112 entries carried the identical anchor by hand. It is a
-    // flag here, and `citations()` appends it last.
-    //
-    // The v1.0 text's unnumbered "Validation Rules" section is written inline
-    // as an ordinary citation instead. Six rules name it, and at that count it
-    // still tells one rule from another.
+    // Whether the v2 text's rule table lists this rule.
     bool in_rules_table;
 
     // Static non-interpolated explanation of rule
@@ -164,9 +134,7 @@ struct rule
     // A new check (excluded from the default set)
     bool experimental;
 
-    // Every section this rule cites, with the rule table appended where
-    // `in_rules_table` is set. This is what a consumer rendering a diagnostic
-    // wants; `cites` is what the catalogue is written in terms of.
+    // Every section this rule cites
     [[nodiscard]] constexpr spec_citations citations() const noexcept
     {
         if (!in_rules_table)

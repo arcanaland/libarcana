@@ -25,8 +25,6 @@ namespace arcana::validation
 namespace
 {
 
-// A citation of one major's text. The catalogue is 112 rules deep, and the
-// anchor is the only part of a citation that carries information.
 [[nodiscard]] constexpr spec_section v1(std::string_view anchor) noexcept
 {
     return {.schema_major = 1, .anchor = anchor};
@@ -46,9 +44,7 @@ constexpr std::array catalogue{
         .needs = phase::filesystem,
         .cites = {v1("file-location-based-defaults"), v1("ansi-art"), v2("54-ansi-art")},
         .in_rules_table = false,
-        .explanation =
-            "This ANSI file is not under an ANSI image root and is ignored. ANSI art is discovered "
-            "only under a top-level directory named for the terminal rows it occupies.",
+        .explanation = "This ANSI file is not under an ANSI image root and will be ignored.",
         .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
@@ -73,7 +69,7 @@ constexpr std::array catalogue{
         .in_rules_table = true,
         .explanation =
             "This card asset's width-to-height ratio differs from the deck's declared aspect_ratio "
-            "by more than a tenth. Correct the artwork, or declare the ratio it actually has.",
+            "by more than a tenth.",
         .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
@@ -97,9 +93,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .cites = {v2("8-extensibility")},
         .in_rules_table = true,
-        .explanation =
-            "An app subtable key is not a quoted realm. A realm contains a dot, so an unquoted key "
-            "silently defines a subtable nested inside a subtable instead. Quote it.",
+        .explanation = "An app subtable key should be a quoted realm. Quote it.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -168,7 +162,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .cites = {v2("416-content-rating")},
         .in_rules_table = true,
-        .explanation = "A content rating key is not well-formed custom name.",
+        .explanation = "A content rating key is not a well-formed custom name.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -192,8 +186,7 @@ constexpr std::array catalogue{
         .cites = {v2("33-qualified-identifiers"), v2("34-deck-identity")},
         .in_rules_table = true,
         .explanation = "The deck's identifier is not a well-formed qualified identifier: a realm, "
-                       "a slash, and one or more path segments. It names the deck as a whole, so "
-                       "it carries no fragment.",
+                       "a slash, and one or more path segments.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -381,9 +374,8 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .cites = {v1("schema-versioning"), v2("14-versioning-and-compatibility")},
         .in_rules_table = true,
-        .explanation =
-            "The schema_version field is not two decimal integers separated by a dot. The whole "
-            "compatibility contract dispatches on this field. Write it as a quoted string.",
+        .explanation = "The schema_version field is not two decimal integers separated by a dot. "
+                       "Write it as a quoted string.",
         .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
@@ -396,8 +388,7 @@ constexpr std::array catalogue{
         .in_rules_table = true,
         .explanation =
             "The signifies field is not a well-formed qualified identifier, or it carries a "
-            "fragment. The value is a merge key against another package's identifier, which names "
-            "a deck rather than a card.",
+            "fragment. The value is a merge key against another package's identifier.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -447,9 +438,7 @@ constexpr std::array catalogue{
         .needs = phase::filesystem,
         .cites = {v2("55-card-back-images"), v2("574-the-extension-chain")},
         .in_rules_table = true,
-        .explanation = "A card back design is supplied in neither PNG nor JPEG. Backs have no "
-                       "reference deck to fall back on, so an application that cannot decode the "
-                       "design substitutes a generic back.",
+        .explanation = "A card back design is supplied in a non-baseline format.",
         .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
@@ -762,7 +751,7 @@ constexpr std::array catalogue{
         .in_rules_table = true,
         .explanation =
             "No language file carries alt text for all of the deck's cards, so it is not usable "
-            "with a screen reader. Write it under the default language file's alt text tables.",
+            "with a screen reader.",
         .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
@@ -1441,8 +1430,21 @@ static_assert(
     "the catalogue shouldn't have duplicate codes"
 );
 
-// The rule table is `in_rules_table`, never a hand-written citation. Writing it
-// both ways would double it up in `rule::citations()`.
+// What makes `pin_for`'s precondition hold: no rule cites a major spec_pin.hpp
+// carries no text for.
+static_assert(
+    std::ranges::all_of(
+        catalogue,
+        [](rule const& r)
+        {
+            return std::ranges::all_of(
+                r.citations(), [](spec_section const& s) { return has_pin(s.schema_major); }
+            );
+        }
+    ),
+    "a rule cites a schema major spec_pin.hpp does not pin"
+);
+
 static_assert(
     std::ranges::none_of(
         catalogue,
@@ -1458,7 +1460,7 @@ static_assert(
             );
         }
     ),
-    "cite the 9.4 rule table by setting in_rules_table, not by writing the anchor"
+    "cite the rule table by setting in_rules_table"
 );
 
 [[nodiscard]] consteval std::size_t rules_at_major_one()
@@ -1504,30 +1506,32 @@ static_assert(
 
 std::string_view revision_of(std::uint8_t schema_major) noexcept
 {
-    spec_pin const* const pin = pin_for(schema_major);
+    if (!has_pin(schema_major))
+        return {};
 
-    return pin == nullptr ? std::string_view{} : pin->revision;
+    return pin_for(schema_major).revision;
 }
 
 std::string url_of(spec_section section)
 {
-    spec_pin const* const pin = pin_for(section.schema_major);
-    if (pin == nullptr)
+    if (!has_pin(section.schema_major))
         return {};
+
+    spec_pin const& pin = pin_for(section.schema_major);
 
     constexpr std::string_view blob = "/blob/";
 
     std::string url;
     url.reserve(
-        pin->repository.size() + blob.size() + pin->revision.size() + 1 + pin->file.size() + 1 +
+        pin.repository.size() + blob.size() + pin.revision.size() + 1 + pin.file.size() + 1 +
         section.anchor.size()
     );
 
-    url.append(pin->repository);
+    url.append(pin.repository);
     url.append(blob);
-    url.append(pin->revision);
+    url.append(pin.revision);
     url.push_back('/');
-    url.append(pin->file);
+    url.append(pin.file);
     url.push_back('#');
     url.append(section.anchor);
 
