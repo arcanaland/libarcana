@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# TOML-to-model plumbing shared by both schema majors. Touches no directory
-# tree: everything here works from a document that is already in memory.
+# TOML-to-model plumbing shared by both schema majors.
 arcana_add_internal_library(
     loader-core
     HEADERS

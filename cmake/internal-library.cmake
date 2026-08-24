@@ -48,14 +48,28 @@ function(arcana_add_internal_library name)
     endif()
 endfunction()
 
-# arcana_link_internal(<target> <PRIVATE|PUBLIC|INTERFACE> <lib>...)
+# arcana_link_internal(<target> [PUBLIC <lib>...] [PRIVATE <lib>...] [INTERFACE <lib>...])
 #
-# Links internal libraries keeping them out of the export set.
-function(arcana_link_internal target scope)
-    set(wrapped "")
-    foreach(lib IN LISTS ARGN)
-        list(APPEND wrapped $<BUILD_INTERFACE:${lib}>)
-    endforeach()
+# Links internal libraries keeping them out of the export set. Both scopes need
+# the wrap: PRIVATE deps of a non-INTERFACE target are still recorded in
+# INTERFACE_LINK_LIBRARIES as $<LINK_ONLY:...>, which would drag them into
+# install(EXPORT).
+function(arcana_link_internal target)
+    cmake_parse_arguments(ARG "" "" "PUBLIC;PRIVATE;INTERFACE" ${ARGN})
 
-    target_link_libraries(${target} ${scope} ${wrapped})
+    if(ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR
+            "arcana_link_internal(${target}): expected a scope keyword before "
+            "${ARG_UNPARSED_ARGUMENTS}")
+    endif()
+
+    foreach(scope IN ITEMS PUBLIC PRIVATE INTERFACE)
+        set(wrapped "")
+        foreach(lib IN LISTS ARG_${scope})
+            list(APPEND wrapped $<BUILD_INTERFACE:${lib}>)
+        endforeach()
+        if(wrapped)
+            target_link_libraries(${target} ${scope} ${wrapped})
+        endif()
+    endforeach()
 endfunction()
