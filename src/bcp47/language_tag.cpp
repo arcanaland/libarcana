@@ -3,9 +3,9 @@
 
 #include "language_tag.hpp"
 
-#include "ascii.hpp"
+#include <ascii.hpp>
+#include <text.hpp>
 #include "tables.hpp"
-#include "text.hpp"
 
 #include <algorithm>
 #include <array>

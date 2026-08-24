@@ -3,8 +3,8 @@
 
 #include "ansi.hpp"
 
-#include "../../data/asset_grammar.hpp"
-#include "../probe.hpp"
+#include <asset_grammar.hpp>
+#include <probe.hpp>
 
 #include <arcana/card.hpp>
 

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "document.hpp"
+#include <document.hpp>
 
 #include <arcana/deck.hpp>
 #include <arcana/error.hpp>

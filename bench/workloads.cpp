@@ -9,6 +9,7 @@
 
 #include <arcana/deck.hpp>
 #include <arcana/library.hpp>
+#include <arcana/loader.hpp>
 #include <arcana/validation.hpp>
 
 #include <algorithm>

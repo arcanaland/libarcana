@@ -7,11 +7,11 @@
 
 #include <arcana/validation.hpp>
 
-#include "validation/catalogue.hpp"
-#include "validation/context.hpp"
-#include "validation/registry.hpp"
-#include "validation/spec.hpp"
-#include "validation/tree.hpp"
+#include <catalogue.hpp>
+#include <context.hpp>
+#include <registry.hpp>
+#include <spec.hpp>
+#include <tree.hpp>
 
 #include <algorithm>
 #include <optional>

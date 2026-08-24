@@ -26,8 +26,6 @@ struct deck_summary
     std::string directory_name;
     std::filesystem::path path;
 
-    // [deck].identifier, and nullopt for a 1.0 deck. The library handle is the
-    // directory name, never this
     std::optional<std::string> identifier;
 
     std::string name;

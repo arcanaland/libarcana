@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-"""Regenerate src/data/spdx_licenses.cpp from a pinned SPDX License List release.
+"""Regenerate src/spdx/spdx_licenses.cpp from a pinned SPDX License List release.
 """
 
 import argparse

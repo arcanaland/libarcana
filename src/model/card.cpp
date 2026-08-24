@@ -3,8 +3,8 @@
 
 #include <arcana/card.hpp>
 
-#include "data/identifiers.hpp"
-#include "data/text.hpp"
+#include <identifiers.hpp>
+#include <text.hpp>
 
 #include <algorithm>
 #include <array>

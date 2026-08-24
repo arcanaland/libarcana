@@ -3,7 +3,7 @@
 
 #include "assets.hpp"
 
-#include "../data/asset_grammar.hpp"
+#include <asset_grammar.hpp>
 
 #include <toml++/toml.hpp>
 

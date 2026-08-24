@@ -41,7 +41,7 @@ function(arcana_add_test name)
 
     add_executable(${name} ${ARG_SOURCES})
 
-    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS} arcana::arcana)
+    target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain ${ARG_LIBS})
     target_compile_definitions(${name} PRIVATE ${ARG_DEFINES})
     target_include_directories(${name} PRIVATE ${arcana_support_dir} ${ARG_INCLUDES})
 
@@ -60,14 +60,15 @@ add_subdirectory(data)
 add_subdirectory(loader)
 add_subdirectory(validation)
 
-arcana_add_test(version_test)
-arcana_add_test(paths_test)
-arcana_add_test(card_test)
-arcana_add_test(deck_test DEFINES
+arcana_add_test(version_test LIBS arcana::arcana)
+arcana_add_test(paths_test LIBS arcana::arcana)
+arcana_add_test(card_test LIBS arcana::arcana)
+arcana_add_test(deck_test LIBS arcana::arcana DEFINES
     FIXTURES_DIR="${arcana_fixtures_dir}"
     REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}")
-arcana_add_test(validation_test DEFINES FIXTURES_DIR="${arcana_fixtures_dir}")
+arcana_add_test(validation_test LIBS arcana::arcana DEFINES FIXTURES_DIR="${arcana_fixtures_dir}")
 arcana_add_test(library_test
+    LIBS arcana::arcana
     DEFINES FIXTURES_DIR="${arcana_fixtures_dir}"
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/loader)
 

@@ -1,7 +1,15 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-add_subdirectory(data)
+add_subdirectory(text)
+add_subdirectory(identifiers)
+add_subdirectory(imagesig)
+add_subdirectory(spdx)
+add_subdirectory(bcp47)
+add_subdirectory(uri)
+add_subdirectory(model)
+add_subdirectory(vocab)
+add_subdirectory(discovery)
 add_subdirectory(loader)
 add_subdirectory(validation)
 
@@ -24,21 +32,44 @@ target_sources(
             ${PROJECT_SOURCE_DIR}/include/arcana/paths.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/card.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/deck.hpp
+            ${PROJECT_SOURCE_DIR}/include/arcana/loader.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/library.hpp
             ${PROJECT_SOURCE_DIR}/include/arcana/validation.hpp
     PRIVATE
         version.cpp
         paths.cpp
-        card.cpp
-        deck.cpp
         library.cpp
         validation.cpp
-        $<TARGET_OBJECTS:arcana-data>
-        $<TARGET_OBJECTS:arcana-loader>
-        $<TARGET_OBJECTS:arcana-validation>
 )
 
 target_compile_features(arcana PUBLIC cxx_std_26)
+
+arcana_link_internal(
+    arcana
+    PRIVATE
+        arcana-identifiers
+        arcana-imagesig
+        arcana-spdx
+        arcana-bcp47
+        arcana-uri
+        arcana-model
+        arcana-vocab
+        arcana-discovery
+        arcana-loader-core
+        arcana-loader-v1
+        arcana-loader-v2
+        arcana-loader
+        arcana-validation-core
+        arcana-check-ansi
+        arcana-check-backs
+        arcana-check-cards
+        arcana-check-deck
+        arcana-check-ids
+        arcana-check-images
+        arcana-check-names
+        arcana-check-surrogate
+        arcana-validation
+)
 
 # BUILD_INTERFACE so we keep toml++ out of the exports
 target_link_libraries(arcana PRIVATE $<BUILD_INTERFACE:tomlplusplus::tomlplusplus>)

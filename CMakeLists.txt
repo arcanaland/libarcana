@@ -40,6 +40,8 @@ else()
     message(STATUS "arcana: tomlplusplus resolved by find_package")
 endif()
 
+include(${PROJECT_SOURCE_DIR}/cmake/internal-library.cmake)
+
 add_subdirectory(src)
 
 if(ARCANA_BUILD_TESTS)

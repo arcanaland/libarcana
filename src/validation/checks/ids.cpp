@@ -3,8 +3,8 @@
 
 #include "ids.hpp"
 
-#include "../../data/identifiers.hpp"
-#include "../facts.hpp"
+#include <facts.hpp>
+#include <identifiers.hpp>
 
 #include <arcana/card.hpp>
 
