@@ -145,25 +145,30 @@ TEST_CASE("every citation names a heading of the text it cites", "[spec]")
 
 TEST_CASE("a citation builds a URL into its major's pinned revision", "[spec]")
 {
+    constexpr std::string_view base = "https://github.com/arcanaland/specifications/blob/";
+
     CHECK(
         spec_url(spec_section{2, "94-validation-rules"}) ==
-        "https://github.com/arcanaland/specifications/blob/"
-        "f32d330cdcd84190a80e357ec7b826c4befe5446/DECK.md#94-validation-rules"
+        std::string{base} + SPECIFICATION_V2_TAG + "/DECK.md#94-validation-rules"
     );
 
     // The v1.0 text predates the README.md -> DECK.md rename.
     CHECK(
         spec_url(spec_section{1, "schema-versioning"}) ==
-        "https://github.com/arcanaland/specifications/blob/"
-        "29f2184b8fc29e1db016c1f4a3d0c96bac8a4217/README.md#schema-versioning"
+        std::string{base} + SPECIFICATION_V1_TAG + "/README.md#schema-versioning"
     );
 
     CHECK(spec_url(spec_section{3, "94-validation-rules"}).empty());
 }
 
-TEST_CASE("each major reports the revision it was read against", "[spec]")
+TEST_CASE("each major is pinned to the revision the build fetched", "[spec]")
 {
-    CHECK(spec_revision(1) == "29f2184b8fc29e1db016c1f4a3d0c96bac8a4217");
-    CHECK(spec_revision(2) == "f32d330cdcd84190a80e357ec7b826c4befe5446");
+    // src/validation/spec_pin.hpp says which text the citations were read
+    // against; tests/corpus.cmake says which text this build downloaded for the
+    // anchor gate to read. A pin bump that lands in one and not the other would
+    // leave the gate checking a document no rule was derived from, and every
+    // spec_url() would point at it.
+    CHECK(spec_revision(1) == SPECIFICATION_V1_TAG);
+    CHECK(spec_revision(2) == SPECIFICATION_V2_TAG);
     CHECK(spec_revision(3).empty());
 }

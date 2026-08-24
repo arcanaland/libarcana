@@ -15,7 +15,7 @@ install(
 
 install(
     EXPORT arcana-targets
-    FILE arcanaTargets.cmake
+    FILE arcana-targets.cmake
     NAMESPACE arcana::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/arcana
   )
@@ -30,21 +30,21 @@ install(
   )
 
 configure_package_config_file(
-    ${PROJECT_SOURCE_DIR}/cmake/arcanaConfig.cmake.in
-    ${PROJECT_BINARY_DIR}/arcanaConfig.cmake
+    ${PROJECT_SOURCE_DIR}/cmake/arcana-config.cmake.in
+    ${PROJECT_BINARY_DIR}/arcana-config.cmake
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/arcana
   )
 
 write_basic_package_version_file(
-    ${PROJECT_BINARY_DIR}/arcanaConfigVersion.cmake
+    ${PROJECT_BINARY_DIR}/arcana-config-version.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
   )
 
 install(
     FILES
-        ${PROJECT_BINARY_DIR}/arcanaConfig.cmake
-        ${PROJECT_BINARY_DIR}/arcanaConfigVersion.cmake
+        ${PROJECT_BINARY_DIR}/arcana-config.cmake
+        ${PROJECT_BINARY_DIR}/arcana-config-version.cmake
     DESTINATION
         ${CMAKE_INSTALL_LIBDIR}/cmake/arcana
   )

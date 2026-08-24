@@ -10,5 +10,4 @@ arcana_add_test(loader_test LIBS arcana::loader-v1 arcana::arcana)
 # The one true leaf here: OBJECT libraries do not propagate objects, so the
 # model and its identifier tables are named explicitly rather than arrived at.
 arcana_add_test(names_test LIBS arcana::loader-core arcana::model arcana::identifiers)
-arcana_add_test(summary_test LIBS arcana::loader arcana::arcana
-    DEFINES REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}")
+arcana_add_test(summary_test LIBS arcana::loader arcana::arcana)
