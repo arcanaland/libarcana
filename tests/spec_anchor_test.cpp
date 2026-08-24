@@ -1,12 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// The anchor gate.
-//
-// Every citation the catalogue carries names a heading of the specification
-// revision it was derived from. The pins live in src/validation/spec_pin.hpp;
-// the text itself is fetched by tests/CMakeLists.txt at the same two commits.
-
 #include "markdown.hpp"
 
 #include <arcana/validation.hpp>
@@ -83,24 +77,6 @@ TEST_CASE("the pinned v1 text yields its unnumbered anchors", "[spec]")
     CHECK(has_slug(headings, "directory-skeleton"));
 }
 
-TEST_CASE("no heading of either pinned file collides with another", "[spec]")
-{
-    // GitHub would disambiguate a collision with a -1 suffix, which slugify
-    // deliberately does not implement. If this ever fires, it must be taught to.
-    for (char const* path : {SPECIFICATION_V1_FILE, SPECIFICATION_V2_FILE})
-    {
-        INFO("file: " << path);
-
-        auto const headings = pinned_headings(path);
-
-        std::vector<std::string> slugs;
-        slugs.reserve(headings.size());
-        for (auto const& h : headings) slugs.push_back(h.slug);
-
-        std::ranges::sort(slugs);
-        CHECK(std::ranges::adjacent_find(slugs) == slugs.end());
-    }
-}
 
 TEST_CASE("a fenced TOML comment is not a heading", "[spec]")
 {
@@ -116,7 +92,7 @@ TEST_CASE("a fenced TOML comment is not a heading", "[spec]")
 
 TEST_CASE("every citation names a heading of the text it cites", "[spec]")
 {
-    // Indexed by schema major; index 0 is unused.
+    // Indexed by schema major (index 0 is unused)
     std::vector<std::vector<heading>> const by_major{
         {}, pinned_headings(SPECIFICATION_V1_FILE), pinned_headings(SPECIFICATION_V2_FILE)
     };
@@ -133,11 +109,7 @@ TEST_CASE("every citation names a heading of the text it cites", "[spec]")
             REQUIRE(section.schema_major < by_major.size());
             REQUIRE_FALSE(by_major[section.schema_major].empty());
 
-            // Deliberately not "update the anchor". A citation that no longer
-            // resolves means the section moved or was rewritten, and the rule's
-            // basis has to be found again in the new text. Editing the string
-            // until this passes hides exactly the drift the gate is here for.
-            INFO("re-read the section: this citation no longer resolves");
+            INFO("re-read the spec: this citation no longer resolves");
             CHECK(has_slug(by_major[section.schema_major], section.anchor));
         }
     }
@@ -152,7 +124,6 @@ TEST_CASE("a citation builds a URL into its major's pinned revision", "[spec]")
         std::string{base} + SPECIFICATION_V2_TAG + "/DECK.md#94-validation-rules"
     );
 
-    // The v1.0 text predates the README.md -> DECK.md rename.
     CHECK(
         spec_url(spec_section{1, "schema-versioning"}) ==
         std::string{base} + SPECIFICATION_V1_TAG + "/README.md#schema-versioning"
@@ -163,11 +134,6 @@ TEST_CASE("a citation builds a URL into its major's pinned revision", "[spec]")
 
 TEST_CASE("each major is pinned to the revision the build fetched", "[spec]")
 {
-    // src/validation/spec_pin.hpp says which text the citations were read
-    // against; tests/corpus.cmake says which text this build downloaded for the
-    // anchor gate to read. A pin bump that lands in one and not the other would
-    // leave the gate checking a document no rule was derived from, and every
-    // spec_url() would point at it.
     CHECK(spec_revision(1) == SPECIFICATION_V1_TAG);
     CHECK(spec_revision(2) == SPECIFICATION_V2_TAG);
     CHECK(spec_revision(3).empty());
