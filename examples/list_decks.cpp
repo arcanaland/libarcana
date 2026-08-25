@@ -15,22 +15,19 @@
 
 int main(int argc, char** argv)
 {
-    // An empty `roots` means the XDG library, $XDG_DATA_HOME/tarot/decks.
+    // empty root uses $XDG_DATA_HOME/tarot/decks
     arcana::library_options options;
     if (argc > 1)
         options.roots.emplace_back(argv[1]);
 
     std::println("searching {}", arcana::paths::deck_library_path().string());
 
-    // Scanning happens in the constructor: it reads each deck.toml, and nothing
-    // else. No images are touched.
     arcana::deck_library library{options};
 
     for (std::filesystem::path const& root : library.roots())
         std::println("  root {}", root.string());
 
-    // Sorted by directory name. Roots are searched in order like PATH, so a
-    // directory name found in an earlier root shadows a later one.
+    // Print all decks
     for (arcana::deck_summary const& deck : library.decks())
     {
         std::println(
@@ -42,8 +39,7 @@ int main(int argc, char** argv)
         );
     }
 
-    // A directory whose manifest could not be read is reported rather than
-    // dropped, so a broken deck is visible to the user instead of missing.
+    // Report broken decks
     for (arcana::malformed_deck const& deck : library.malformed_decks())
         std::println("malformed {}: {}", deck.directory_name, deck.problem.message);
 

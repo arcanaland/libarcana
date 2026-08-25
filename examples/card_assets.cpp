@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// Find a card and the file on disk you would draw for it.
+// Find a card and its file on disk
 //
 //   ./card_assets ~/decks rider-waite-smith
 
@@ -16,8 +16,7 @@ namespace
 
 void show(arcana::deck const& deck, arcana::card_id const& id)
 {
-    // nullopt when the deck excludes the card or never defined it. Asking for a
-    // card is how you find out; do not assume 78.
+    // nullopt when the deck excludes the card or never defined it
     std::optional<arcana::card> card = deck.find_card(id);
     if (!card)
     {
@@ -28,12 +27,11 @@ void show(arcana::deck const& deck, arcana::card_id const& id)
         return;
     }
 
-    std::println("{} — {}", card->canonical_id(), card->display_name);
+    std::println("{}: {}", card->canonical_id(), card->display_name);
     if (card->alt_text)
         std::println("  alt text: {}", *card->alt_text);
 
-    // Every image the loader resolved for this card, across every image
-    // directory the deck ships.
+    // Every image for this card across every image root dir
     for (arcana::card_image const& image : card->images)
     {
         std::string_view const kind = image.kind == arcana::image_kind::scalable ? "scalable"
@@ -42,12 +40,9 @@ void show(arcana::deck const& deck, arcana::card_id const& id)
         std::println("  {:8} {:8} {}", kind, image.source_dir, image.path.string());
     }
 
-    // Pick by what you are drawing into rather than by directory name: a deck
-    // is free to ship h300 and h1200, or only one of them.
     if (std::optional<arcana::card_image> raster = card->best_raster_for_height(600))
         std::println("  for a 600px slot: {} ({}px tall)", raster->path.string(), *raster->height);
 
-    // Prefers the largest that still fits, so a terminal never clips.
     if (std::optional<arcana::card_image> ansi = card->best_ansi_for_lines(40))
         std::println("  for a 40-line terminal: {} ({} lines)", ansi->path.string(), *ansi->lines);
 
@@ -82,19 +77,21 @@ int main(int argc, char** argv)
 
     arcana::deck const& deck = **loaded;
 
-    // The three ways to name a card.
+    // The Fool
     show(deck, arcana::card_id::standard_major(0));
+
+    // Ace of Cups
     show(deck, arcana::card_id::standard_minor(arcana::suit::cups, arcana::rank::ace));
 
+    // King of Swords
     auto parsed = arcana::card_id::parse("minor_arcana.swords.king");
     if (parsed)
         show(deck, *parsed);
 
-    // Card backs are deck-wide rather than per-card.
+    // Card backs are deck-wide
     if (std::optional<arcana::card_back_design> back = deck.default_card_back_design())
         std::println("default card back: {} {}", back->id, back->image.string());
 
-    // Deterministic in the seed, so a shuffle is reproducible.
     if (std::optional<arcana::card> drawn = deck.random_card(42))
         std::println("card for seed 42: {}", drawn->display_name);
 

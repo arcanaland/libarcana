@@ -19,7 +19,7 @@ int main(int argc, char** argv)
     if (argc > 1)
         options.roots.emplace_back(argv[1]);
 
-    // Name files are read in this order, falling back to English.
+    // Name files are read in this order
     options.languages = {"en"};
 
     arcana::deck_library library{options};
@@ -32,22 +32,15 @@ int main(int argc, char** argv)
 
     std::string const directory_name = argc > 2 ? argv[2] : library.decks().front().directory_name;
 
-    // A deck is loaded by its directory name, not by [deck].id: ids are not
-    // unique across a library, and `find_all_by_id` returns every deck carrying
-    // one.
     std::expected<std::shared_ptr<arcana::deck const>, arcana::error> loaded =
         library.load(directory_name);
 
     if (!loaded)
     {
-        // Everything fallible returns std::expected<T, arcana::error>. The
-        // error carries a code to branch on and a message to show.
         std::println("could not load {}: {}", directory_name, loaded.error().message);
         return 1;
     }
 
-    // Loads are cached: asking twice hands back the same deck. The shared_ptr
-    // keeps it alive even if the library goes away.
     std::shared_ptr<arcana::deck const> deck = *loaded;
 
     arcana::deck_metadata const& metadata = deck->metadata;
