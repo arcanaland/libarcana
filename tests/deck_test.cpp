@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
+#include "support/empty_deck.hpp"
+
 #include <arcana/deck.hpp>
 #include <arcana/loader.hpp>
 
@@ -62,7 +64,7 @@ TEST_CASE("excluded cards are omitted from enumeration", "[deck]")
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    CHECK(d.cards.size() == 76);
+    CHECK(d.cards().size() == 76);
     CHECK_FALSE(has_card(d, "minor_arcana.pentacles.page"));
     CHECK_FALSE(has_card(d, "minor_arcana.pentacles.knight"));
 
@@ -107,7 +109,7 @@ TEST_CASE("custom cards and custom suits are enumerated alongside the standard 7
     REQUIRE(result.has_value());
     auto const& d = *result;
 
-    CHECK(d.cards.size() == 78 + 3);
+    CHECK(d.cards().size() == 78 + 3);
 
     auto const squirrel = find(d, "major_arcana.happy_squirrel");
     REQUIRE(squirrel.has_value());
@@ -128,7 +130,7 @@ TEST_CASE("custom cards and custom suits are enumerated alongside the standard 7
     CHECK(find(d, "minor_arcana.stars.two").has_value());
 
     // Round trip every card's canonical_id
-    for (auto const& c : d.cards)
+    for (auto const& c : d.cards())
     {
         auto const found = find(d, c.canonical_id());
         REQUIRE(found.has_value());
@@ -157,8 +159,8 @@ TEST_CASE("aliases, remapping and card backs", "[deck]")
     CHECK(*d.default_card_back() == "classic");
 
     // One declared plus one discovered
-    REQUIRE(d.card_backs.size() == 2);
-    CHECK(d.card_backs.front().name == "Classic Back");
+    REQUIRE(d.card_backs().size() == 2);
+    CHECK(d.card_backs().front().name == "Classic Back");
 }
 
 TEST_CASE("file-location-based defaults", "[deck]")
@@ -262,7 +264,7 @@ TEST_CASE("canonical suits in order with customs at the end", "[deck]")
 {
     auto const result = load_deck(fixture("custom-suit-deck"));
     REQUIRE(result.has_value());
-    auto const& suits = result->suits;
+    auto const suits = result->suits();
 
     REQUIRE(suits.size() == 5);
     CHECK(suits[0].key == "wands");
@@ -282,7 +284,7 @@ TEST_CASE("deck::suits uses aliases", "[deck]")
 {
     auto const result = load_deck(fixture("aliased-deck"));
     REQUIRE(result.has_value());
-    auto const& suits = result->suits;
+    auto const suits = result->suits();
 
     REQUIRE(suits.size() == 4);
     CHECK(suits[0].name == "Staves");
@@ -295,7 +297,7 @@ TEST_CASE("partly-excluded suit", "[deck]")
     auto const result = load_deck(fixture("excluded-deck"));
     REQUIRE(result.has_value());
 
-    auto const& suits = result->suits;
+    auto const suits = result->suits();
     auto const pentacles = std::ranges::find(suits, "pentacles"s, &suit_info::key);
     REQUIRE(pentacles != suits.end());
     CHECK_FALSE(pentacles->excluded);
@@ -335,7 +337,7 @@ TEST_CASE("random_card", "[deck]")
 
     CHECK(differs);
 
-    CHECK_FALSE(deck{}.random_card(1).has_value());
+    CHECK_FALSE(arcana::testing::empty_deck().random_card(1).has_value());
 }
 
 TEST_CASE("undeclared card backs ones are discovered", "[deck]")
@@ -345,20 +347,21 @@ TEST_CASE("undeclared card backs ones are discovered", "[deck]")
     auto const& d = *result;
 
     // alternative.png has no deck.toml entry
-    REQUIRE(d.card_backs.size() == 2);
+    REQUIRE(d.card_backs().size() == 2);
 
-    auto const classic = std::ranges::find(d.card_backs, "classic"s, &card_back_design::id);
+    auto const classic = std::ranges::find(d.card_backs(), "classic"s, &card_back_design::id);
 
-    REQUIRE(classic != d.card_backs.end());
+    REQUIRE(classic != d.card_backs().end());
     CHECK(classic->declared);
     CHECK(classic->name == "Classic Back");
     CHECK(classic->image_ref == "card_backs/classic.png");
     CHECK(classic->image.is_absolute());
     CHECK(std::filesystem::exists(classic->image));
 
-    auto const alternative = std::ranges::find(d.card_backs, "alternative"s, &card_back_design::id);
+    auto const alternative =
+        std::ranges::find(d.card_backs(), "alternative"s, &card_back_design::id);
 
-    REQUIRE(alternative != d.card_backs.end());
+    REQUIRE(alternative != d.card_backs().end());
     CHECK_FALSE(alternative->declared);
     CHECK(alternative->image_ref.empty());
     CHECK(std::filesystem::exists(alternative->image));
@@ -367,7 +370,7 @@ TEST_CASE("undeclared card backs ones are discovered", "[deck]")
     REQUIRE(chosen.has_value());
     CHECK(chosen->id == "classic");
 
-    CHECK_FALSE(deck{}.default_card_back_design().has_value());
+    CHECK_FALSE(arcana::testing::empty_deck().default_card_back_design().has_value());
 }
 
 TEST_CASE("a declared image reference resolves against the deck root", "[deck]")
@@ -381,7 +384,7 @@ TEST_CASE("a declared image reference resolves against the deck root", "[deck]")
     REQUIRE(squirrel->images.size() == 1);
     CHECK(squirrel->images.front().path.is_absolute());
     CHECK(
-        squirrel->images.front().path == d.root_path / "scalable/major_arcana/happy_squirrel.svg"
+        squirrel->images.front().path == d.root_path() / "scalable/major_arcana/happy_squirrel.svg"
     );
 
     auto const stars_ace = find(d, "minor_arcana.stars.ace");
@@ -404,14 +407,14 @@ TEST_CASE("unknown keys and unknown sections survive a load", "[deck]")
     // unfortunately, comments are stripped...
     CHECK(source.find("standing in for a deck") == std::string::npos);
 
-    CHECK(deck{}.source_toml().empty());
+    CHECK(arcana::testing::empty_deck().source_toml().empty());
 }
 
 TEST_CASE("rider-waite-smith enumerates all 78 standard cards", "[deck][reference-decks]")
 {
     auto const result = load_deck(reference_deck("rider-waite-smith"));
     REQUIRE(result.has_value());
-    CHECK(result->cards.size() == 78);
+    CHECK(result->cards().size() == 78);
 }
 
 TEST_CASE("a 1.0 reference deck reports an artist but no identifier", "[deck][reference-decks]")
@@ -419,8 +422,8 @@ TEST_CASE("a 1.0 reference deck reports an artist but no identifier", "[deck][re
     auto const result = load_deck(reference_deck("rider-waite-smith"));
     REQUIRE(result.has_value());
 
-    CHECK(result->metadata.artist == "Pamela Colman Smith");
-    CHECK_FALSE(result->metadata.identifier.has_value());
+    CHECK(result->metadata().artist == "Pamela Colman Smith");
+    CHECK_FALSE(result->metadata().identifier.has_value());
 }
 
 TEST_CASE("ascii-tarot resolves ansi32 card images", "[deck][reference-decks]")

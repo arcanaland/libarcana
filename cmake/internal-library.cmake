@@ -1,15 +1,19 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# arcana_add_internal_library(<name> [BASE_DIR <dir>] [HEADERS <h>...] [SOURCES <s>...])
+# arcana_add_internal_library(<name> [BASE_DIRS <dir>...] [HEADERS <h>...] [SOURCES <s>...])
 #
 # Declares arcana-<name> and arcana::<name>
 # (either OBJECT or INTERFACE based on if you pass SOURCES or not)
+#
+# Every BASE_DIRS entry becomes an include root, so a target whose headers are
+# rooted in two places (a public one under include/ and an internal one beside
+# its sources) names both rather than gaining a second target.
 function(arcana_add_internal_library name)
-    cmake_parse_arguments(ARG "" "BASE_DIR" "HEADERS;SOURCES" ${ARGN})
+    cmake_parse_arguments(ARG "" "" "BASE_DIRS;HEADERS;SOURCES" ${ARGN})
 
-    if(NOT ARG_BASE_DIR)
-        set(ARG_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+    if(NOT ARG_BASE_DIRS)
+        set(ARG_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
     endif()
 
     if(ARG_SOURCES)
@@ -39,7 +43,7 @@ function(arcana_add_internal_library name)
         arcana-${name}
         ${scope}
             FILE_SET HEADERS
-            BASE_DIRS ${ARG_BASE_DIR}
+            BASE_DIRS ${ARG_BASE_DIRS}
             FILES ${ARG_HEADERS}
     )
 

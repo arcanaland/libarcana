@@ -54,7 +54,7 @@ std::array const registry{
             [](context const& c)
         {
             auto const d = load_deck(c.deck);
-            return d ? d->cards.size() : 0;
+            return d ? d->cards().size() : 0;
         }
     },
     workload{
@@ -67,7 +67,7 @@ std::array const registry{
             if (!d)
                 return std::size_t{0};
 
-            return d->cards.size() + validate(*d).size();
+            return d->cards().size() + validate(*d).size();
         }
     },
     workload{
@@ -92,7 +92,7 @@ std::array const registry{
             std::size_t cards = 0;
             for (auto const& summary : library.decks())
                 if (auto const d = load_deck(summary.path))
-                    cards += d->cards.size();
+                    cards += d->cards().size();
 
             return cards;
         }

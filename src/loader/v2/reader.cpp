@@ -3,7 +3,7 @@
 
 #include "reader.hpp"
 
-#include <deck_access.hpp>
+#include <deck_state.hpp>
 #include <discovery.hpp>
 #include <names.hpp>
 #include <ordering.hpp>
@@ -112,7 +112,7 @@ class reader
     {
     }
 
-    deck read();
+    deck_state read();
 
   private:
     [[nodiscard]] toml::table const& table() const noexcept
@@ -186,7 +186,7 @@ class reader
     std::shared_ptr<deck_document const> document_;
     name_catalog names_;
 
-    deck deck_;
+    deck_state deck_;
     std::vector<origin_term> deck_origin_;
     std::vector<root_index> roots_;
 
@@ -235,7 +235,7 @@ void reader::read_metadata()
     deck_.excluded.cards = get_string_array(excluded["cards"]);
     deck_.excluded.reason = get_string(excluded["reason"]);
 
-    deck_access::set_default_card_back(deck_, get_string(table()["card_backs"]["default"]));
+    deck_.default_card_back = get_string(table()["card_backs"]["default"]);
 }
 
 void reader::discover_majors(image_root const& root, root_index& index)
@@ -649,7 +649,7 @@ void reader::resolve_suit_names()
 
 void reader::resolve_rank_names()
 {
-    auto& rank_names = deck_access::rank_names(deck_);
+    auto& rank_names = deck_.rank_names;
 
     for (auto const& key : rank_keys_)
         if (auto const named = from_names({"name", "rank", key}))
@@ -733,7 +733,7 @@ void reader::resolve_names()
     resolve_back_names();
 }
 
-deck reader::read()
+deck_state reader::read()
 {
     deck_.root_path = root_;
 
@@ -747,7 +747,7 @@ deck reader::read()
 
     sort_cards(deck_.cards, deck_.suits);
 
-    deck_access::document(deck_) = document_;
+    deck_.document = document_;
     return std::move(deck_);
 }
 
@@ -762,7 +762,7 @@ std::expected<deck, error> read_deck(
         deck_directory, std::move(document), name_catalog::load(deck_directory, languages)
     };
 
-    return source.read();
+    return deck_builder::make(source.read());
 }
 
 }  // namespace arcana::detail

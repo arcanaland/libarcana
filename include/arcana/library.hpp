@@ -14,11 +14,21 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace arcana
 {
+
+namespace detail
+{
+
+// One scan of the roots, and the options that produced it
+struct library_snapshot;
+
+// The memoized loads, shared between copies of a library
+struct deck_cache;
+
+}  // namespace detail
 
 // A deck summary created just from the manifest without loading images or aux files
 struct deck_summary
@@ -69,6 +79,12 @@ struct library_options
 };
 
 // Library of Tarot decks installed on the system
+//
+// A copyable handle over an immutable snapshot of one scan. Copying one is a
+// pair of refcount bumps, and the copies share the deck cache. refresh() builds
+// a second snapshot and swaps to it; the outgoing one is retired rather than
+// destroyed, so a span handed out before the call stays valid for as long as
+// this library lives -- it goes stale, never dangling.
 class deck_library
 {
   public:
@@ -76,27 +92,18 @@ class deck_library
 
     // Decks sorted by directory name
     //
-    // Invalidated by refresh()
-    [[nodiscard]] std::span<deck_summary const> decks() const
-    {
-        return decks_;
-    }
+    // Stale, not invalidated, after refresh()
+    [[nodiscard]] std::span<deck_summary const> decks() const noexcept;
 
     // Decks whose manifest could not be read, sorted by directory name
     //
-    // Invalidated by refresh()
-    [[nodiscard]] std::span<malformed_deck const> malformed_decks() const
-    {
-        return malformed_;
-    }
+    // Stale, not invalidated, after refresh()
+    [[nodiscard]] std::span<malformed_deck const> malformed_decks() const noexcept;
 
     // The reference deck's summary
     //
     // @return std::nullopt when no reference deck is available
-    [[nodiscard]] std::optional<deck_summary> const& reference() const
-    {
-        return reference_;
-    }
+    [[nodiscard]] std::optional<deck_summary> const& reference() const noexcept;
 
     // Look up a deck
     //
@@ -111,54 +118,48 @@ class deck_library
     ) const;
 
     // Fully load a deck from this library
-    [[nodiscard]] std::expected<std::shared_ptr<deck const>, error> load(
-        std::string_view directory_name
-    ) const;
+    //
+    // Loads are cached, and a deck is a handle: asking twice hands back a deck
+    // equal to the first, and it outlives this library
+    [[nodiscard]] std::expected<deck, error> load(std::string_view directory_name) const;
 
     // Fully load a deck external to this library, in this library's languages
     //
     // @param deck_directory A directory that can exist outside of the library
-    [[nodiscard]] std::expected<std::shared_ptr<deck const>, error> load_external(
+    [[nodiscard]] std::expected<deck, error> load_external(
         std::filesystem::path const& deck_directory
     ) const;
 
     // Fully load the configured reference deck
-    [[nodiscard]] std::expected<std::shared_ptr<deck const>, error> load_reference() const;
+    [[nodiscard]] std::expected<deck, error> load_reference() const;
 
     // The library roots used to search for decks
-    [[nodiscard]] std::span<std::filesystem::path const> roots() const
-    {
-        return roots_;
-    }
+    [[nodiscard]] std::span<std::filesystem::path const> roots() const noexcept;
 
     // Where the reference deck was configured to be, whether or not it is readable
-    [[nodiscard]] std::optional<std::filesystem::path> const& reference_path() const
-    {
-        return reference_path_;
-    }
+    [[nodiscard]] std::optional<std::filesystem::path> const& reference_path() const noexcept;
 
-    [[nodiscard]] std::span<std::string const> languages() const
-    {
-        return languages_;
-    }
+    [[nodiscard]] std::span<std::string const> languages() const noexcept;
 
-    // Re-scan the roots and the reference deck, invalidating cached spans
+    // Re-scan the roots and the reference deck, and drop the cached loads
+    //
+    // Builds a new snapshot and swaps to it. Spans taken before the call keep
+    // reading the old one for as long as this library lives
     void refresh();
 
   private:
-    [[nodiscard]] std::expected<std::shared_ptr<deck const>, error> load_cached(
+    [[nodiscard]] std::expected<deck, error> load_cached(
         std::filesystem::path const& deck_directory
     ) const;
 
-    std::vector<std::filesystem::path> roots_;
-    std::optional<std::filesystem::path> reference_path_;
-    std::vector<std::string> languages_;
+    // Never null
+    std::shared_ptr<detail::library_snapshot const> state_;
 
-    std::vector<deck_summary> decks_;
-    std::vector<malformed_deck> malformed_;
-    std::optional<deck_summary> reference_;
+    // What refresh() swapped out, held so the spans into it stay readable
+    std::vector<std::shared_ptr<detail::library_snapshot const>> retired_;
 
-    mutable std::unordered_map<std::string, std::shared_ptr<deck const>> loaded_;
+    // Never null. Shared with every copy of this library
+    std::shared_ptr<detail::deck_cache> cache_;
 };
 
 }  // namespace arcana

@@ -14,7 +14,6 @@
 #include <nanobind/stl/filesystem.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
-#include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/unordered_map.h>
@@ -324,14 +323,35 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("path", &malformed_deck::path)
         .def_rw("problem", &malformed_deck::problem);
 
-    // --- Shape: type held by an incomplete-type shared_ptr --------------------
+    // --- Shape: a copyable handle over immutable shared state -----------------
+    //
+    // The span observers copy at the boundary, as ADR-015 has the library's do:
+    // nanobind ships no span caster, and a Python list is materialized on every
+    // access either way.
     nb::class_<deck>(m, "deck")
-        .def_ro("root_path", &deck::root_path)
-        .def_ro("metadata", &deck::metadata)
-        .def_ro("cards", &deck::cards)
-        .def_ro("suits", &deck::suits)
+        .def_prop_ro("root_path", &deck::root_path)
+        .def_prop_ro("metadata", &deck::metadata)
+        .def_prop_ro(
+            "cards", [](deck const& self)
+            { return std::vector<card>(self.cards().begin(), self.cards().end()); }
+        )
+        .def_prop_ro(
+            "suits", [](deck const& self)
+            { return std::vector<suit_info>(self.suits().begin(), self.suits().end()); }
+        )
         .def_prop_ro("default_card_back", &deck::default_card_back)
-        .def_ro("card_backs", &deck::card_backs)
+        .def_prop_ro(
+            "card_backs",
+            [](deck const& self)
+            {
+                return std::vector<card_back_design>(
+                    self.card_backs().begin(), self.card_backs().end()
+                );
+            }
+        )
+        // Two handles are equal when they came from the same load, which is what
+        // the cache used to say by handing back one shared_ptr
+        .def(nb::self == nb::self)
         .def("default_card_back_design", &deck::default_card_back_design)
         .def("cards_of_kind", &deck::cards_of_kind, nb::arg("kind"))
         .def("cards_in_suit", &deck::cards_in_suit, nb::arg("key"))
@@ -377,7 +397,9 @@ NB_MODULE(_core, m)  // NOLINT
     nb::class_<deck_library>(m, "deck_library")
         .def(nb::init<library_options>(), nb::arg("options") = library_options{})
 
-        // copy decks to Python inside instead of passing a span
+        // copy decks to Python inside instead of passing a span. ADR-015's rule
+        // stands; since RFC-039 layer 3 it is belt-and-braces rather than the
+        // only defence
         .def(
             "decks", [](deck_library const& self)
             { return std::vector<deck_summary>(self.decks().begin(), self.decks().end()); }
@@ -400,6 +422,9 @@ NB_MODULE(_core, m)  // NOLINT
             { return std::vector<std::string>(self.languages().begin(), self.languages().end()); }
         )
 
+        // The opt-out. keep_alive is enough here now: a library retires the
+        // snapshots refresh() swaps out, so keeping the library alive keeps the
+        // storage this span reads alive too
         .def(
             "decks_view", [](deck_library const& self) { return deck_summary_view{self.decks()}; },
             nb::rv_policy::move, nb::keep_alive<0, 1>()

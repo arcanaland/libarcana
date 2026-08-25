@@ -49,3 +49,17 @@ def test_copying_binding_is_immune_to_refresh(growable_root: Path) -> None:
 
     assert [d.directory_name for d in decks] == ["deck-a", "deck-b"]
     assert [d.directory_name for d in lib.decks()] == ["deck-a", "deck-b", "deck-c"]
+
+
+def test_span_view_goes_stale_across_refresh_without_dangling(growable_root: Path) -> None:
+    """RFC-039 layer 3: refresh() retires the snapshot rather than freeing it."""
+    lib = arcana.deck_library(arcana.library_options(roots=[growable_root]))
+    view = lib.decks_view()
+
+    write_deck(growable_root, "deck-c")
+    lib.refresh()
+
+    # stale, and readable
+    assert len(view) == 2
+    assert view[0].directory_name == "deck-a"
+    assert len(lib.decks_view()) == 3

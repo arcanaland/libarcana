@@ -3,7 +3,7 @@
 
 #include "reader.hpp"
 
-#include <deck_access.hpp>
+#include <deck_state.hpp>
 #include <ordering.hpp>
 #include <standard_cards.hpp>
 #include <text.hpp>
@@ -80,10 +80,10 @@ deck_reader::deck_reader(
       names_{name_catalog::load(root_, languages)}
 {
     deck_.root_path = root_;
-    deck_access::document(deck_) = document_;
+    deck_.document = document_;
 }
 
-deck deck_reader::build() &&
+deck_state deck_reader::build() &&
 {
     // parse toml mainly
     parse_metadata();
@@ -170,7 +170,7 @@ void deck_reader::parse_card_backs()
 
     if (auto const* card_backs = document["card_backs"].as_table())
     {
-        deck_access::set_default_card_back(deck_, get_string((*card_backs)["default"]));
+        deck_.default_card_back = get_string((*card_backs)["default"]);
 
         if (auto const* variants = (*card_backs)["variants"].as_table())
         {
@@ -248,7 +248,7 @@ void deck_reader::parse_aliases()
 
     // v2 gives ranks no manifest field, so the resolved names are private to
     // the deck and reached through display_rank_name()
-    deck_access::rank_names(deck_) = court_aliases_;
+    deck_.rank_names = court_aliases_;
 }
 
 void deck_reader::parse_major_arcana_remap()
@@ -583,7 +583,9 @@ deck read_deck(
     std::vector<std::string> const& languages
 )
 {
-    return deck_reader{std::move(deck_root), std::move(document), languages}.build();
+    return deck_builder::make(
+        deck_reader{std::move(deck_root), std::move(document), languages}.build()
+    );
 }
 
 }  // namespace arcana::detail::v1_compat

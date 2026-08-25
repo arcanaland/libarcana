@@ -169,7 +169,7 @@ cards = [{ id = "ace", name = "Ace of Stars" }]
 
     REQUIRE(summary.has_value());
     REQUIRE(loaded.has_value());
-    CHECK(summary->card_count == loaded->cards.size());
+    CHECK(summary->card_count == loaded->cards().size());
 }
 
 TEST_CASE("a summary needs a schema_version too", "[summary]")
@@ -313,7 +313,7 @@ position = 22
 
     REQUIRE(summary.has_value());
     REQUIRE(loaded.has_value());
-    CHECK(summary->card_count == loaded->cards.size());
+    CHECK(summary->card_count == loaded->cards().size());
     CHECK(summary->card_count == 79);
 }
 
@@ -336,7 +336,7 @@ TEST_CASE(
 
     REQUIRE(summary.has_value());
     REQUIRE(loaded.has_value());
-    CHECK(summary->card_count == loaded->cards.size());
+    CHECK(summary->card_count == loaded->cards().size());
 }
 
 TEST_CASE("a directory with no manifest", "[summary]")
