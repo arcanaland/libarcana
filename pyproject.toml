@@ -32,6 +32,8 @@ wheel.py-api = "cp312"
 ARCANA_BUILD_PYTHON = "ON"
 ARCANA_BUILD_TESTS = "OFF"
 ARCANA_BUILD_BENCH = "OFF"
+# Nothing in the wheel needs them, and building them would fetch the reference decks.
+ARCANA_BUILD_EXAMPLES = "OFF"
 ARCANA_INSTALL = "OFF"
 ARCANA_INSTALL_PYTHON_MODULE = "ON"
 

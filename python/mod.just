@@ -20,7 +20,9 @@ configure-binding: configure
         -DCMAKE_BUILD_TYPE={{build_type}} \
         -DARCANA_BUILD_PYTHON=ON \
         -DARCANA_INSTALL=OFF \
-        -DARCANA_FETCH_REFERENCE_DECKS=OFF
+        -DARCANA_BUILD_EXAMPLES=OFF \
+        -DARCANA_FETCH_REFERENCE_DECKS=OFF \
+        -DARCANA_REFERENCE_DECKS_DIR="$PWD/{{build_dir}}/_deps/reference_decks-src"
 
 # Build the nanobind binding.
 [script]

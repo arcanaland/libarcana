@@ -4,7 +4,6 @@
 find_package(Catch2 3 REQUIRED)
 include(Catch)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/corpus.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/test-helpers.cmake)
 
 add_subdirectory(data)

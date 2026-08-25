@@ -61,8 +61,8 @@ function(arcana_declare_corpus name)
     set(${ARG_OUT_DIR} ${${lower}_SOURCE_DIR} PARENT_SCOPE)
 endfunction()
 
-set(arcana_fixtures_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
-set(arcana_support_dir ${CMAKE_CURRENT_SOURCE_DIR}/support)
+set(arcana_fixtures_dir ${PROJECT_SOURCE_DIR}/tests/fixtures)
+set(arcana_support_dir ${PROJECT_SOURCE_DIR}/tests/support)
 
 
 arcana_declare_corpus(reference_decks

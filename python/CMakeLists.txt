@@ -55,6 +55,8 @@ if(ARCANA_BUILD_TESTS)
             ${CMAKE_COMMAND} -E env
                 PYTHONPATH=${arcana_python_root}
                 ARCANA_FIXTURES_DIR=${PROJECT_SOURCE_DIR}/tests/fixtures
+                ARCANA_EXAMPLES_DIR=${PROJECT_SOURCE_DIR}/examples/python
+                ARCANA_REFERENCE_DECKS_DIR=${arcana_reference_decks_dir}
             ${Python_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/tests
       )
 
