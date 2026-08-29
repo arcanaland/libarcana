@@ -3,11 +3,12 @@
 
 arcana_add_internal_library(
     model
-    BASE_DIR ${PROJECT_SOURCE_DIR}/include
+    BASE_DIRS ${PROJECT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}
     HEADERS
         ${PROJECT_SOURCE_DIR}/include/arcana/card.hpp
         ${PROJECT_SOURCE_DIR}/include/arcana/deck.hpp
         ${PROJECT_SOURCE_DIR}/include/arcana/error.hpp
+        deck_state.hpp
     SOURCES
         card.cpp
         deck.cpp

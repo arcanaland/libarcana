@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <deck_state.hpp>
 #include <discovery.hpp>
 #include <document.hpp>
 #include <names.hpp>
@@ -33,8 +34,8 @@ class deck_reader
         std::vector<std::string> const& languages
     );
 
-    // Runs every parse func and moves out the finished deck
-    [[nodiscard]] deck build() &&;
+    // Runs every parse func and moves out the finished state
+    [[nodiscard]] deck_state build() &&;
 
   private:
     // --- deck.toml sections ---------------------------------------------------
@@ -108,7 +109,7 @@ class deck_reader
     // Folded major arcana name -> the position the deck shows it at
     std::unordered_map<std::string, int> remapped_positions_;
 
-    deck deck_;
+    deck_state deck_;
 };
 
 // Read a 1.0 document into the normalized deck model

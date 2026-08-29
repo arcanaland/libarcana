@@ -10,9 +10,9 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace arcana
@@ -21,10 +21,10 @@ namespace arcana
 namespace detail
 {
 
-// The parsed deck.toml
-struct deck_document;
+// Everything a load produces, and what a deck handle is a handle to
+struct deck_state;
 
-struct deck_access;
+struct deck_builder;
 
 }  // namespace detail
 
@@ -119,22 +119,27 @@ struct suit_info
     bool excluded = false;
 };
 
-// The full deck model
-struct deck
+// A loaded deck
+class deck
 {
-    std::filesystem::path root_path;
-    deck_metadata metadata;
-    std::vector<esoterica_companion> companions;
+  public:
+    deck() = delete;
 
-    std::vector<card_back_design> card_backs;
+    [[nodiscard]] std::filesystem::path const& root_path() const noexcept;
 
-    excluded_cards excluded;
+    [[nodiscard]] deck_metadata const& metadata() const noexcept;
+
+    [[nodiscard]] std::span<esoterica_companion const> companions() const noexcept;
+
+    [[nodiscard]] std::span<card_back_design const> card_backs() const noexcept;
+
+    [[nodiscard]] excluded_cards const& excluded() const noexcept;
 
     // Every suit this deck has, canonical suits first
-    std::vector<suit_info> suits;
+    [[nodiscard]] std::span<suit_info const> suits() const noexcept;
 
     // The 78 standard cards minus exclusions, plus the deck's own cards
-    std::vector<card> cards;
+    [[nodiscard]] std::span<card const> cards() const noexcept;
 
     // A canonical suit's display name, or its title-cased key
     [[nodiscard]] std::string display_suit_name(suit s) const;
@@ -170,29 +175,26 @@ struct deck
     // `[card_backs].default`, the design key the deck names as its default
     //
     // nullopt when the deck names none
-    [[nodiscard]] std::optional<std::string> const& default_card_back() const noexcept
-    {
-        return default_card_back_;
-    }
+    [[nodiscard]] std::optional<std::string> const& default_card_back() const noexcept;
 
     [[nodiscard]] std::optional<card_back_design> default_card_back_design() const;
 
     // The deck.toml re-serialized
     [[nodiscard]] std::string source_toml() const;
 
+    // two handles are equal when they came from the same load
+    [[nodiscard]] friend bool operator==(deck const&, deck const&) noexcept = default;
+
   private:
-    friend struct detail::deck_access;
+    explicit deck(std::shared_ptr<detail::deck_state const> state) noexcept
+        : state_{std::move(state)}
+    {
+    }
 
-    // `[card_backs].default`. Set at load through detail::deck_access
-    std::optional<std::string> default_card_back_;
+    friend struct detail::deck_builder;
 
-    // Rank key -> the display name this deck resolved for it. Filled at load
-    // from [aliases.courts] in 1.0 and from a name file's [name.rank] in 2.0;
-    // v2 gives ranks no manifest field, so there is no public map
-    std::unordered_map<std::string, std::string> rank_names_;
-
-    // So toml++ stays out of this header
-    std::shared_ptr<detail::deck_document const> document_;
+    // Never null
+    std::shared_ptr<detail::deck_state const> state_;
 };
 
 }  // namespace arcana

@@ -6,6 +6,7 @@
 #include <arcana/deck.hpp>
 #include <arcana/validation.hpp>
 
+#include "support/empty_deck.hpp"
 #include "validation/fixture.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -454,7 +455,7 @@ TEST_CASE("no deferred rule has a fixture that fires it", "[validation][coverage
 
 TEST_CASE("validate on a deck with no root on disk reads nothing from a tree", "[validation]")
 {
-    deck const empty{};
+    deck const empty = arcana::testing::empty_deck();
 
     for (auto const& one : validate(empty))
     {

@@ -51,8 +51,8 @@ arcana::deck load(arcana_test::temp_dir const& dir)
 std::vector<std::string> canonical_ids(arcana::deck const& d)
 {
     std::vector<std::string> ids;
-    ids.reserve(d.cards.size());
-    for (auto const& c : d.cards) ids.push_back(c.canonical_id());
+    ids.reserve(d.cards().size());
+    for (auto const& c : d.cards()) ids.push_back(c.canonical_id());
 
     return ids;
 }
@@ -60,17 +60,17 @@ std::vector<std::string> canonical_ids(arcana::deck const& d)
 bool has_card(arcana::deck const& d, std::string_view canonical)
 {
     return std::ranges::any_of(
-        d.cards, [canonical](arcana::card const& c) { return c.canonical_id() == canonical; }
+        d.cards(), [canonical](arcana::card const& c) { return c.canonical_id() == canonical; }
     );
 }
 
 arcana::card const& card_at(arcana::deck const& d, std::string_view canonical)
 {
     auto const at = std::ranges::find_if(
-        d.cards, [canonical](arcana::card const& c) { return c.canonical_id() == canonical; }
+        d.cards(), [canonical](arcana::card const& c) { return c.canonical_id() == canonical; }
     );
 
-    REQUIRE(at != d.cards.end());
+    REQUIRE(at != d.cards().end());
     return *at;
 }
 
@@ -88,8 +88,8 @@ TEST_CASE("a 2.0 deck always has the seventy-eight canonical slots", "[loader][v
 {
     auto const deck = load(make_deck());
 
-    CHECK(deck.cards.size() == canonical_card_count);
-    CHECK(deck.suits.size() == 4);
+    CHECK(deck.cards().size() == canonical_card_count);
+    CHECK(deck.suits().size() == 4);
 
     SECTION("majors fall back to the Appendix C names")
     {
@@ -107,7 +107,7 @@ TEST_CASE("a 2.0 deck always has the seventy-eight canonical slots", "[loader][v
 
     SECTION("a canonical suit carries the canonical rank sequence")
     {
-        auto const& wands = deck.suits.front();
+        auto const& wands = deck.suits().front();
         CHECK(wands.key == "wands");
         CHECK(wands.standard);
         REQUIRE(wands.ranks.size() == 14);
@@ -121,16 +121,16 @@ TEST_CASE("a 1.0 table is not read by the 2.0 front end", "[loader][v2]")
     // [deck].author was removed for artist/creator, and v2 must not read it back
     auto const deck = load(make_deck(R"(author = "Nobody")"));
 
-    CHECK_FALSE(deck.metadata.artist.has_value());
-    CHECK_FALSE(deck.metadata.creator.has_value());
+    CHECK_FALSE(deck.metadata().artist.has_value());
+    CHECK_FALSE(deck.metadata().creator.has_value());
 }
 
 TEST_CASE("a 2.0 deck reports its identifier", "[loader][v2]")
 {
     auto const deck = load(make_deck(R"(identifier = "net.example.jdoe/deck/reader")"));
 
-    REQUIRE(deck.metadata.identifier.has_value());
-    CHECK(*deck.metadata.identifier == "net.example.jdoe/deck/reader");
+    REQUIRE(deck.metadata().identifier.has_value());
+    CHECK(*deck.metadata().identifier == "net.example.jdoe/deck/reader");
 }
 
 TEST_CASE("files create cards", "[loader][v2][discovery]")
@@ -142,7 +142,7 @@ TEST_CASE("files create cards", "[loader][v2][discovery]")
 
         auto const deck = load(dir);
 
-        CHECK(deck.cards.size() == canonical_card_count + 1);
+        CHECK(deck.cards().size() == canonical_card_count + 1);
         auto const& squirrel = card_at(deck, "major_arcana.happy_squirrel");
         CHECK(squirrel.display_name == "Happy Squirrel");
         CHECK(squirrel.images.size() == 1);
@@ -179,8 +179,8 @@ ranks = ["ace", "two", "king"]
 
         auto const deck = load(dir);
 
-        REQUIRE(deck.suits.size() == 5);
-        auto const& stars = deck.suits.back();
+        REQUIRE(deck.suits().size() == 5);
+        auto const& stars = deck.suits().back();
         CHECK(stars.key == "stars");
         CHECK_FALSE(stars.standard);
         CHECK(stars.name == "Stars");
@@ -200,7 +200,7 @@ ranks = ["ace", "two", "king"]
 name = "Stars"
 )"));
 
-        CHECK(deck.suits.size() == 4);
+        CHECK(deck.suits().size() == 4);
     }
 }
 
@@ -211,8 +211,8 @@ TEST_CASE("ranks on a canonical suit replace its canonical sequence", "[loader][
 ranks = ["ace", "two", "princess", "king"]
 )"));
 
-    auto const at = std::ranges::find(deck.suits, std::string{"cups"}, &arcana::suit_info::key);
-    REQUIRE(at != deck.suits.end());
+    auto const at = std::ranges::find(deck.suits(), std::string{"cups"}, &arcana::suit_info::key);
+    REQUIRE(at != deck.suits().end());
     CHECK(at->ranks == std::vector<std::string>{"ace", "two", "princess", "king"});
 }
 
@@ -225,7 +225,7 @@ TEST_CASE("a [cards] entry does not create a card", "[loader][v2]")
 name = "The Lovers, renamed"
 )"));
 
-        CHECK(deck.cards.size() == canonical_card_count);
+        CHECK(deck.cards().size() == canonical_card_count);
         CHECK(card_at(deck, "major_arcana.06").display_name == "The Lovers, renamed");
     }
 
@@ -239,7 +239,7 @@ number = "XXIII"
 name = "The Happy Squirrel"
 )"));
 
-        CHECK(deck.cards.size() == canonical_card_count);
+        CHECK(deck.cards().size() == canonical_card_count);
         CHECK_FALSE(has_card(deck, "major_arcana.23"));
         CHECK_FALSE(has_card(deck, "major_arcana.happy_squirrel"));
     }
@@ -310,7 +310,7 @@ TEST_CASE("images resolve by the extension chain, not by filesystem order", "[lo
 
         auto const deck = load(dir);
 
-        CHECK(deck.cards.size() == canonical_card_count);
+        CHECK(deck.cards().size() == canonical_card_count);
         CHECK_FALSE(has_card(deck, "major_arcana.06.two_women"));
 
         auto const& lovers = card_at(deck, "major_arcana.06");
@@ -328,7 +328,7 @@ TEST_CASE("images resolve by the extension chain, not by filesystem order", "[lo
 
         auto const deck = load(dir);
 
-        CHECK(deck.cards.size() == canonical_card_count);
+        CHECK(deck.cards().size() == canonical_card_count);
         CHECK(card_at(deck, "major_arcana.00").images.empty());
     }
 }
@@ -364,7 +364,7 @@ default_variant = "two_women"
         auto const deck = load(dir);
 
         // One card, three artworks
-        CHECK(deck.cards.size() == canonical_card_count);
+        CHECK(deck.cards().size() == canonical_card_count);
 
         auto const& lovers = card_at(deck, "major_arcana.06");
         REQUIRE(lovers.images.size() == 3);
@@ -710,7 +710,7 @@ cards = ["minor_arcana.pentacles.page", "minor_arcana.pentacles.knight"]
 reason = "This deck excludes these specific court cards."
 )"));
 
-    CHECK(deck.cards.size() == canonical_card_count - 2);
+    CHECK(deck.cards().size() == canonical_card_count - 2);
     CHECK_FALSE(has_card(deck, "minor_arcana.pentacles.page"));
     REQUIRE(deck.exclusion_reason("minor_arcana.pentacles.page").has_value());
 }
@@ -724,8 +724,8 @@ TEST_CASE("card back designs are discovered from the directory structure", "[loa
 
         auto const deck = load(dir);
 
-        REQUIRE(deck.card_backs.size() == 1);
-        auto const& classic = deck.card_backs.front();
+        REQUIRE(deck.card_backs().size() == 1);
+        auto const& classic = deck.card_backs().front();
         CHECK(classic.id == "classic");
         CHECK(classic.name == "Classic");
         CHECK_FALSE(classic.declared);
@@ -745,9 +745,9 @@ name = "Classic RWS Back"
 
         auto const deck = load(dir);
 
-        REQUIRE(deck.card_backs.size() == 1);
-        CHECK(deck.card_backs.front().declared);
-        CHECK(deck.card_backs.front().name == "Classic RWS Back");
+        REQUIRE(deck.card_backs().size() == 1);
+        CHECK(deck.card_backs().front().declared);
+        CHECK(deck.card_backs().front().name == "Classic RWS Back");
 
         auto const chosen = deck.default_card_back_design();
         REQUIRE(chosen.has_value());
@@ -761,7 +761,7 @@ name = "Classic RWS Back"
 
         auto const deck = load(dir);
 
-        CHECK(deck.card_backs.empty());
+        CHECK(deck.card_backs().empty());
     }
 }
 
@@ -802,7 +802,7 @@ classic = "Classic Back"
     {
         CHECK(card_at(deck, "major_arcana.08").display_name == "Justice");
         CHECK(card_at(deck, "minor_arcana.cups.ace").display_name == "The Ace of Cups");
-        CHECK(deck.card_backs.front().name == "Classic Back");
+        CHECK(deck.card_backs().front().name == "Classic Back");
     }
 
     SECTION("suit and rank names resolve from the name file")
@@ -881,7 +881,7 @@ origin = { "iptc-dst" = "compositeWithTrainedAlgorithmicMedia" }
 
     SECTION("the deck states its own")
     {
-        CHECK(term_for(deck.metadata.origin, "iptc-dst") == "print");
+        CHECK(term_for(deck.metadata().origin, "iptc-dst") == "print");
     }
 
     SECTION("a card that declares nothing inherits the deck's")
@@ -900,15 +900,15 @@ origin = { "iptc-dst" = "compositeWithTrainedAlgorithmicMedia" }
 
     SECTION("a back design overrides independently of the cards")
     {
-        REQUIRE(deck.card_backs.size() == 1);
-        CHECK(term_for(deck.card_backs.front().origin, "iptc-dst") == "digitalCreation");
+        REQUIRE(deck.card_backs().size() == 1);
+        CHECK(term_for(deck.card_backs().front().origin, "iptc-dst") == "digitalCreation");
     }
 
     SECTION("a deck that declares no origin gives its cards none")
     {
         auto const bare = load(make_deck());
 
-        CHECK(bare.metadata.origin.empty());
+        CHECK(bare.metadata().origin.empty());
         CHECK(card_at(bare, "major_arcana.00").origin.empty());
     }
 }

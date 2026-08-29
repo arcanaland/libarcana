@@ -87,6 +87,6 @@ TEST_CASE("a well-formed schema_version loads under some front end", "[loader][d
     auto const result = load_declaring(std::format(R"(schema_version = "{}")", accepted));
 
     REQUIRE(result.has_value());
-    CHECK(result->metadata.schema_version == accepted);
-    CHECK(result->metadata.name == "Dispatch");
+    CHECK(result->metadata().schema_version == accepted);
+    CHECK(result->metadata().name == "Dispatch");
 }

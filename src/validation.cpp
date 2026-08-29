@@ -54,7 +54,7 @@ std::vector<diagnostic> validate(deck const& d)
 {
     auto const major = validation::major_of(d);
 
-    auto const files = validation::walk_deck(d.root_path);
+    auto const files = validation::walk_deck(d.root_path());
 
     std::vector<diagnostic> found;
     validation::run_all(d, major, files, found);

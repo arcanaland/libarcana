@@ -3,7 +3,7 @@
 
 arcana_add_internal_library(
     loader-v1
-    BASE_DIR ${PROJECT_SOURCE_DIR}/src/loader
+    BASE_DIRS ${PROJECT_SOURCE_DIR}/src/loader
     HEADERS
         reader.hpp
         summary.hpp

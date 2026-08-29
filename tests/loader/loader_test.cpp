@@ -15,6 +15,7 @@
 #include <string_view>
 #include <vector>
 
+using arcana::detail::deck_builder;
 using arcana::detail::deck_document;
 using arcana::detail::v1_compat::deck_reader;
 
@@ -34,15 +35,16 @@ arcana::deck build_from(
     auto document = std::make_shared<deck_document>(std::move(parsed).table());
     REQUIRE(document->table["deck"].as_table() != nullptr);
 
-    return deck_reader{root, std::move(document), languages}.build();
+    return deck_builder::make(deck_reader{root, std::move(document), languages}.build());
 }
 
 arcana::card const& card_named(arcana::deck const& d, std::string_view canonical_id)
 {
     auto const it = std::ranges::find_if(
-        d.cards, [canonical_id](arcana::card const& c) { return c.canonical_id() == canonical_id; }
+        d.cards(),
+        [canonical_id](arcana::card const& c) { return c.canonical_id() == canonical_id; }
     );
-    REQUIRE(it != d.cards.end());
+    REQUIRE(it != d.cards().end());
     return *it;
 }
 
@@ -56,9 +58,9 @@ name = "Minimal"
 )");
 
     // 1.0's [deck].id is a library handle, not an identifier, and is dropped
-    CHECK_FALSE(d.metadata.identifier.has_value());
-    CHECK(d.metadata.name == "Minimal");
-    CHECK(d.cards.size() == 78);
+    CHECK_FALSE(d.metadata().identifier.has_value());
+    CHECK(d.metadata().name == "Minimal");
+    CHECK(d.cards().size() == 78);
     CHECK(d.cards_of_kind(arcana::arcana_kind::major_arcana).size() == 22);
     CHECK(d.cards_of_kind(arcana::arcana_kind::minor_arcana).size() == 56);
 }
@@ -70,7 +72,7 @@ TEST_CASE("aspect_ratio falls back when absent or the wrong type", "[loader]")
         auto const d = build_from(R"([deck]
 name = "n"
 )");
-        CHECK(d.metadata.aspect_ratio == arcana::default_aspect_ratio);
+        CHECK(d.metadata().aspect_ratio == arcana::default_aspect_ratio);
     }
 
     SECTION("wrong type is not an error")
@@ -79,7 +81,7 @@ name = "n"
 name = "n"
 aspect_ratio = "wide"
 )");
-        CHECK(d.metadata.aspect_ratio == arcana::default_aspect_ratio);
+        CHECK(d.metadata().aspect_ratio == arcana::default_aspect_ratio);
     }
 
     SECTION("declared")
@@ -88,7 +90,7 @@ aspect_ratio = "wide"
 name = "n"
 aspect_ratio = 0.6
 )");
-        CHECK(d.metadata.aspect_ratio == 0.6);
+        CHECK(d.metadata().aspect_ratio == 0.6);
     }
 }
 
@@ -101,13 +103,13 @@ artist = "Pamela"
 tags = ["classic", 7, "rider"]
 )");
 
-    CHECK(d.metadata.creator == "Arthur");
-    CHECK(d.metadata.artist == "Pamela");
-    CHECK_FALSE(d.metadata.license.has_value());
-    CHECK_FALSE(d.metadata.website.has_value());
+    CHECK(d.metadata().creator == "Arthur");
+    CHECK(d.metadata().artist == "Pamela");
+    CHECK_FALSE(d.metadata().license.has_value());
+    CHECK_FALSE(d.metadata().website.has_value());
 
     // A non-string element is skipped
-    CHECK(d.metadata.tags == std::vector<std::string>{"classic", "rider"});
+    CHECK(d.metadata().tags == std::vector<std::string>{"classic", "rider"});
 }
 
 TEST_CASE("the artist comes from [deck].author", "[loader]")
@@ -118,7 +120,7 @@ TEST_CASE("the artist comes from [deck].author", "[loader]")
 name = "n"
 author = "Pamela"
 )");
-        CHECK(d.metadata.artist == "Pamela");
+        CHECK(d.metadata().artist == "Pamela");
     }
 
     SECTION("a deck emitted mid-migration")
@@ -127,7 +129,7 @@ author = "Pamela"
 name = "n"
 artist = "Pamela"
 )");
-        CHECK(d.metadata.artist == "Pamela");
+        CHECK(d.metadata().artist == "Pamela");
     }
 
     SECTION("1.0's spelling wins where a deck carries both")
@@ -137,7 +139,7 @@ name = "n"
 author = "Pamela"
 artist = "Somebody Else"
 )");
-        CHECK(d.metadata.artist == "Pamela");
+        CHECK(d.metadata().artist == "Pamela");
     }
 }
 
@@ -151,7 +153,7 @@ cards = ["major_arcana.00", "minor_arcana.cups.ace"]
 reason = "not in this printing"
 )");
 
-    CHECK(d.cards.size() == 76);
+    CHECK(d.cards().size() == 76);
     CHECK_FALSE(d.find_card(arcana::card_id::standard_major(0)).has_value());
     CHECK(d.exclusion_reason("major_arcana.00") == "not in this printing");
     CHECK_FALSE(d.exclusion_reason("major_arcana.01").has_value());
@@ -234,7 +236,7 @@ id = "the_well"
 name = "The Well"
 )");
 
-    CHECK(d.cards.size() == 78 + 2);
+    CHECK(d.cards().size() == 78 + 2);
 
     auto const& void_card = card_named(d, "major_arcana.the_void");
     CHECK(void_card.display_name == "The Void");
@@ -258,14 +260,14 @@ cards = [
 ]
 )");
 
-    CHECK(d.cards.size() == 80);
+    CHECK(d.cards().size() == 80);
 
     auto const in_suit = d.cards_in_suit("stars");
     REQUIRE(in_suit.size() == 2);
     CHECK(in_suit.front().display_name == "Ace of Stars");
     CHECK(in_suit.front().display_suit == "Stars");
 
-    auto const& suits = d.suits;
+    auto const suits = d.suits();
     REQUIRE(suits.size() == 5);
     CHECK(suits.back().key == "stars");
     CHECK(suits.back().name == "Stars");
@@ -295,8 +297,8 @@ cards = [{ id = "ace", name = "Ace of Stars" }]
 )");
 
     std::vector<std::string> ids;
-    ids.reserve(d.cards.size());
-    for (auto const& c : d.cards) ids.push_back(c.canonical_id());
+    ids.reserve(d.cards().size());
+    for (auto const& c : d.cards()) ids.push_back(c.canonical_id());
 
     REQUIRE(ids.size() == 80);
 
@@ -329,7 +331,7 @@ alt_text = "a plain back"
 name = "Ornate"
 )");
 
-    REQUIRE(d.card_backs.size() == 2);
+    REQUIRE(d.card_backs().size() == 2);
     CHECK(d.default_card_back() == "plain");
 
     auto const chosen = d.default_card_back_design();
@@ -341,9 +343,9 @@ name = "Ornate"
 
     // A design with no image declared gets no resolved path
     auto const ornate =
-        std::ranges::find(d.card_backs, std::string{"ornate"}, &arcana::card_back_design::id);
+        std::ranges::find(d.card_backs(), std::string{"ornate"}, &arcana::card_back_design::id);
 
-    REQUIRE(ornate != d.card_backs.end());
+    REQUIRE(ornate != d.card_backs().end());
     CHECK(ornate->image.empty());
 }
 
@@ -437,15 +439,15 @@ name = "Plain"
         deck.path()
     );
 
-    REQUIRE(d.card_backs.size() == 3);
+    REQUIRE(d.card_backs().size() == 3);
 
-    CHECK(d.card_backs[0].id == "plain");
-    CHECK(d.card_backs[0].name == "Plain");
-    CHECK(d.card_backs[0].declared);
+    CHECK(d.card_backs()[0].id == "plain");
+    CHECK(d.card_backs()[0].name == "Plain");
+    CHECK(d.card_backs()[0].declared);
 
-    CHECK(d.card_backs[1].id == "alpha");
-    CHECK_FALSE(d.card_backs[1].declared);
-    CHECK(d.card_backs[2].id == "zeta");
+    CHECK(d.card_backs()[1].id == "alpha");
+    CHECK_FALSE(d.card_backs()[1].declared);
+    CHECK(d.card_backs()[2].id == "zeta");
 }
 
 TEST_CASE("a names file overrides display names and alt text", "[loader]")

@@ -5,7 +5,6 @@
 arcana_add_internal_library(
     loader-core
     HEADERS
-        deck_access.hpp
         document.hpp
         manifest.hpp
         names.hpp

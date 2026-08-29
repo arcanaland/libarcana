@@ -24,13 +24,12 @@ def test_deck_library_constructs_and_scans(alt_root: Path) -> None:
     assert names == ["deck-broken", "deck-three", "deck-two"]
 
 
-def test_mutable_shared_ptr_cache_returns_the_same_object(alt_root: Path) -> None:
+def test_cached_load(alt_root: Path) -> None:
     lib = arcana.deck_library(arcana.library_options(roots=[alt_root]))
 
     first = lib.load("deck-two")
     second = lib.load("deck-two")
-
-    assert first is second
+    assert first == second
 
 
 # --- Shape: aggregate of strings and optionals --------------------------------

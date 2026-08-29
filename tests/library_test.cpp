@@ -118,7 +118,7 @@ TEST_CASE("load() loads by directory name", "[library]")
 
     auto const result = lib.load("deck-one");
     REQUIRE(result.has_value());
-    CHECK((*result)->metadata.name == "Deck One");
+    CHECK(result->metadata().name == "Deck One");
 
     CHECK_FALSE(lib.load("deck-one-id").has_value());
 }
@@ -142,7 +142,7 @@ TEST_CASE("loading the same deck twice parses it once", "[library]")
     REQUIRE(first.has_value());
     REQUIRE(second.has_value());
 
-    CHECK(first->get() == second->get());
+    CHECK(*first == *second);
 }
 
 TEST_CASE("cache internal and external decks", "[library]")
@@ -154,7 +154,7 @@ TEST_CASE("cache internal and external decks", "[library]")
 
     REQUIRE(by_name.has_value());
     REQUIRE(by_path.has_value());
-    CHECK(by_name->get() == by_path->get());
+    CHECK(*by_name == *by_path);
 }
 
 TEST_CASE("refresh() drops cached loads without disturbing handed-out ones", "[library]")
@@ -168,10 +168,10 @@ TEST_CASE("refresh() drops cached loads without disturbing handed-out ones", "[l
 
     auto const after = lib.load("deck-one");
     REQUIRE(after.has_value());
-    CHECK(before->get() != after->get());
+    CHECK(*before != *after);
 
     // The earlier load stays alive and usable
-    CHECK((*before)->metadata.name == "Deck One");
+    CHECK(before->metadata().name == "Deck One");
 }
 
 TEST_CASE("a failed load is not cached", "[library]")
@@ -190,7 +190,7 @@ name = "Repaired"
 
     auto const repaired = lib.load("wip-deck");
     REQUIRE(repaired.has_value());
-    CHECK((*repaired)->metadata.name == "Repaired");
+    CHECK(repaired->metadata().name == "Repaired");
 }
 
 TEST_CASE("find() looks a deck up by its directory name", "[library]")
@@ -250,7 +250,7 @@ TEST_CASE("load_external() loads a deck from outside every root", "[library]")
 
     auto const result = lib.load_external(alt_root() / "deck-three");
     REQUIRE(result.has_value());
-    CHECK((*result)->metadata.name == "Deck Three");
+    CHECK(result->metadata().name == "Deck Three");
 }
 
 TEST_CASE("a library with nothing installed is empty", "[library]")
@@ -293,9 +293,9 @@ TEST_CASE("an earlier root shadows a later one", "[library]")
     REQUIRE(shadowed != reversed.decks().end());
     CHECK(shadowed->name == "Deck Two (shadowed copy in the second root)");
 
-    CHECK((*first_wins.load("deck-two"))->metadata.name == "Deck Two");
+    CHECK(first_wins.load("deck-two")->metadata().name == "Deck Two");
     CHECK(
-        (*reversed.load("deck-two"))->metadata.name == "Deck Two (shadowed copy in the second root)"
+        reversed.load("deck-two")->metadata().name == "Deck Two (shadowed copy in the second root)"
     );
 }
 
@@ -339,7 +339,7 @@ TEST_CASE("the reference deck is configured apart from the roots", "[library]")
 
     auto const loaded = lib.load_reference();
     REQUIRE(loaded.has_value());
-    CHECK((*loaded)->metadata.name == "Reference Deck");
+    CHECK(loaded->metadata().name == "Reference Deck");
 
     // It stays out of the installed listing
     CHECK(lib.decks().size() == 2);
@@ -375,6 +375,33 @@ TEST_CASE("an unreadable reference deck", "[library]")
     CHECK(loaded.error().code == error_code::parse_error);
 }
 
+
+TEST_CASE("a span taken before refresh() goes stale rather than dangling", "[library]")
+{
+    arcana_test::temp_dir const root;
+    root.write("deck-a/deck.toml", R"([deck]
+schema_version = "1.0"
+name = "Deck A"
+)");
+    root.write("deck-b/deck.toml", R"([deck]
+schema_version = "1.0"
+name = "Deck B"
+)");
+
+    deck_library lib{library_options{.roots = {root.path()}}};
+    auto const before = lib.decks();
+
+    root.write("deck-c/deck.toml", R"([deck]
+schema_version = "1.0"
+name = "Deck C"
+)");
+    lib.refresh();
+
+    // The retired snapshot is still there to be read
+    REQUIRE(before.size() == 2);
+    CHECK(before.front().directory_name == "deck-a");
+    CHECK(lib.decks().size() == 3);
+}
 
 TEST_CASE("refresh() picks up a deck installed after construction", "[library]")
 {

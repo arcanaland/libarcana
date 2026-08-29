@@ -5,6 +5,8 @@
 
 #include "manifest.hpp"
 
+#include <deck_state.hpp>
+
 #include <arcana/deck.hpp>
 
 #include <format>
@@ -12,10 +14,7 @@
 #include <string>
 #include <utility>
 
-namespace arcana
-{
-
-namespace detail
+namespace arcana::detail
 {
 
 std::expected<std::shared_ptr<deck_document const>, error> load_deck_document(
@@ -51,16 +50,14 @@ std::expected<std::shared_ptr<deck_document const>, error> load_deck_document(
     return document;
 }
 
-}  // namespace detail
-
-std::string deck::source_toml() const
+std::string deck_state::source_toml() const
 {
-    if (!document_)
+    if (!document)
         return {};
 
     std::ostringstream out;
-    out << document_->table;
+    out << document->table;
     return std::move(out).str();
 }
 
-}  // namespace arcana
+}  // namespace arcana::detail

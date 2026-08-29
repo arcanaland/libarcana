@@ -15,7 +15,7 @@ namespace arcana::validation
 
 std::uint8_t major_of(deck const& d) noexcept
 {
-    return schema_major(d.metadata).value_or(current_schema_major);
+    return schema_major(d.metadata()).value_or(current_schema_major);
 }
 
 std::string_view card_back_designs_key(std::uint8_t major) noexcept

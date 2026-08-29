@@ -4,6 +4,8 @@
 // Which directories hold decks. Reading what is in one of them belongs to src/loader,
 // which is why nothing here needs toml++.
 
+#include "library_state.hpp"
+
 #include <arcana/library.hpp>
 #include <arcana/loader.hpp>
 #include <arcana/paths.hpp>
@@ -13,6 +15,7 @@
 
 #include <algorithm>
 #include <format>
+#include <memory>
 #include <ranges>
 #include <span>
 #include <string>
@@ -69,32 +72,32 @@ std::vector<std::filesystem::path> scan_deck_directories(
 
 }  // namespace
 
-deck_library::deck_library(library_options options)
-    : roots_(add_default_root(std::move(options.roots))),
-      reference_path_(std::move(options.reference_deck)),
-      languages_(std::move(options.languages))
+namespace
 {
-    refresh();
-}
 
-void deck_library::refresh()
+// The scan a snapshot is built out of
+std::shared_ptr<detail::library_snapshot const> scan(
+    std::vector<std::filesystem::path> roots, std::optional<std::filesystem::path> reference_path,
+    std::vector<std::string> languages
+)
 {
-    decks_.clear();
-    malformed_.clear();
-    reference_.reset();
-    loaded_.clear();
+    detail::library_snapshot next{
+        .roots = std::move(roots),
+        .reference_path = std::move(reference_path),
+        .languages = std::move(languages)
+    };
 
-    for (auto const& dir : scan_deck_directories(roots_))
+    for (auto const& dir : scan_deck_directories(next.roots))
     {
         auto summary = detail::load_deck_summary(dir);
 
         if (summary)
         {
-            decks_.push_back(*std::move(summary));
+            next.decks.push_back(*std::move(summary));
             continue;
         }
 
-        malformed_.push_back(
+        next.malformed.push_back(
             malformed_deck{
                 .directory_name = dir.filename().string(),
                 .path = dir,
@@ -103,18 +106,71 @@ void deck_library::refresh()
         );
     }
 
-    std::ranges::sort(decks_, {}, &deck_summary::directory_name);
-    std::ranges::sort(malformed_, {}, &malformed_deck::directory_name);
+    std::ranges::sort(next.decks, {}, &deck_summary::directory_name);
+    std::ranges::sort(next.malformed, {}, &malformed_deck::directory_name);
 
-    if (reference_path_)
-        if (auto summary = detail::load_deck_summary(*reference_path_))
-            reference_ = *std::move(summary);
+    if (next.reference_path)
+        if (auto summary = detail::load_deck_summary(*next.reference_path))
+            next.reference = *std::move(summary);
+
+    return std::make_shared<detail::library_snapshot const>(std::move(next));
+}
+
+}  // namespace
+
+deck_library::deck_library(library_options options)
+    : state_{scan(
+          add_default_root(std::move(options.roots)), std::move(options.reference_deck),
+          std::move(options.languages)
+      )},
+      cache_{std::make_shared<detail::deck_cache>()}
+{
+}
+
+void deck_library::refresh()
+{
+    // TODO: we probably shouldn't grow this unbounded...
+    retired_.push_back(state_);
+
+    state_ = scan(state_->roots, state_->reference_path, state_->languages);
+    cache_->loaded.clear();
+}
+
+std::span<deck_summary const> deck_library::decks() const noexcept
+{
+    return state_->decks;
+}
+
+std::span<malformed_deck const> deck_library::malformed_decks() const noexcept
+{
+    return state_->malformed;
+}
+
+std::optional<deck_summary> const& deck_library::reference() const noexcept
+{
+    return state_->reference;
+}
+
+std::span<std::filesystem::path const> deck_library::roots() const noexcept
+{
+    return state_->roots;
+}
+
+std::optional<std::filesystem::path> const& deck_library::reference_path() const noexcept
+{
+    return state_->reference_path;
+}
+
+std::span<std::string const> deck_library::languages() const noexcept
+{
+    return state_->languages;
 }
 
 std::optional<deck_summary> deck_library::find(std::string_view directory_name) const
 {
-    auto const found = std::ranges::find(decks_, directory_name, &deck_summary::directory_name);
-    if (found == decks_.end())
+    auto const found =
+        std::ranges::find(state_->decks, directory_name, &deck_summary::directory_name);
+    if (found == state_->decks.end())
         return std::nullopt;
 
     return *found;
@@ -122,24 +178,23 @@ std::optional<deck_summary> deck_library::find(std::string_view directory_name) 
 
 std::vector<deck_summary> deck_library::find_all_by_identifier(std::string_view identifier) const
 {
-    auto matches = decks_ | std::views::filter([identifier](deck_summary const& summary)
-                                               { return summary.identifier == identifier; });
+    auto matches = state_->decks | std::views::filter([identifier](deck_summary const& summary)
+                                                      { return summary.identifier == identifier; });
 
     return {matches.begin(), matches.end()};
 }
 
-std::expected<std::shared_ptr<deck const>, error> deck_library::load(
-    std::string_view directory_name
-) const
+std::expected<deck, error> deck_library::load(std::string_view directory_name) const
 {
-    if (auto const found = std::ranges::find(decks_, directory_name, &deck_summary::directory_name);
-        found != decks_.end())
+    if (auto const found =
+            std::ranges::find(state_->decks, directory_name, &deck_summary::directory_name);
+        found != state_->decks.end())
         return load_cached(found->path);
 
     // useful to return details about a busted deck in the library
     if (auto const found =
-            std::ranges::find(malformed_, directory_name, &malformed_deck::directory_name);
-        found != malformed_.end())
+            std::ranges::find(state_->malformed, directory_name, &malformed_deck::directory_name);
+        found != state_->malformed.end())
         return load_cached(found->path);
 
     return std::unexpected(
@@ -151,16 +206,16 @@ std::expected<std::shared_ptr<deck const>, error> deck_library::load(
     );
 }
 
-std::expected<std::shared_ptr<deck const>, error> deck_library::load_external(
+std::expected<deck, error> deck_library::load_external(
     std::filesystem::path const& deck_directory
 ) const
 {
     return load_cached(deck_directory);
 }
 
-std::expected<std::shared_ptr<deck const>, error> deck_library::load_reference() const
+std::expected<deck, error> deck_library::load_reference() const
 {
-    if (!reference_path_)
+    if (!state_->reference_path)
         return std::unexpected(
             error{
                 .code = error_code::not_found,
@@ -168,27 +223,24 @@ std::expected<std::shared_ptr<deck const>, error> deck_library::load_reference()
             }
         );
 
-    return load_cached(*reference_path_);
+    return load_cached(*state_->reference_path);
 }
 
-std::expected<std::shared_ptr<deck const>, error> deck_library::load_cached(
+std::expected<deck, error> deck_library::load_cached(
     std::filesystem::path const& deck_directory
 ) const
 {
     auto key = deck_directory.lexically_normal().string();
 
-    if (auto const cached = loaded_.find(key); cached != loaded_.end())
+    if (auto const cached = cache_->loaded.find(key); cached != cache_->loaded.end())
         return cached->second;
 
-    auto loaded = load_deck(deck_directory, languages_);
+    auto loaded = load_deck(deck_directory, state_->languages);
     if (!loaded)
         return std::unexpected(std::move(loaded).error());
 
     // Failures stay uncached
-    auto shared = std::make_shared<deck const>(*std::move(loaded));
-    loaded_.emplace(std::move(key), shared);
-
-    return shared;
+    return cache_->loaded.emplace(std::move(key), *std::move(loaded)).first->second;
 }
 
 }  // namespace arcana

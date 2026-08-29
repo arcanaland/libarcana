@@ -7,7 +7,7 @@ set(arcana_checks_base ${PROJECT_SOURCE_DIR}/src/validation)
 foreach(check IN ITEMS ansi backs cards deck ids images names surrogate)
     arcana_add_internal_library(
         check-${check}
-        BASE_DIR ${arcana_checks_base}
+        BASE_DIRS ${arcana_checks_base}
         HEADERS ${check}.hpp
         SOURCES ${check}.cpp
     )
