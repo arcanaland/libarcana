@@ -23,10 +23,6 @@ namespace arcana::detail
 struct deck_document;
 
 // Everything a load produces
-//
-// A reader fills one of these in and hands it to deck_builder once, at the end.
-// After that it is const for as long as any handle over it lives, which is what
-// makes deck's spans safe to hand out.
 struct deck_state
 {
     std::filesystem::path root_path;
@@ -67,11 +63,9 @@ struct deck_state
     [[nodiscard]] std::optional<card> random_card(std::uint64_t seed) const;
     [[nodiscard]] std::optional<card_back_design> default_card_back_design() const;
 
-    // Defined in loader/core/document.cpp, where toml++ is in scope
     [[nodiscard]] std::string source_toml() const;
 };
 
-// The one way a deck handle is made
 struct deck_builder
 {
     [[nodiscard]] static deck make(std::shared_ptr<deck_state const> state) noexcept

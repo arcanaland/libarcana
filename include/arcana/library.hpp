@@ -22,10 +22,10 @@ namespace arcana
 namespace detail
 {
 
-// One scan of the roots, and the options that produced it
+// A scan of the library roots
 struct library_snapshot;
 
-// The memoized loads, shared between copies of a library
+// The memoized loads
 struct deck_cache;
 
 }  // namespace detail
@@ -79,25 +79,15 @@ struct library_options
 };
 
 // Library of Tarot decks installed on the system
-//
-// A copyable handle over an immutable snapshot of one scan. Copying one is a
-// pair of refcount bumps, and the copies share the deck cache. refresh() builds
-// a second snapshot and swaps to it; the outgoing one is retired rather than
-// destroyed, so a span handed out before the call stays valid for as long as
-// this library lives -- it goes stale, never dangling.
 class deck_library
 {
   public:
     explicit deck_library(library_options options = {});
 
     // Decks sorted by directory name
-    //
-    // Stale, not invalidated, after refresh()
     [[nodiscard]] std::span<deck_summary const> decks() const noexcept;
 
     // Decks whose manifest could not be read, sorted by directory name
-    //
-    // Stale, not invalidated, after refresh()
     [[nodiscard]] std::span<malformed_deck const> malformed_decks() const noexcept;
 
     // The reference deck's summary
@@ -119,8 +109,7 @@ class deck_library
 
     // Fully load a deck from this library
     //
-    // Loads are cached, and a deck is a handle: asking twice hands back a deck
-    // equal to the first, and it outlives this library
+    // Loads are cached
     [[nodiscard]] std::expected<deck, error> load(std::string_view directory_name) const;
 
     // Fully load a deck external to this library, in this library's languages
@@ -142,9 +131,6 @@ class deck_library
     [[nodiscard]] std::span<std::string const> languages() const noexcept;
 
     // Re-scan the roots and the reference deck, and drop the cached loads
-    //
-    // Builds a new snapshot and swaps to it. Spans taken before the call keep
-    // reading the old one for as long as this library lives
     void refresh();
 
   private:
@@ -152,13 +138,8 @@ class deck_library
         std::filesystem::path const& deck_directory
     ) const;
 
-    // Never null
     std::shared_ptr<detail::library_snapshot const> state_;
-
-    // What refresh() swapped out, held so the spans into it stay readable
     std::vector<std::shared_ptr<detail::library_snapshot const>> retired_;
-
-    // Never null. Shared with every copy of this library
     std::shared_ptr<detail::deck_cache> cache_;
 };
 

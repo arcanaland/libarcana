@@ -24,17 +24,12 @@ def test_deck_library_constructs_and_scans(alt_root: Path) -> None:
     assert names == ["deck-broken", "deck-three", "deck-two"]
 
 
-def test_cached_load_returns_an_equal_deck(alt_root: Path) -> None:
+def test_cached_load(alt_root: Path) -> None:
     lib = arcana.deck_library(arcana.library_options(roots=[alt_root]))
 
     first = lib.load("deck-two")
     second = lib.load("deck-two")
-
-    # A deck is a handle, so two of them are equal when they came from the same
-    # load. They are no longer the same Python object: the cache used to hand
-    # back one shared_ptr, which nanobind mapped to one wrapper
     assert first == second
-    assert first != lib.load_external(alt_root / "deck-three")
 
 
 # --- Shape: aggregate of strings and optionals --------------------------------

@@ -129,8 +129,7 @@ deck_library::deck_library(library_options options)
 
 void deck_library::refresh()
 {
-    // The outgoing snapshot is retired rather than dropped: a span handed out
-    // before this call is still pointing into it
+    // TODO: we probably shouldn't grow this unbounded...
     retired_.push_back(state_);
 
     state_ = scan(state_->roots, state_->reference_path, state_->languages);

@@ -15,10 +15,6 @@
 namespace arcana::detail
 {
 
-// One scan of the roots, and the options that produced it
-//
-// Immutable once a deck_library points at it. refresh() builds the next one
-// rather than editing this one, which is what lets a span outlive the call.
 struct library_snapshot
 {
     std::vector<std::filesystem::path> roots;
@@ -30,11 +26,6 @@ struct library_snapshot
     std::optional<deck_summary> reference;
 };
 
-// The memoized loads
-//
-// Shared between copies of a library, which is what anyone copying one expects.
-// Not synchronized: nothing in the tree is threaded yet, and a shared mutable
-// cache across threads is a question RFC-039 parked.
 struct deck_cache
 {
     std::unordered_map<std::string, deck> loaded;

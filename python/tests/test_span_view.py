@@ -52,7 +52,7 @@ def test_copying_binding_is_immune_to_refresh(growable_root: Path) -> None:
 
 
 def test_span_view_goes_stale_across_refresh_without_dangling(growable_root: Path) -> None:
-    """RFC-039 layer 3: refresh() retires the snapshot rather than freeing it."""
+    """refresh() retires the snapshot rather than freeing it."""
     lib = arcana.deck_library(arcana.library_options(roots=[growable_root]))
     view = lib.decks_view()
 

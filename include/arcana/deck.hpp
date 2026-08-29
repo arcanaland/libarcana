@@ -120,14 +120,6 @@ struct suit_info
 };
 
 // A loaded deck
-//
-// A copyable handle over immutable shared state: copying one is a refcount
-// bump, and two handles compare equal when they came from the same load. Every
-// view this hands out -- a span, a reference, a string_view reachable from one
-// -- is kept alive by the handle it came from, so holding the handle is enough.
-//
-// Obtainable only from a loader; there is no empty deck. A caller who means
-// "maybe a deck" writes std::optional<deck>.
 class deck
 {
   public:
@@ -190,8 +182,7 @@ class deck
     // The deck.toml re-serialized
     [[nodiscard]] std::string source_toml() const;
 
-    // Implementation identity, as sycl::queue has: two handles are equal when
-    // they came from the same load
+    // two handles are equal when they came from the same load
     [[nodiscard]] friend bool operator==(deck const&, deck const&) noexcept = default;
 
   private:
