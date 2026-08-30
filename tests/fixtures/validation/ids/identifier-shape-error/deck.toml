@@ -1,8 +1,10 @@
 # - path is `tarot/<name>` rather than `deck/<name>`
-# - the deck signifies itself
+# - the deck stands in for itself
 [deck]
 schema_version = "2.0"
 name = "Odd Shape"
 version = "1.0"
 identifier = "org.example/tarot/odd-shape"
-signifies = "org.example/tarot/odd-shape"
+related = [
+  { rel = "surrogate_for", deck = "org.example/tarot/odd-shape" },
+]

@@ -54,8 +54,8 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
         codes_of(found) == std::vector<std::string_view>{
                                "bad-app-realm",
                                "bad-deck-identifier",
-                               "bad-follows",
-                               "bad-signifies",
+                               "bad-related-entry",
+                               "bad-related-entry",
                            }
     );
 
@@ -63,8 +63,8 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
         keys_of(found) == std::vector<std::string>{
                               "app.land",
                               "deck.identifier",
-                              "deck.follows",
-                              "deck.signifies",
+                              "deck.related[0].deck",
+                              "deck.related[1].deck",
                           }
     );
 
@@ -78,8 +78,8 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
 
     CHECK(found[0].message.find("'land'") != std::string::npos);
     CHECK(found[1].message.find("notarealm/deck/bad-identifiers") != std::string::npos);
-    CHECK(found[2].message.find("rider-waite-smith") != std::string::npos);
-    CHECK(found[3].message.find("also_bad") != std::string::npos);
+    CHECK(found[2].message.find("also_bad") != std::string::npos);
+    CHECK(found[3].message.find("rider-waite-smith") != std::string::npos);
 }
 
 TEST_CASE("a deck with no identifier is warned about", "[validation][ids]")
@@ -92,21 +92,21 @@ TEST_CASE("a deck with no identifier is warned about", "[validation][ids]")
     CHECK(found.front().key == "deck.identifier");
 }
 
-TEST_CASE("an off-convention path and a self-signifying deck are reported", "[validation][ids]")
+TEST_CASE("an off-convention path and a self-related deck are reported", "[validation][ids]")
 {
     auto const found = validate_fixture("validation/ids/identifier-shape-error");
 
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "deck-identifier-path-shape",
-                               "signifies-self",
+                               "related-self",
                            }
     );
 
     CHECK(
         keys_of(found) == std::vector<std::string>{
                               "deck.identifier",
-                              "deck.signifies",
+                              "deck.related[0].deck",
                           }
     );
 
@@ -217,24 +217,24 @@ TEST_CASE("a fragment on a field that names a deck is reported", "[validation][i
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "bad-deck-identifier",
-                               "bad-follows",
-                               "bad-signifies",
+                               "bad-related-entry",
+                               "bad-related-entry",
                            }
     );
 
     CHECK(
         keys_of(found) == std::vector<std::string>{
                               "deck.identifier",
-                              "deck.follows",
-                              "deck.signifies",
+                              "deck.related[0].deck",
+                              "deck.related[1].deck",
                           }
     );
 
     using Catch::Matchers::ContainsSubstring;
 
     REQUIRE_THAT(found[0].message, ContainsSubstring("major_arcana.00"));
-    REQUIRE_THAT(found[1].message, ContainsSubstring("major_arcana.00"));
-    REQUIRE_THAT(found[2].message, ContainsSubstring("major_arcana.06:two_enbys"));
+    REQUIRE_THAT(found[1].message, ContainsSubstring("major_arcana.06:two_enbys"));
+    REQUIRE_THAT(found[2].message, ContainsSubstring("major_arcana.00"));
 
     for (auto const& one : found)
     {
@@ -244,20 +244,37 @@ TEST_CASE("a fragment on a field that names a deck is reported", "[validation][i
     }
 }
 
-TEST_CASE("a deck that follows itself is reported", "[validation][ids]")
+TEST_CASE("relations the specification bounds to one are reported", "[validation][ids]")
 {
-    auto const found = validate_fixture("validation/ids/follows-self-error");
+    auto const found = validate_fixture("validation/ids/conflicting-relation-error");
 
-    REQUIRE(codes_of(found) == std::vector<std::string_view>{"follows-self"});
-    CHECK(keys_of(found) == std::vector<std::string>{"deck.follows"});
+    REQUIRE(
+        codes_of(found) == std::vector<std::string_view>{
+                               "conflicting-deck-relation",
+                               "conflicting-deck-relation",
+                           }
+    );
+
+    CHECK(
+        keys_of(found) == std::vector<std::string>{
+                              "deck.related[1].rel",
+                              "deck.related[2].deck",
+                          }
+    );
 
     using Catch::Matchers::ContainsSubstring;
 
-    CHECK(found[0].level == severity::error);
-    CHECK_FALSE(found[0].card.has_value());
-    CHECK_FALSE(found[0].path.has_value());
-    REQUIRE_THAT(found[0].message, ContainsSubstring("org.example/deck/follows-itself"));
-    REQUIRE_THAT(found[0].message, ContainsSubstring("should not follow itself"));
+    for (auto const& one : found)
+    {
+        INFO("message: " << one.message);
+        CHECK(one.level == severity::error);
+        CHECK_FALSE(one.card.has_value());
+        CHECK_FALSE(one.path.has_value());
+    }
+
+    REQUIRE_THAT(found[0].message, ContainsSubstring("at most one 'follows' relation"));
+    REQUIRE_THAT(found[1].message, ContainsSubstring("com.example/deck/other"));
+    REQUIRE_THAT(found[1].message, ContainsSubstring("both follows and surrogate_for"));
 }
 
 TEST_CASE("a [cards] key path is reported as one, not as a bad key", "[validation][ids]")

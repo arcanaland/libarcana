@@ -4,5 +4,7 @@ schema_version = "2.0"
 name = "Fragments"
 version = "1.0"
 identifier = "org.example/deck/fragments#major_arcana.00"
-signifies = "com.example/deck/other#major_arcana.06:two_enbys"
-follows = "land.arcana/deck/rider-waite-smith#major_arcana.00"
+related = [
+  { rel = "surrogate_for", deck = "com.example/deck/other#major_arcana.06:two_enbys" },
+  { rel = "follows", deck = "land.arcana/deck/rider-waite-smith#major_arcana.00" },
+]

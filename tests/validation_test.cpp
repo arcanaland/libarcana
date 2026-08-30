@@ -293,7 +293,7 @@ constexpr std::array<std::string_view, 6> deferred{
 };
 
 // This should be zero when we're done
-constexpr std::array<std::string_view, 80> not_yet_covered{
+constexpr std::array<std::string_view, 81> not_yet_covered{
     "artwork-rating-exceeds-deck",
     "backslash-in-path",
     "bad-card-size-mm",
@@ -326,6 +326,7 @@ constexpr std::array<std::string_view, 80> not_yet_covered{
     "empty-card-number",
     "excluded-card-also-declared",
     "excluded-card-has-image",
+    "expands-with-excluded-cards",
     "ignored-key-on-variant",
     "language-tag-case-collision",
     "malformed-deck-toml",
@@ -352,9 +353,9 @@ constexpr std::array<std::string_view, 80> not_yet_covered{
     "redistribution-contradicts-rights-status",
     "redistribution-narrower-than-license",
     "surrogate-deck-redistribution-full",
+    "surrogate-deck-unlinked",
     "surrogate-deck-without-buy-link",
     "surrogate-deck-without-license",
-    "surrogate-deck-without-signifies",
     "symlink-escapes-deck-root",
     "unknown-artwork-rating-system",
     "unknown-metadata-alt-text-key",
@@ -369,10 +370,10 @@ constexpr std::array<std::string_view, 80> not_yet_covered{
     "unregistered-content-rating-system",
     "unregistered-link-rel",
     "unregistered-product-id-scheme",
+    "unregistered-related-rel",
     "unsafe-path",
     "unused-artwork-complete",
     "variant-card-without-default",
-    "variant-for-unknown-card",
     "wrong-value-type",
 };
 

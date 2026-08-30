@@ -325,8 +325,9 @@ TEST_CASE(
     if (dir.empty())
         SKIP("configured with ARCANA_FETCH_REFERENCE_DECKS=OFF");
 
-    auto const name =
-        GENERATE(as<std::string_view>{}, "rider-waite-smith", "ascii-tarot", "aquatic-tarot");
+    auto const name = GENERATE(
+        as<std::string_view>{}, "rider-waite-smith", "ascii-tarot", "aquatic-tarot", "marseille"
+    );
     CAPTURE(name);
 
     auto const path = std::filesystem::path{dir} / name;

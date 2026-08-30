@@ -191,17 +191,6 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
-        .code = "bad-follows",
-        .default_level = severity::error,
-        .area = "ids",
-        .needs = phase::document,
-        .cites = {v2("413-follows")},
-        .in_rules_table = true,
-        .explanation = "The follows field is not a well-formed qualified identifier.",
-        .applies_to = {.min = 2, .max = 2},
-        .experimental = false,
-    },
-    rule{
         .code = "bad-gtin",
         .default_level = severity::warning,
         .area = "deck",
@@ -343,6 +332,19 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "bad-related-entry",
+        .default_level = severity::error,
+        .area = "ids",
+        .needs = phase::document,
+        .cites = {v2("419-related-decks")},
+        .in_rules_table = true,
+        .explanation = "A [deck].related entry names a rel that is not a custom name, or a deck "
+                       "that is not a well-formed qualified identifier or that carries a fragment. "
+                       "A relation names a package, never a card.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "bad-rights-field-value",
         .default_level = severity::error,
         .area = "deck",
@@ -377,19 +379,6 @@ constexpr std::array catalogue{
         .explanation = "The schema_version field is not two decimal integers separated by a dot. "
                        "Write it as a quoted string.",
         .applies_to = {.min = 1, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "bad-signifies",
-        .default_level = severity::error,
-        .area = "ids",
-        .needs = phase::document,
-        .cites = {v2("412-signifies")},
-        .in_rules_table = true,
-        .explanation =
-            "The signifies field is not a well-formed qualified identifier, or it carries a "
-            "fragment. The value is a merge key against another package's identifier.",
-        .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -438,7 +427,10 @@ constexpr std::array catalogue{
         .needs = phase::filesystem,
         .cites = {v2("55-card-back-images"), v2("574-the-extension-chain")},
         .in_rules_table = true,
-        .explanation = "A card back design is supplied in a non-baseline format.",
+        .explanation =
+            "A card back design is supplied in no baseline format, meaning none of PNG, "
+            "JPEG or WebP. Backs have no reference deck to fall back on, so an application "
+            "that cannot decode the design substitutes a generic back.",
         .applies_to = {.min = 1, .max = 2},
         .experimental = false,
     },
@@ -477,6 +469,19 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "conflicting-deck-relation",
+        .default_level = severity::error,
+        .area = "ids",
+        .needs = phase::document,
+        .cites = {v2("419-related-decks"), v2("412-surrogate_for"), v2("413-follows")},
+        .in_rules_table = true,
+        .explanation = "A deck declares more than one follows relation or more than one "
+                       "surrogate_for relation, or names the same deck under both. A deck that "
+                       "stands in for another is that deck; it does not also resemble it.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "creator-equals-artist",
         .default_level = severity::warning,
         .area = "deck",
@@ -507,7 +512,7 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::document,
         .cites = {v2("33-qualified-identifiers")},
-        .in_rules_table = false,
+        .in_rules_table = true,
         .explanation = "The deck identifier's path is not the segment deck followed by the deck's "
                        "own name. The convention is what tells a deck's identifier from a "
                        "spread's. Another shape is not rejected.",
@@ -623,7 +628,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "cards",
         .needs = phase::document,
-        .cites = {v2("45-excluded_cards")},
+        .cites = {v2("46-excluded_cards")},
         .in_rules_table = true,
         .explanation =
             "A card is named both in the excluded cards table and in the custom cards table. The "
@@ -636,7 +641,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "cards",
         .needs = phase::filesystem,
-        .cites = {v2("45-excluded_cards")},
+        .cites = {v2("46-excluded_cards")},
         .in_rules_table = true,
         .explanation =
             "A card listed as excluded ships artwork anyway. Discovery reads the files rather than "
@@ -645,14 +650,16 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
-        .code = "follows-self",
-        .default_level = severity::error,
-        .area = "ids",
-        .needs = phase::document,
-        .cites = {v2("413-follows")},
+        .code = "expands-with-excluded-cards",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::filesystem,
+        .cites = {v2("419-related-decks"), v2("576-when-no-asset-is-found")},
         .in_rules_table = true,
         .explanation =
-            "The follows field cannot be this deck's own identifier or the deck it signifies.",
+            "A package declaring rel = \"expands\" also declares [excluded_cards] covering "
+            "the canonical slots it does not carry. The relation already says the package is "
+            "not a whole deck, so the exclusions restate it.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -909,7 +916,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("312-card-references-and-the-variant-suffix"), v2("45-excluded_cards")},
+        .cites = {v2("312-card-references-and-the-variant-suffix"), v2("46-excluded_cards")},
         .in_rules_table = false,
         .explanation = "This card reference is not a canonical ID. Where a card is named rather "
                        "than a variant of one, a variant suffix is not accepted.",
@@ -1054,6 +1061,18 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "related-self",
+        .default_level = severity::error,
+        .area = "ids",
+        .needs = phase::document,
+        .cites = {v2("419-related-decks")},
+        .in_rules_table = true,
+        .explanation = "A [deck].related entry names this deck's own identifier. A deck stands in "
+                       "no relation to itself, so the entry asserts nothing.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "reserved-custom-name",
         .default_level = severity::error,
         .area = "ids",
@@ -1064,19 +1083,6 @@ constexpr std::array catalogue{
             "A key the deck coined is one of the reserved canonical names: major_arcana, "
             "minor_arcana, the four canonical suits, or the fourteen canonical ranks.",
         .applies_to = {.min = 1, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "signifies-self",
-        .default_level = severity::error,
-        .area = "ids",
-        .needs = phase::document,
-        .cites = {v2("412-signifies")},
-        .in_rules_table = true,
-        .explanation =
-            "The signifies field carries the deck's own identifier. The field names the package "
-            "whose artwork this one describes, so pointing it here asserts nothing.",
-        .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -1106,6 +1112,20 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "surrogate-deck-unlinked",
+        .default_level = severity::warning,
+        .area = "surrogate",
+        .needs = phase::filesystem,
+        .cites = {v2("59-surrogate-decks"), v2("419-related-decks")},
+        .in_rules_table = true,
+        .explanation =
+            "A surrogate deck declares neither a surrogate_for relation nor any [deck.product_ids] "
+            "entry, so nothing connects it to the artwork it stands in for and its placeholders "
+            "are shown even to a user who has the art.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "surrogate-deck-without-buy-link",
         .default_level = severity::warning,
         .area = "surrogate",
@@ -1128,19 +1148,6 @@ constexpr std::array catalogue{
         .explanation =
             "A surrogate deck declares no license. The surrogates are the packager's own work and "
             "are the files the package carries, so a reader taking them up has no terms to go by.",
-        .applies_to = {.min = 2, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "surrogate-deck-without-signifies",
-        .default_level = severity::warning,
-        .area = "surrogate",
-        .needs = phase::filesystem,
-        .cites = {v2("59-surrogate-decks")},
-        .in_rules_table = true,
-        .explanation =
-            "A surrogate deck declares no signifies, so nothing connects it to the artwork deck it "
-            "stands in for and its placeholders are shown even to a user who has the art.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1344,6 +1351,20 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "unregistered-related-rel",
+        .default_level = severity::warning,
+        .area = "deck",
+        .needs = phase::document,
+        .cites = {v2("419-related-decks")},
+        .in_rules_table = true,
+        .explanation =
+            "A [deck].related rel is outside the registry and is not prefixed. "
+            "Applications ignore it, and a later version of this specification may claim "
+            "the name. Prefix a relation of your own, as in x_kickstarter.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "unsafe-container-entry-name",
         .default_level = severity::error,
         .area = "container",
@@ -1389,18 +1410,6 @@ constexpr std::array catalogue{
         .in_rules_table = true,
         .explanation = "A card has variant files, no unsuffixed file, and no declared default "
                        "variant, so a reference carrying no variant suffix names nothing.",
-        .applies_to = {.min = 2, .max = 2},
-        .experimental = false,
-    },
-    rule{
-        .code = "variant-for-unknown-card",
-        .default_level = severity::error,
-        .area = "cards",
-        .needs = phase::filesystem,
-        .cites = {v2("43-cards")},
-        .in_rules_table = true,
-        .explanation = "A card variants table is keyed on a card the deck does not have, so it "
-                       "annotates nothing. A card exists because the deck ships an asset for it.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
