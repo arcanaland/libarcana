@@ -35,14 +35,12 @@ std::optional<std::string_view> deck_string(check_context const& ctx, std::strin
     return std::string_view{value->get()};
 }
 
-// `[deck].related`, or nothing where it is absent or is not an array.
 toml::array const* deck_relations(check_context const& ctx)
 {
     return ctx.doc["deck"]["related"].as_array();
 }
 
-// A `[deck].related` entry's key, or nothing where the entry is not a table or
-// the key is absent or is not a string.
+// A [deck].related entry's key (nullopt if it's an unexpected type)
 std::optional<std::string_view> relation_string(toml::node const& entry, std::string_view key)
 {
     auto const* table = entry.as_table();
@@ -56,7 +54,7 @@ std::optional<std::string_view> relation_string(toml::node const& entry, std::st
     return std::string_view{value->get()};
 }
 
-// One entry of a relation this specification bounds to one per deck.
+// One entry of a relation
 struct named_relation
 {
     std::size_t index;
