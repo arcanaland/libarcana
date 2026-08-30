@@ -17,6 +17,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace arcana::validation
 {
@@ -33,6 +34,34 @@ std::optional<std::string_view> deck_string(check_context const& ctx, std::strin
 
     return std::string_view{value->get()};
 }
+
+// `[deck].related`, or nothing where it is absent or is not an array.
+toml::array const* deck_relations(check_context const& ctx)
+{
+    return ctx.doc["deck"]["related"].as_array();
+}
+
+// A `[deck].related` entry's key, or nothing where the entry is not a table or
+// the key is absent or is not a string.
+std::optional<std::string_view> relation_string(toml::node const& entry, std::string_view key)
+{
+    auto const* table = entry.as_table();
+    if (table == nullptr)
+        return std::nullopt;
+
+    auto const* value = (*table)[key].as_string();
+    if (value == nullptr)
+        return std::nullopt;
+
+    return std::string_view{value->get()};
+}
+
+// One entry of a relation this specification bounds to one per deck.
+struct named_relation
+{
+    std::size_t index;
+    std::string_view target;
+};
 
 // True where a reserved canonical key is legitimate at this site rather than a
 // name the deck creator coined.
@@ -164,52 +193,137 @@ void check_deck_identifier_path_shape(check_context const& ctx)
     });
 }
 
-void check_bad_signifies(check_context const& ctx)
+void check_bad_related_entry(check_context const& ctx)
 {
-    auto const signifies = deck_string(ctx, "signifies");
-    if (!signifies)
+    auto const* related = deck_relations(ctx);
+    if (related == nullptr)
         return;
 
-    auto const parts = data::parse_qualified_identifier(*signifies);
-    if (!parts)
+    for (std::size_t index = 0; index < related->size(); ++index)
     {
+        auto const& entry = *related->get(index);
+
+        // An absent key is missing-required-field's to report, not ours.
+        if (auto const rel = relation_string(entry, "rel"); rel && !data::is_custom_name(*rel))
+            ctx.report({
+                .message = std::format(
+                    "related rel '{}' is not a custom name: lowercase ASCII letters, digits and "
+                    "underscores, never starting with a digit",
+                    *rel
+                ),
+                .key = std::format("deck.related[{}].rel", index),
+            });
+
+        auto const target = relation_string(entry, "deck");
+        if (!target)
+            continue;
+
+        auto const parts = data::parse_qualified_identifier(*target);
+        if (!parts)
+        {
+            ctx.report({
+                .message = std::format(
+                    "related deck '{}' is not a qualified identifier: a realm, a slash and one or "
+                    "more path segments",
+                    *target
+                ),
+                .key = std::format("deck.related[{}].deck", index),
+            });
+
+            continue;
+        }
+
+        if (parts->fragment.empty())
+            continue;
+
+        // A relation names a package, never a card or a variant of one.
         ctx.report({
             .message = std::format(
-                "signifies '{}' is not a qualified identifier, so it can never match the "
-                "identifier of the deck it names",
-                *signifies
+                "related deck '{}' has a fragment '{}' which is prohibited", *target,
+                parts->fragment
             ),
-            .key = "deck.signifies",
+            .key = std::format("deck.related[{}].deck", index),
         });
-
-        return;
     }
-
-    if (parts->fragment.empty())
-        return;
-
-    ctx.report({
-        .message = std::format(
-            "signifies must refer to a deck via a qualified identifier, but you passed "
-            "one with the fragment '{}'",
-            parts->fragment
-        ),
-        .key = "deck.signifies",
-    });
 }
 
-void check_signifies_self(check_context const& ctx)
+void check_related_self(check_context const& ctx)
 {
-    auto const signifies = deck_string(ctx, "signifies");
     auto const identifier = deck_string(ctx, "identifier");
-
-    if (!signifies || !identifier || signifies->empty() || *signifies != *identifier)
+    auto const* related = deck_relations(ctx);
+    if (!identifier || identifier->empty() || related == nullptr)
         return;
 
-    ctx.report({
-        .message = std::format("signifies '{}' is this deck's own identifier", *signifies),
-        .key = "deck.signifies",
-    });
+    for (std::size_t index = 0; index < related->size(); ++index)
+    {
+        auto const target = relation_string(*related->get(index), "deck");
+        if (!target || *target != *identifier)
+            continue;
+
+        ctx.report({
+            .message = std::format(
+                "related deck '{}' is this deck's own identifier, and a deck stands in no relation "
+                "to itself",
+                *target
+            ),
+            .key = std::format("deck.related[{}].deck", index),
+        });
+    }
+}
+
+void check_conflicting_deck_relation(check_context const& ctx)
+{
+    auto const* related = deck_relations(ctx);
+    if (related == nullptr)
+        return;
+
+    // The two relations a deck declares at most once, in registry order
+    // (DECK.md sections 4.1.2 and 4.1.3). Everything else may repeat.
+    constexpr std::array<std::string_view, 2> bounded{"follows", "surrogate_for"};
+    std::array<std::vector<named_relation>, bounded.size()> seen;
+
+    for (std::size_t index = 0; index < related->size(); ++index)
+    {
+        auto const& entry = *related->get(index);
+
+        auto const rel = relation_string(entry, "rel");
+        if (!rel)
+            continue;
+
+        auto const* const which = std::ranges::find(bounded, *rel);
+        if (which == bounded.end())
+            continue;
+
+        auto& declared = seen[static_cast<std::size_t>(which - bounded.begin())];
+        if (!declared.empty())
+            ctx.report({
+                .message = std::format(
+                    "a deck declares at most one '{}' relation, and this is another", *rel
+                ),
+                .key = std::format("deck.related[{}].rel", index),
+            });
+
+        declared.push_back({
+            .index = index,
+            .target = relation_string(entry, "deck").value_or(std::string_view{}),
+        });
+    }
+
+    for (auto const& surrogate : seen[1])
+    {
+        if (surrogate.target.empty() ||
+            !std::ranges::contains(seen[0], surrogate.target, &named_relation::target))
+            continue;
+
+        ctx.report({
+            .message = std::format(
+                "'{}' is named under both follows and surrogate_for. A deck that stands in for "
+                "another is that deck; it does not also resemble it",
+                surrogate.target
+            ),
+            .key = std::format("deck.related[{}].deck", surrogate.index),
+        });
+    }
 }
 
 void check_bad_app_realm(check_context const& ctx)
@@ -305,58 +419,6 @@ void check_cards_key_path(check_context const& ctx)
             .card = wanted,
             .key = std::format("cards.{}", head),
         });
-    }
-}
-
-void check_bad_follows(check_context const& ctx)
-{
-    auto const follows = deck_string(ctx, "follows");
-    if (!follows)
-        return;
-
-    auto const parts = data::parse_qualified_identifier(*follows);
-    if (!parts)
-    {
-        ctx.report({
-            .message = std::format("follows '{}' is not a qualified identifier", *follows),
-            .key = "deck.follows",
-        });
-
-        return;
-    }
-
-    if (parts->fragment.empty())
-        return;
-
-    // variants not allowed
-    ctx.report({
-        .message = std::format(
-            "follows should be a deck, but '{}' has a fragment '{}'", *follows, parts->fragment
-        ),
-        .key = "deck.follows",
-    });
-}
-
-void check_follows_self(check_context const& ctx)
-{
-    auto const follows = deck_string(ctx, "follows");
-    if (!follows || follows->empty())
-        return;
-
-    for (auto const* const other : {"identifier", "signifies"})
-    {
-        auto const against = deck_string(ctx, other);
-        if (!against || *against != *follows)
-            continue;
-
-        ctx.report({
-            .message = std::format(
-                "a deck should not follow itself, but the field is set to '{}'", *follows
-            ),
-            .key = "deck.follows",
-        });
-
-        return;
     }
 }
 

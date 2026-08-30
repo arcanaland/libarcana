@@ -8,7 +8,7 @@ include(FetchContent)
 option(ARCANA_FETCH_REFERENCE_DECKS "Download reference tarot decks from GitHub" ON)
 
 set(ARCANA_REFERENCE_DECKS_TAG
-    6ee23f5ddb7cec005bf7d741a1929adcdd9c1477 CACHE STRING
+    eca9056002545bce4b77db5fd193d78343cea95a CACHE STRING
     "Commit of arcanaland/reference-decks to test against")
 
 set(ARCANA_REFERENCE_DECKS_DIR "" CACHE PATH
@@ -24,7 +24,7 @@ set(ARCANA_SPECIFICATION_V1_TAG
     "Commit of published v1 spec at arcanaland/specifications")
 
 set(ARCANA_SPECIFICATION_V2_TAG
-    f32d330cdcd84190a80e357ec7b826c4befe5446 CACHE STRING
+    70a197eb2eb324d88974bf8ab1f45b431001e7d0 CACHE STRING
     "Commit of published v2 spec at arcanaland/specifications")
 
 set(ARCANA_SPECIFICATION_DIR "" CACHE PATH

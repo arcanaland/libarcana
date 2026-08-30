@@ -60,7 +60,6 @@ inline constexpr std::array checks{
     check_entry{.code = "bad-content-rating-key", .run = pending},
     check_entry{.code = "bad-custom-name", .run = check_bad_custom_name},
     check_entry{.code = "bad-deck-identifier", .run = check_bad_deck_identifier},
-    check_entry{.code = "bad-follows", .run = check_bad_follows},
     check_entry{.code = "bad-gtin", .run = pending},
     check_entry{.code = "bad-isbn", .run = pending},
     check_entry{.code = "bad-language-tag", .run = pending},
@@ -73,10 +72,10 @@ inline constexpr std::array checks{
     check_entry{.code = "bad-pips-value", .run = pending},
     check_entry{.code = "bad-product-id-key", .run = pending},
     check_entry{.code = "bad-published-date", .run = pending},
+    check_entry{.code = "bad-related-entry", .run = check_bad_related_entry},
     check_entry{.code = "bad-rights-field-value", .run = pending},
     check_entry{.code = "bad-rights-status-uri", .run = pending},
     check_entry{.code = "bad-schema-version", .run = pending},
-    check_entry{.code = "bad-signifies", .run = check_bad_signifies},
     check_entry{.code = "bad-spdx-expression", .run = pending},
     check_entry{.code = "bom-in-toml", .run = pending},
     check_entry{
@@ -88,6 +87,7 @@ inline constexpr std::array checks{
     check_entry{.code = "card-not-baseline-format", .run = check_card_not_baseline_format},
     check_entry{.code = "card-size-aspect-mismatch", .run = pending},
     check_entry{.code = "cards-key-path", .run = check_cards_key_path},
+    check_entry{.code = "conflicting-deck-relation", .run = check_conflicting_deck_relation},
     check_entry{.code = "creator-equals-artist", .run = pending},
     check_entry{.code = "deck-has-no-cards", .run = pending},
     check_entry{.code = "deck-identifier-path-shape", .run = check_deck_identifier_path_shape},
@@ -101,7 +101,7 @@ inline constexpr std::array checks{
     check_entry{.code = "empty-card-number", .run = pending},
     check_entry{.code = "excluded-card-also-declared", .run = pending},
     check_entry{.code = "excluded-card-has-image", .run = pending},
-    check_entry{.code = "follows-self", .run = check_follows_self},
+    check_entry{.code = "expands-with-excluded-cards", .run = pending},
     check_entry{.code = "ignored-card-back-file", .run = check_ignored_card_back_file},
     check_entry{.code = "ignored-image-root-lookalike", .run = check_ignored_image_root_lookalike},
     check_entry{.code = "ignored-key-on-variant", .run = pending},
@@ -134,13 +134,13 @@ inline constexpr std::array checks{
     check_entry{.code = "raster-outside-image-root", .run = check_raster_outside_image_root},
     check_entry{.code = "redistribution-contradicts-rights-status", .run = pending},
     check_entry{.code = "redistribution-narrower-than-license", .run = pending},
+    check_entry{.code = "related-self", .run = check_related_self},
     check_entry{.code = "reserved-custom-name", .run = check_reserved_custom_name},
-    check_entry{.code = "signifies-self", .run = check_signifies_self},
     check_entry{.code = "stem-case-collision", .run = check_stem_case_collision},
     check_entry{.code = "surrogate-deck-redistribution-full", .run = pending},
+    check_entry{.code = "surrogate-deck-unlinked", .run = pending},
     check_entry{.code = "surrogate-deck-without-buy-link", .run = pending},
     check_entry{.code = "surrogate-deck-without-license", .run = pending},
-    check_entry{.code = "surrogate-deck-without-signifies", .run = pending},
     check_entry{.code = "svg-outside-scalable", .run = check_svg_outside_scalable},
     check_entry{.code = "symlink-escapes-deck-root", .run = pending},
     check_entry{.code = "unknown-artwork-rating-system", .run = pending},
@@ -157,11 +157,11 @@ inline constexpr std::array checks{
     check_entry{.code = "unregistered-content-rating-system", .run = pending},
     check_entry{.code = "unregistered-link-rel", .run = pending},
     check_entry{.code = "unregistered-product-id-scheme", .run = pending},
+    check_entry{.code = "unregistered-related-rel", .run = pending},
     check_entry{.code = "unsafe-container-entry-name", .run = deferred},
     check_entry{.code = "unsafe-path", .run = pending},
     check_entry{.code = "unused-artwork-complete", .run = pending},
     check_entry{.code = "variant-card-without-default", .run = pending},
-    check_entry{.code = "variant-for-unknown-card", .run = pending},
     check_entry{.code = "wrong-value-type", .run = pending},
 };
 
@@ -187,7 +187,7 @@ inline constexpr std::array checks{
     return count;
 }
 
-static_assert(pending_checks() == 80, "work landed without the checks it required");
+static_assert(pending_checks() == 81, "work landed without the checks it required");
 
 static_assert(deferred_checks() == 6, "six punted checks");
 

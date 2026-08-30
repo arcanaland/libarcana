@@ -426,20 +426,20 @@ TEST_CASE("a 1.0 reference deck reports an artist but no identifier", "[deck][re
     CHECK_FALSE(result->metadata().identifier.has_value());
 }
 
-TEST_CASE("ascii-tarot resolves ansi32 card images", "[deck][reference-decks]")
+TEST_CASE("ascii-tarot resolves ansi20 card images", "[deck][reference-decks]")
 {
     auto const result = load_deck(reference_deck("ascii-tarot"));
     REQUIRE(result.has_value());
 
     auto const fool = find(*result, "major_arcana.00");
     REQUIRE(fool.has_value());
-    auto const ansi = std::ranges::find(fool->images, "ansi32"s, &card_image::source_dir);
+    auto const ansi = std::ranges::find(fool->images, "ansi20"s, &card_image::source_dir);
     REQUIRE(ansi != fool->images.end());
     CHECK(ansi->kind == image_kind::ansi);
-    CHECK(ansi->lines == 32);
+    CHECK(ansi->lines == 20);
 
     REQUIRE(fool->best_ansi_for_lines(40).has_value());
-    CHECK(fool->best_ansi_for_lines(40)->lines == 32);
+    CHECK(fool->best_ansi_for_lines(40)->lines == 20);
     CHECK_FALSE(fool->best_raster_for_height(1200).has_value());
     CHECK_FALSE(fool->scalable_image().has_value());
 }

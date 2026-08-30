@@ -41,6 +41,8 @@ std::vector<std::string> paths_of(std::vector<diagnostic> const& found)
 
 TEST_CASE("a deck whose backs are fine", "[validation][backs]")
 {
+    // `modern` is supplied only as WebP, which is a baseline format alongside PNG
+    // and JPEG, so it draws no card-back-not-baseline-format.
     CHECK(validate_fixture("validation/backs/backs-valid").empty());
 }
 
