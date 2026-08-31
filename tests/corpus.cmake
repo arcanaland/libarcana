@@ -24,7 +24,7 @@ set(ARCANA_SPECIFICATION_V1_TAG
     "Commit of published v1 spec at arcanaland/specifications")
 
 set(ARCANA_SPECIFICATION_V2_TAG
-    70a197eb2eb324d88974bf8ab1f45b431001e7d0 CACHE STRING
+    92a2c348333e2a9ddea37da2413beee4d2cc29af CACHE STRING
     "Commit of published v2 spec at arcanaland/specifications")
 
 set(ARCANA_SPECIFICATION_DIR "" CACHE PATH
@@ -103,6 +103,7 @@ add_library(arcana::test-corpus ALIAS arcana-test-corpus)
 target_include_directories(arcana-test-corpus INTERFACE ${arcana_support_dir})
 
 target_compile_definitions(arcana-test-corpus INTERFACE
+    SOURCE_ROOT="${PROJECT_SOURCE_DIR}"
     FIXTURES_DIR="${arcana_fixtures_dir}"
     REFERENCE_DECKS_DIR="${arcana_reference_decks_dir}"
     SPECIFICATION_V1_FILE="${arcana_specification_v1_file}"

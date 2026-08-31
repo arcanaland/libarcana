@@ -272,9 +272,29 @@ TEST_CASE("relations the specification bounds to one are reported", "[validation
         CHECK_FALSE(one.path.has_value());
     }
 
-    REQUIRE_THAT(found[0].message, ContainsSubstring("at most one 'follows' relation"));
+    REQUIRE_THAT(found[0].message, ContainsSubstring("at most one 'pattern' relation"));
     REQUIRE_THAT(found[1].message, ContainsSubstring("com.example/deck/other"));
-    REQUIRE_THAT(found[1].message, ContainsSubstring("both follows and surrogate_for"));
+    REQUIRE_THAT(found[1].message, ContainsSubstring("both pattern and surrogate_for"));
+}
+
+TEST_CASE("a second 'expands' relation is reported", "[validation][ids]")
+{
+    auto const found = validate_fixture("validation/ids/expands-bound-error");
+
+    // 'companion' is unbounded, so only the repeated 'expands' is reported, and
+    // 'expands' takes no part in the surrogate_for cross-check.
+    REQUIRE(
+        codes_of(found) == std::vector<std::string_view>{
+                               "conflicting-deck-relation",
+                           }
+    );
+
+    CHECK(keys_of(found) == std::vector<std::string>{"deck.related[2].rel"});
+
+    using Catch::Matchers::ContainsSubstring;
+
+    CHECK(found[0].level == severity::error);
+    REQUIRE_THAT(found[0].message, ContainsSubstring("at most one 'expands' relation"));
 }
 
 TEST_CASE("a [cards] key path is reported as one, not as a bad key", "[validation][ids]")

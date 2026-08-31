@@ -17,7 +17,7 @@ namespace arcana::data
 // True when name is one of the 148 CSS Color 4 named colours.
 [[nodiscard]] bool is_css_color_name(std::string_view name) noexcept;
 
-// True when s is an sRGB hex triplet as DECK.md section 5.8.1 writes them: a
+// True when s is an sRGB hex triplet as DECK.md#681-the-surrogate-file writes them: a
 // hash and exactly six lowercase hexadecimal digits. Upper case is not
 // accepted. The other half of the colour question is_css_color_name asks.
 [[nodiscard]] bool is_srgb_hex_triplet(std::string_view s) noexcept;

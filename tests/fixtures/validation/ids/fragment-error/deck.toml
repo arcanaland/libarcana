@@ -6,5 +6,5 @@ version = "1.0"
 identifier = "org.example/deck/fragments#major_arcana.00"
 related = [
   { rel = "surrogate_for", deck = "com.example/deck/other#major_arcana.06:two_enbys" },
-  { rel = "follows", deck = "land.arcana/deck/rider-waite-smith#major_arcana.00" },
+  { rel = "pattern", deck = "land.arcana/deck/rider-waite-smith#major_arcana.00" },
 ]

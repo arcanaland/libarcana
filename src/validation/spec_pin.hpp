@@ -36,7 +36,7 @@ inline constexpr std::array spec_pins{
     spec_pin{
         .schema_major = 2,
         .repository = "https://github.com/arcanaland/specifications",
-        .revision = "70a197eb2eb324d88974bf8ab1f45b431001e7d0",
+        .revision = "92a2c348333e2a9ddea37da2413beee4d2cc29af",
         .file = "DECK.md",
     },
 };

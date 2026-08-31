@@ -17,7 +17,7 @@ namespace arcana::validation
 namespace
 {
 
-// Whether a top-level directory name is an ansi<lines>/ root (DECK.md 5.7.1)
+// Whether a top-level directory name is an ansi<lines>/ root (DECK.md#671-image-roots)
 bool is_ansi_root_name(std::string_view name)
 {
     auto const root = data::parse_image_root(name);

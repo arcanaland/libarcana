@@ -68,7 +68,7 @@ bool reserved_is_legal_here(std::string_view name, name_site site)
     switch (site)
     {
         case name_site::suit:
-            // DECK.md section 4.4: a canonical suit keys `[suits]` where the
+            // DECK.md#44-suits: a canonical suit keys `[suits]` where the
             // intent is to modify that suit.
             return suit_from_string(name).has_value();
 
@@ -275,10 +275,11 @@ void check_conflicting_deck_relation(check_context const& ctx)
     if (related == nullptr)
         return;
 
-    // The two relations a deck declares at most once, in registry order
-    // (DECK.md sections 4.1.2 and 4.1.3). Everything else may repeat.
-    constexpr std::array<std::string_view, 2> bounded{"follows", "surrogate_for"};
+    static constexpr std::array<std::string_view, 3> bounded{"pattern", "surrogate_for", "expands"};
     std::array<std::vector<named_relation>, bounded.size()> seen;
+
+    auto const slot = [&seen](std::string_view rel) -> std::vector<named_relation>&
+    { return seen[static_cast<std::size_t>(std::ranges::find(bounded, rel) - bounded.begin())]; };
 
     for (std::size_t index = 0; index < related->size(); ++index)
     {
@@ -288,15 +289,14 @@ void check_conflicting_deck_relation(check_context const& ctx)
         if (!rel)
             continue;
 
-        auto const* const which = std::ranges::find(bounded, *rel);
-        if (which == bounded.end())
+        if (!std::ranges::contains(bounded, *rel))
             continue;
 
-        auto& declared = seen[static_cast<std::size_t>(which - bounded.begin())];
+        auto& declared = slot(*rel);
         if (!declared.empty())
             ctx.report({
                 .message = std::format(
-                    "a deck declares at most one '{}' relation, and this is another", *rel
+                    "a deck must declare at most one '{}' relation", *rel
                 ),
                 .key = std::format("deck.related[{}].rel", index),
             });
@@ -307,15 +307,15 @@ void check_conflicting_deck_relation(check_context const& ctx)
         });
     }
 
-    for (auto const& surrogate : seen[1])
+    for (auto const& surrogate : slot("surrogate_for"))
     {
         if (surrogate.target.empty() ||
-            !std::ranges::contains(seen[0], surrogate.target, &named_relation::target))
+            !std::ranges::contains(slot("pattern"), surrogate.target, &named_relation::target))
             continue;
 
         ctx.report({
             .message = std::format(
-                "'{}' is named under both follows and surrogate_for. A deck that stands in for "
+                "'{}' is named under both pattern and surrogate_for. A deck that stands in for "
                 "another is that deck; it does not also resemble it",
                 surrogate.target
             ),

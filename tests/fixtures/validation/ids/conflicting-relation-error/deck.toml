@@ -1,12 +1,12 @@
-# - two `follows` relations where the specification allows one
-# - the `surrogate_for` target is also named under `follows`
+# - two `pattern` relations where the specification allows one
+# - the `surrogate_for` target is also named under `pattern`
 [deck]
 schema_version = "2.0"
 name = "Conflicting Relations"
 version = "1.0"
 identifier = "org.example/deck/conflicting-relations"
 related = [
-  { rel = "follows", deck = "land.arcana/deck/rider-waite-smith" },
-  { rel = "follows", deck = "com.example/deck/other" },
+  { rel = "pattern", deck = "land.arcana/deck/rider-waite-smith" },
+  { rel = "pattern", deck = "com.example/deck/other" },
   { rel = "surrogate_for", deck = "com.example/deck/other" },
 ]

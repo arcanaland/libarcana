@@ -34,7 +34,7 @@ void no_check(check_context const& ctx);
 // - `aspect-ratio-mismatch` needs an image decoder
 // - `duplicate-deck-identifier` waiting for library phase
 // - the four `container` codes: a container is a zip a validator is handed before any
-//   deck exists, which `validate(deck const&)` cannot be given (DECK.md#2.4)
+//   deck exists, which `validate(deck const&)` cannot be given (DECK.md#24-deck-containers)
 constexpr check_fn deferred = no_check;
 
 // No check written yet.

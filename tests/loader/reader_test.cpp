@@ -91,7 +91,8 @@ TEST_CASE("a 2.0 deck always has the seventy-eight canonical slots", "[loader][v
     CHECK(deck.cards().size() == canonical_card_count);
     CHECK(deck.suits().size() == 4);
 
-    SECTION("majors fall back to the Appendix C names")
+    // DECK.md#appendix-c-canonical-card-names-informative
+    SECTION("majors fall back to the canonical names")
     {
         CHECK(card_at(deck, "major_arcana.00").display_name == "The Fool");
         CHECK(card_at(deck, "major_arcana.21").display_name == "The World");
@@ -379,7 +380,7 @@ default_variant = "two_women"
         REQUIRE(requested.size() == 1);
         CHECK(requested.front().path.filename() == "06.two_men.svg");
 
-        // §5.7.5: a variant the card lacks resolves to its default, not an error
+        // DECK.md#675-variants: a variant the card lacks resolves to its default, not an error
         auto const missing = lovers.images_for_variant("no_such_key");
         REQUIRE(missing.size() == 1);
         CHECK(missing.front().path.filename() == "06.two_women.svg");
@@ -456,7 +457,8 @@ image = "extra/two_women.tiff"
         CHECK(lovers.images_for_variant("two_men").front().path.filename() == "06.two_men.svg");
     }
 
-    SECTION("§4.3's card-level keys are ignored on a variant reference")
+    // DECK.md#43-cards
+    SECTION("card-level keys are ignored on a variant reference")
     {
         auto dir = make_deck(R"(
 [cards."major_arcana.06:two_women"]
@@ -634,7 +636,8 @@ origin = { "iptc-dst" = "trainedAlgorithmicMedia" }
     }
 }
 
-TEST_CASE("cards come out in the order of §4.3.2", "[loader][v2][ordering]")
+// DECK.md#5-ordering
+TEST_CASE("cards come out in the specification's order", "[loader][v2][ordering]")
 {
     SECTION("majors by position, then minors by suit and rank")
     {

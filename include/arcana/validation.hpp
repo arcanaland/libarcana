@@ -63,7 +63,7 @@ struct spec_section
 
 // The v2 text's rule table
 inline constexpr spec_section rule_table_section{
-    .schema_major = 2, .anchor = "94-validation-rules"
+    .schema_major = 2, .anchor = "104-validation-rules"
 };
 
 struct spec_citations
