@@ -295,9 +295,7 @@ void check_conflicting_deck_relation(check_context const& ctx)
         auto& declared = slot(*rel);
         if (!declared.empty())
             ctx.report({
-                .message = std::format(
-                    "a deck must declare at most one '{}' relation", *rel
-                ),
+                .message = std::format("a deck must declare at most one '{}' relation", *rel),
                 .key = std::format("deck.related[{}].rel", index),
             });
 

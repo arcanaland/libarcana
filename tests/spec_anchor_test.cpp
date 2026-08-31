@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "markdown.hpp"
+#include "sources.hpp"
+#include "spec_reference.hpp"
 
 #include <arcana/validation.hpp>
 
@@ -9,7 +11,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -22,7 +23,11 @@ using arcana::spec_url;
 using arcana_test::heading;
 using arcana_test::headings_of;
 using arcana_test::read_file;
+using arcana_test::references_in;
 using arcana_test::slugify;
+using arcana_test::source_line;
+using arcana_test::source_lines;
+using arcana_test::spec_reference;
 
 namespace
 {
@@ -45,90 +50,12 @@ bool has_slug(std::vector<heading> const& headings, std::string_view slug)
     return std::ranges::any_of(headings, [slug](heading const& h) { return h.slug == slug; });
 }
 
-// A reference to the specification written in a source file
-struct source_reference
-{
-    std::string file;
-    std::string anchor;
-    std::string where;
-};
-
-bool is_anchor_char(char c)
-{
-    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
-}
-
-bool is_file_char(char c)
-{
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' ||
-           c == '_';
-}
-
-// Every spec reference in the code (<file>.md#<anchor>)
-void references_in(
-    std::string_view line, std::string const& where, std::vector<source_reference>& out
-)
-{
-    std::string const needle = std::string{".md"} + "#";
-
-    for (std::size_t at = line.find(needle); at != std::string_view::npos;
-         at = line.find(needle, at + 1))
-    {
-        std::size_t start = at;
-        while (start > 0 && is_file_char(line[start - 1])) --start;
-
-        std::size_t const anchor_at = at + needle.size();
-        std::size_t end = anchor_at;
-        while (end < line.size() && is_anchor_char(line[end])) ++end;
-
-        if (start == at || end == anchor_at)
-            continue;
-
-        out.push_back({
-            .file = std::string{line.substr(start, at - start)} + ".md",
-            .anchor = std::string{line.substr(anchor_at, end - anchor_at)},
-            .where = where,
-        });
-    }
-}
-
 // Every reference to the spec in the code
-std::vector<source_reference> references_in_sources()
+std::vector<spec_reference> references_in_sources()
 {
-    namespace fs = std::filesystem;
+    std::vector<spec_reference> found;
 
-    std::vector<source_reference> found;
-
-    for (std::string_view const root : {"src", "include", "tests", "bench", "python"})
-    {
-        fs::path const dir = fs::path{SOURCE_ROOT} / root;
-        if (!fs::is_directory(dir))
-            continue;
-
-        for (auto const& entry : fs::recursive_directory_iterator{dir})
-        {
-            if (!entry.is_regular_file())
-                continue;
-
-            auto const extension = entry.path().extension();
-            if (extension != ".cpp" && extension != ".hpp")
-                continue;
-
-            std::string const text = read_file(entry.path().string());
-            std::istringstream lines{text};
-
-            std::size_t number = 0;
-            for (std::string line; std::getline(lines, line);)
-            {
-                ++number;
-                references_in(
-                    line,
-                    fs::relative(entry.path(), SOURCE_ROOT).string() + ":" + std::to_string(number),
-                    found
-                );
-            }
-        }
-    }
+    for (source_line const& line : source_lines()) references_in(line.text, line.where(), found);
 
     return found;
 }

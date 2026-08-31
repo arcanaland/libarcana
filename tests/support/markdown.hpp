@@ -9,7 +9,6 @@
 #pragma once
 
 #include <cstddef>
-#include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -87,16 +86,6 @@ inline std::vector<heading> headings_of(std::string_view text)
     }
 
     return found;
-}
-
-inline std::string read_file(std::string const& path)
-{
-    std::ifstream in{path, std::ios::binary};
-
-    std::ostringstream contents;
-    contents << in.rdbuf();
-
-    return contents.str();
 }
 
 }  // namespace arcana_test
