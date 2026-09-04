@@ -20,6 +20,7 @@ arcana_add_test(deck_test LIBS arcana::arcana
 arcana_add_test(validation_test LIBS arcana::arcana
     INCLUDES ${PROJECT_SOURCE_DIR}/src/model)
 arcana_add_test(spec_anchor_test LIBS arcana::arcana)
+arcana_add_test(spec_citation_test)
 arcana_add_test(library_test LIBS arcana::arcana
     INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/loader)
 

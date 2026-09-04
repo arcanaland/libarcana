@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "markdown.hpp"
+#include "sources.hpp"
+#include "spec_reference.hpp"
 
 #include <arcana/validation.hpp>
 
@@ -21,7 +23,11 @@ using arcana::spec_url;
 using arcana_test::heading;
 using arcana_test::headings_of;
 using arcana_test::read_file;
+using arcana_test::references_in;
 using arcana_test::slugify;
+using arcana_test::source_line;
+using arcana_test::source_lines;
+using arcana_test::spec_reference;
 
 namespace
 {
@@ -44,12 +50,22 @@ bool has_slug(std::vector<heading> const& headings, std::string_view slug)
     return std::ranges::any_of(headings, [slug](heading const& h) { return h.slug == slug; });
 }
 
+// Every reference to the spec in the code
+std::vector<spec_reference> references_in_sources()
+{
+    std::vector<spec_reference> found;
+
+    for (source_line const& line : source_lines()) references_in(line.text, line.where(), found);
+
+    return found;
+}
+
 }  // namespace
 
 TEST_CASE("slugify follows GitHub's anchor rule", "[spec]")
 {
-    CHECK(slugify("5.7.4 The Extension Chain") == "574-the-extension-chain");
-    CHECK(slugify("9.4 Validation Rules") == "94-validation-rules");
+    CHECK(slugify("6.7.4 The Extension Chain") == "674-the-extension-chain");
+    CHECK(slugify("10.4 Validation Rules") == "104-validation-rules");
 
     // Dots vanish; the underscore of a TOML table name does not.
     CHECK(slugify("4. deck.toml Reference") == "4-decktoml-reference");
@@ -64,8 +80,8 @@ TEST_CASE("the pinned v2 text yields the anchors the specification writes", "[sp
     auto const headings = pinned_headings(SPECIFICATION_V2_FILE);
 
     REQUIRE_FALSE(headings.empty());
-    CHECK(has_slug(headings, "574-the-extension-chain"));
-    CHECK(has_slug(headings, "94-validation-rules"));
+    CHECK(has_slug(headings, "674-the-extension-chain"));
+    CHECK(has_slug(headings, "104-validation-rules"));
 }
 
 TEST_CASE("the pinned v1 text yields its unnumbered anchors", "[spec]")
@@ -120,8 +136,8 @@ TEST_CASE("a citation builds a URL into its major's pinned revision", "[spec]")
     constexpr std::string_view base = "https://github.com/arcanaland/specifications/blob/";
 
     CHECK(
-        spec_url(spec_section{2, "94-validation-rules"}) ==
-        std::string{base} + SPECIFICATION_V2_TAG + "/DECK.md#94-validation-rules"
+        spec_url(spec_section{2, "104-validation-rules"}) ==
+        std::string{base} + SPECIFICATION_V2_TAG + "/DECK.md#104-validation-rules"
     );
 
     CHECK(
@@ -129,7 +145,7 @@ TEST_CASE("a citation builds a URL into its major's pinned revision", "[spec]")
         std::string{base} + SPECIFICATION_V1_TAG + "/README.md#schema-versioning"
     );
 
-    CHECK(spec_url(spec_section{3, "94-validation-rules"}).empty());
+    CHECK(spec_url(spec_section{3, "104-validation-rules"}).empty());
 }
 
 TEST_CASE("each major is pinned to the revision the build fetched", "[spec]")
@@ -137,4 +153,34 @@ TEST_CASE("each major is pinned to the revision the build fetched", "[spec]")
     CHECK(spec_revision(1) == SPECIFICATION_V1_TAG);
     CHECK(spec_revision(2) == SPECIFICATION_V2_TAG);
     CHECK(spec_revision(3).empty());
+}
+
+// Prevent stale spec refs to appear in the code
+TEST_CASE("every specification reference in a source file resolves", "[spec]")
+{
+    std::vector<std::vector<heading>> const by_file{
+        pinned_headings(SPECIFICATION_V1_FILE), pinned_headings(SPECIFICATION_V2_FILE)
+    };
+
+    auto const found = references_in_sources();
+
+    REQUIRE_FALSE(found.empty());
+
+    for (auto const& one : found)
+    {
+        INFO(one.where << " names #" << one.anchor << " of " << one.file);
+
+        std::size_t index = 0;
+        if (one.file == "README.md")
+            index = 0;
+        else if (one.file == "DECK.md")
+            index = 1;
+        else
+            FAIL("only the two pinned specification files may be cited, not " + one.file);
+
+        REQUIRE_FALSE(by_file[index].empty());
+
+        INFO("re-read the spec: this reference no longer resolves");
+        CHECK(has_slug(by_file[index], one.anchor));
+    }
 }

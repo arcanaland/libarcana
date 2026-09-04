@@ -1,0 +1,13 @@
+# - two `expands` relations where the specification allows one
+# - the `companion` relation is unbounded, so two of those are fine
+[deck]
+schema_version = "2.0"
+name = "Twice Expanding"
+version = "1.0"
+identifier = "org.example/deck/twice-expanding"
+related = [
+  { rel = "expands", deck = "land.arcana/deck/rider-waite-smith" },
+  { rel = "companion", deck = "com.example/deck/one" },
+  { rel = "expands", deck = "com.example/deck/other" },
+  { rel = "companion", deck = "com.example/deck/two" },
+]

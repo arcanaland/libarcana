@@ -14,7 +14,8 @@ using arcana::data::is_reserved_canonical_key;
 using arcana::data::is_variant_reference;
 using arcana::data::parse_qualified_identifier;
 
-TEST_CASE("custom names accept the grammar of DECK.md 3.5", "[identifiers]")
+// DECK.md#35-grammar
+TEST_CASE("custom names accept the grammar the specification writes", "[identifiers]")
 {
     CHECK(is_custom_name("happy_squirrel"));
     CHECK(is_custom_name("stars"));
@@ -36,7 +37,8 @@ TEST_CASE("custom names reject everything outside it", "[identifiers]")
     CHECK_FALSE(is_custom_name("caf\xc3\xa9"));
 }
 
-TEST_CASE("the reserved canonical keys are the twenty of DECK.md 3.2", "[identifiers]")
+// DECK.md#32-custom-names
+TEST_CASE("the reserved canonical keys are twenty", "[identifiers]")
 {
     CHECK(is_reserved_canonical_key("major_arcana"));
     CHECK(is_reserved_canonical_key("minor_arcana"));

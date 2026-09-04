@@ -45,7 +45,8 @@ TEST_CASE("malformed language tags are rejected", "[language_tag]")
     CHECK_FALSE(is_well_formed_language_tag("en.US"));
 }
 
-TEST_CASE("canonicalization applies the case rules of DECK.md 6.1", "[language_tag]")
+// DECK.md#71-language-tags
+TEST_CASE("canonicalization applies the case rules of a language tag", "[language_tag]")
 {
     CHECK(canonicalize_language_tag("EN") == "en");
     CHECK(canonicalize_language_tag("pt-br") == "pt-BR");

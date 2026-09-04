@@ -42,7 +42,7 @@ constexpr std::array catalogue{
         .default_level = severity::info,
         .area = "ansi",
         .needs = phase::filesystem,
-        .cites = {v1("file-location-based-defaults"), v1("ansi-art"), v2("54-ansi-art")},
+        .cites = {v1("file-location-based-defaults"), v1("ansi-art"), v2("64-ansi-art")},
         .in_rules_table = false,
         .explanation = "This ANSI file is not under an ANSI image root and will be ignored.",
         .applies_to = {.min = 1, .max = 2},
@@ -53,7 +53,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation = "An artwork declares a content rating descriptor above the value the deck "
                        "declares. Either lower the artwork's rating or raise the deck's rating.",
@@ -91,7 +91,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("8-extensibility")},
+        .cites = {v2("92-the-app-table")},
         .in_rules_table = true,
         .explanation = "An app subtable key should be a quoted realm. Quote it.",
         .applies_to = {.min = 2, .max = 2},
@@ -102,7 +102,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "backs",
         .needs = phase::document,
-        .cites = {v2("55-card-back-images")},
+        .cites = {v2("65-card-back-images")},
         .in_rules_table = true,
         .explanation =
             "A key in the card back designs table is not a well-formed custom name: lowercase "
@@ -160,7 +160,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation = "A content rating key is not a well-formed custom name.",
         .applies_to = {.min = 2, .max = 2},
@@ -195,7 +195,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("415-product-identifiers")},
+        .cites = {v2("414-product-identifiers")},
         .in_rules_table = true,
         .explanation = "GTIN needs to be eight, twelve, thirteen or fourteen digits.",
         .applies_to = {.min = 2, .max = 2},
@@ -206,7 +206,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("415-product-identifiers")},
+        .cites = {v2("414-product-identifiers")},
         .in_rules_table = true,
         .explanation = "ISBN needs to be ten or thirteen characters.",
         .applies_to = {.min = 2, .max = 2},
@@ -217,7 +217,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("61-language-tags")},
+        .cites = {v2("71-language-tags")},
         .in_rules_table = true,
         .explanation = "A name file's stem is not a well-formed BCP 47 language tag.",
         .applies_to = {.min = 2, .max = 2},
@@ -251,7 +251,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::document,
-        .cites = {v2("631-minor-arcana-name-composition")},
+        .cites = {v2("731-minor-arcana-name-composition")},
         .in_rules_table = true,
         .explanation =
             "A minor arcana name template uses a placeholder other than the braced words rank and "
@@ -264,7 +264,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation = "An oras-1.1 descriptor is not one of the OARS 1.1 "
                        "attribute ids or its value is not one of <none, mild, moderate, intense>.",
@@ -276,7 +276,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("581-the-surrogate-file")},
+        .cites = {v2("681-the-surrogate-file")},
         .in_rules_table = true,
         .explanation = "A surrogate palette entry is not an sRGB hex triplet: a hash followed by "
                        "exactly six lowercase hexadecimal digits. Upper case is not accepted.",
@@ -288,7 +288,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("581-the-surrogate-file")},
+        .cites = {v2("681-the-surrogate-file")},
         .in_rules_table = true,
         .explanation = "A snapped palette entry is not a CSS Color 4 named colour. The field "
                        "exists so that an application with no colour arithmetic can render a "
@@ -301,7 +301,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("414-pips")},
+        .cites = {v2("413-pips")},
         .in_rules_table = true,
         .explanation = "The pips field is not one of scenic, emblematic or unstated.",
         .applies_to = {.min = 2, .max = 2},
@@ -312,7 +312,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("415-product-identifiers")},
+        .cites = {v2("414-product-identifiers")},
         .in_rules_table = true,
         .explanation = "A product_ids key is not a well-formed custom name, or its value is not a "
                        "non-empty string.",
@@ -324,7 +324,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("35-grammar"), v2("417-published-date")},
+        .cites = {v2("35-grammar"), v2("416-published-date")},
         .in_rules_table = true,
         .explanation = "published_date is not a year, a year and month, or a full date denoting a "
                        "real calendar date.",
@@ -336,7 +336,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("419-related-decks")},
+        .cites = {v2("412-related-decks")},
         .in_rules_table = true,
         .explanation = "A [deck].related entry names a rel that is not a custom name, or a deck "
                        "that is not a well-formed qualified identifier or that carries a fragment. "
@@ -349,7 +349,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("75-redistribution-and-derivation")},
+        .cites = {v2("85-redistribution-and-derivation")},
         .in_rules_table = true,
         .explanation =
             "The redistribution or derivation field carries a value other than full, surrogate, "
@@ -362,7 +362,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("74-rights-status")},
+        .cites = {v2("84-rights-status")},
         .in_rules_table = true,
         .explanation = "The rights_status value is not a RightsStatements.org or Creative Commons "
                        "URI.",
@@ -386,7 +386,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("71-license-expressions")},
+        .cites = {v2("81-license-expressions")},
         .in_rules_table = true,
         .explanation = "The license field is not a well-formed SPDX expression. Terms with no SPDX "
                        "identifier are written as a custom LicenseRef- identifier, with the actual "
@@ -425,7 +425,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "backs",
         .needs = phase::filesystem,
-        .cites = {v2("55-card-back-images"), v2("574-the-extension-chain")},
+        .cites = {v2("65-card-back-images"), v2("674-the-extension-chain")},
         .in_rules_table = true,
         .explanation =
             "A card back design is supplied in no baseline format, meaning none of PNG, "
@@ -439,7 +439,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "images",
         .needs = phase::filesystem,
-        .cites = {v2("574-the-extension-chain")},
+        .cites = {v2("674-the-extension-chain")},
         .in_rules_table = true,
         .explanation = "There are no PNG, JPEG or WebP assets for a card.",
         .applies_to = {.min = 1, .max = 2},
@@ -450,7 +450,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("41-deck"), v2("56-aspect-ratio")},
+        .cites = {v2("41-deck"), v2("66-aspect-ratio")},
         .in_rules_table = true,
         .explanation = "The width-to-height ratio of card_size_mm differs from the declared "
                        "aspect_ratio by more than a tenth.",
@@ -473,10 +473,12 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("419-related-decks"), v2("412-surrogate_for"), v2("413-follows")},
+        .cites =
+            {v2("412-related-decks"), v2("4122-surrogate_for"), v2("4121-pattern"),
+             v2("4123-expands")},
         .in_rules_table = true,
-        .explanation = "A deck declares more than one follows relation or more than one "
-                       "surrogate_for relation, or names the same deck under both. A deck that "
+        .explanation = "A deck declares more than one pattern, surrogate_for or expands relation, "
+                       "or names the same deck under both pattern and surrogate_for. A deck that "
                        "stands in for another is that deck; it does not also resemble it.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
@@ -486,7 +488,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("76-roles-and-credits")},
+        .cites = {v2("86-roles-and-credits")},
         .in_rules_table = true,
         .explanation = "The creator and artist fields are the same. Keep artist "
                        "and drop creator.",
@@ -498,7 +500,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::filesystem,
-        .cites = {v2("91-conforming-deck")},
+        .cites = {v2("101-conforming-deck")},
         .in_rules_table = false,
         .explanation =
             "The deck has no card assets. Cards are discovered from the directory structure, so "
@@ -524,7 +526,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation =
             "The content rating of the deck is higher than the content rating of any card "
@@ -563,7 +565,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "cards",
         .needs = phase::document,
-        .cites = {v2("432-ordering")},
+        .cites = {v2("5-ordering")},
         .in_rules_table = true,
         .explanation =
             "Two major arcana declare the same position. Ordering stays well defined, since ties "
@@ -576,7 +578,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "images",
         .needs = phase::filesystem,
-        .cites = {v2("574-the-extension-chain")},
+        .cites = {v2("674-the-extension-chain")},
         .in_rules_table = true,
         .explanation = "Two files in one directory share a stem and carry two different "
                        "extension-chain formats. Resolution is well defined, but one of the two is "
@@ -628,7 +630,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "cards",
         .needs = phase::document,
-        .cites = {v2("46-excluded_cards")},
+        .cites = {v2("47-excluded_cards")},
         .in_rules_table = true,
         .explanation =
             "A card is named both in the excluded cards table and in the custom cards table. The "
@@ -641,7 +643,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "cards",
         .needs = phase::filesystem,
-        .cites = {v2("46-excluded_cards")},
+        .cites = {v2("47-excluded_cards")},
         .in_rules_table = true,
         .explanation =
             "A card listed as excluded ships artwork anyway. Discovery reads the files rather than "
@@ -654,7 +656,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::filesystem,
-        .cites = {v2("419-related-decks"), v2("576-when-no-asset-is-found")},
+        .cites = {v2("412-related-decks"), v2("676-when-no-asset-is-found")},
         .in_rules_table = true,
         .explanation =
             "A package declaring rel = \"expands\" also declares [excluded_cards] covering "
@@ -668,7 +670,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "backs",
         .needs = phase::filesystem,
-        .cites = {v2("55-card-back-images"), v2("572-extensions-stems-and-bases")},
+        .cites = {v2("65-card-back-images"), v2("672-extensions-stems-and-bases")},
         .in_rules_table = true,
         .explanation = "This file in a card back directory defines no design: its stem is not a "
                        "custom name, or its extension is outside the chain. Rename it, or point a "
@@ -681,7 +683,7 @@ constexpr std::array catalogue{
         .default_level = severity::info,
         .area = "images",
         .needs = phase::filesystem,
-        .cites = {v1("file-location-based-defaults"), v2("571-image-roots")},
+        .cites = {v1("file-location-based-defaults"), v2("671-image-roots")},
         .in_rules_table = false,
         .explanation = "This top-level directory nearly matches the image root pattern but is not "
                        "one, so discovery ignores it and its contents are not cards. It holds a "
@@ -707,7 +709,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("61-language-tags")},
+        .cites = {v2("71-language-tags")},
         .in_rules_table = true,
         .explanation = "Two name files carry tags differing only in case. Applications compare "
                        "tags case-insensitively, so the deck resolves to one file on one platform "
@@ -743,7 +745,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("581-the-surrogate-file")},
+        .cites = {v2("681-the-surrogate-file")},
         .in_rules_table = true,
         .explanation = "This surrogate file is not well-formed TOML 1.0.0.",
         .applies_to = {.min = 2, .max = 2},
@@ -754,7 +756,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v1("alt-text-guidelines"), v1("validation-rules"), v2("64-alt-text-guidelines")},
+        .cites = {v1("alt-text-guidelines"), v1("validation-rules"), v2("74-alt-text-guidelines")},
         .in_rules_table = true,
         .explanation =
             "No language file carries alt text for all of the deck's cards, so it is not usable "
@@ -767,7 +769,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation = "An artwork declares a content rating for a system that doesn't have "
                        "artwork_complete defined. It is ambiguous what is unrated and what is "
@@ -828,7 +830,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("61-language-tags")},
+        .cites = {v2("71-language-tags")},
         .in_rules_table = true,
         .explanation = "The default_language field names a name file the deck does not ship. That "
                        "file is language resolution's last resort, so any string the requested tag "
@@ -841,7 +843,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::filesystem,
-        .cites = {v2("72-attribution-and-notices")},
+        .cites = {v2("82-attribution-and-notices")},
         .in_rules_table = true,
         .explanation = "A license_files entry names a file the deck does not ship.",
         .applies_to = {.min = 2, .max = 2},
@@ -852,7 +854,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::filesystem,
-        .cites = {v2("72-attribution-and-notices")},
+        .cites = {v2("82-attribution-and-notices")},
         .in_rules_table = false,
         .explanation = "The deck declares a license but ships no license text. An SPDX expression "
                        "names terms without conveying them. List the text under license_files, or "
@@ -865,7 +867,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("76-roles-and-credits")},
+        .cites = {v2("86-roles-and-credits")},
         .in_rules_table = true,
         .explanation = "The deck describes artwork it does not own and declares no packager, so "
                        "its assertions about that artwork are unattributable. Credit whoever "
@@ -904,7 +906,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("7-licensing-and-attribution")},
+        .cites = {v2("8-licensing-and-attribution")},
         .in_rules_table = true,
         .explanation = "The deck declares neither license nor rights_status. Declare a license "
                        "where there are terms to grant or a rights status where there are not.",
@@ -916,7 +918,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("312-card-references-and-the-variant-suffix"), v2("46-excluded_cards")},
+        .cites = {v2("312-card-references-and-the-variant-suffix"), v2("47-excluded_cards")},
         .in_rules_table = false,
         .explanation = "This card reference is not a canonical ID. Where a card is named rather "
                        "than a variant of one, a variant suffix is not accepted.",
@@ -928,7 +930,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("61-language-tags")},
+        .cites = {v2("71-language-tags")},
         .in_rules_table = false,
         .explanation = "This language tag is well-formed but not canonical. Rename the file.",
         .applies_to = {.min = 2, .max = 2},
@@ -962,7 +964,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("76-roles-and-credits")},
+        .cites = {v2("86-roles-and-credits")},
         .in_rules_table = true,
         .explanation = "The packager and artist fields are the same. The field exists to "
                        "distinguish whoever created the package from whoever made the artwork. "
@@ -975,7 +977,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("581-the-surrogate-file")},
+        .cites = {v2("681-the-surrogate-file")},
         .in_rules_table = true,
         .explanation =
             "A surrogate's palette and snapped palette hold different numbers of entries, so an "
@@ -988,7 +990,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("62-language-resolution"), v2("64-alt-text-guidelines")},
+        .cites = {v2("72-language-resolution"), v2("74-alt-text-guidelines")},
         .in_rules_table = true,
         .explanation = "This name file gives alt text to some entities of a kind but not to this "
                        "one.",
@@ -1027,7 +1029,7 @@ constexpr std::array catalogue{
         .area = "images",
         .needs = phase::filesystem,
         .cites =
-            {v1("file-location-based-defaults"), v1("raster-graphics"), v2("53-raster-graphics")},
+            {v1("file-location-based-defaults"), v1("raster-graphics"), v2("63-raster-graphics")},
         .in_rules_table = false,
         .explanation = "This raster image is not under a height-named image root and is therefore "
                        "not a card asset. Discovery ignores it, and it will never be shown.",
@@ -1039,7 +1041,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("75-redistribution-and-derivation")},
+        .cites = {v2("85-redistribution-and-derivation")},
         .in_rules_table = true,
         .explanation =
             "The deck declares redistribution or derivation full while its rights_status says the "
@@ -1052,7 +1054,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("75-redistribution-and-derivation")},
+        .cites = {v2("85-redistribution-and-derivation")},
         .in_rules_table = true,
         .explanation = "The deck's license grants redistribution or derivation outright and the "
                        "matching field claims less. The licence governs, so the field misleads a "
@@ -1065,7 +1067,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("419-related-decks")},
+        .cites = {v2("412-related-decks")},
         .in_rules_table = true,
         .explanation = "A [deck].related entry names this deck's own identifier. A deck stands in "
                        "no relation to itself, so the entry asserts nothing.",
@@ -1103,7 +1105,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("59-surrogate-decks")},
+        .cites = {v2("69-surrogate-decks")},
         .in_rules_table = true,
         .explanation =
             "A surrogate deck declares redistribution full. The package carries no artwork to pass "
@@ -1116,7 +1118,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("59-surrogate-decks"), v2("419-related-decks")},
+        .cites = {v2("69-surrogate-decks"), v2("412-related-decks")},
         .in_rules_table = true,
         .explanation =
             "A surrogate deck declares neither a surrogate_for relation nor any [deck.product_ids] "
@@ -1130,7 +1132,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("59-surrogate-decks")},
+        .cites = {v2("69-surrogate-decks")},
         .in_rules_table = true,
         .explanation =
             "A surrogate deck declares neither a buy link nor a rights_status, so a reader sees "
@@ -1143,7 +1145,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("59-surrogate-decks")},
+        .cites = {v2("69-surrogate-decks")},
         .in_rules_table = true,
         .explanation =
             "A surrogate deck declares no license. The surrogates are the packager's own work and "
@@ -1157,7 +1159,7 @@ constexpr std::array catalogue{
         .area = "images",
         .needs = phase::filesystem,
         .cites =
-            {v1("file-location-based-defaults"), v1("vector-graphics"), v2("52-vector-graphics")},
+            {v1("file-location-based-defaults"), v1("vector-graphics"), v2("62-vector-graphics")},
         .in_rules_table = false,
         .explanation = "This SVG is not under the scalable directory and is therefore not a card "
                        "asset. Discovery ignores it, and it will never be shown.",
@@ -1169,7 +1171,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::filesystem,
-        .cites = {v2("101-path-traversal")},
+        .cites = {v2("111-path-traversal")},
         .in_rules_table = false,
         .explanation =
             "A symbolic link inside the deck leads outside the deck root. A deck "
@@ -1183,7 +1185,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation = "An artwork is rated under a system that the deck does not declare.",
         .applies_to = {.min = 2, .max = 2},
@@ -1207,7 +1209,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::document,
-        .cites = {v2("621-name-file-metadata")},
+        .cites = {v2("721-name-file-metadata")},
         .in_rules_table = true,
         .explanation = "A key in a name file's alt text metadata subtable is undefined.",
         .applies_to = {.min = 2, .max = 2},
@@ -1218,7 +1220,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("62-language-resolution")},
+        .cites = {v2("72-language-resolution")},
         .in_rules_table = true,
         .explanation = "Encountered an entity kind this specification does not define, which is "
                        "one of: card, suit, rank, card_back, variant and group.",
@@ -1230,7 +1232,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("62-language-resolution")},
+        .cites = {v2("72-language-resolution")},
         .in_rules_table = true,
         .explanation =
             "A top-level table in a name file must be one of name, alt_text or metadata.",
@@ -1242,7 +1244,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("62-language-resolution"), v2("622-group-names")},
+        .cites = {v2("72-language-resolution"), v2("722-group-names")},
         .in_rules_table = true,
         .explanation = "A key in this name file corresponds to nothing the deck has, so the string "
                        "it carries will never be shown. The card was probably renamed, misspelled, "
@@ -1255,7 +1257,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("581-the-surrogate-file")},
+        .cites = {v2("681-the-surrogate-file")},
         .in_rules_table = true,
         .explanation = "A surrogate file carries a key other than palette, palette_snapped and "
                        "thumbhash. Surrogate files are generated, so an unexpected key means the "
@@ -1268,7 +1270,7 @@ constexpr std::array catalogue{
         .default_level = severity::info,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("4-decktoml-reference"), v2("8-extensibility")},
+        .cites = {v2("4-decktoml-reference"), v2("9-extensibility")},
         .in_rules_table = false,
         .explanation =
             "This top-level table is not one the specification defines and is not the app table, "
@@ -1306,7 +1308,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "names",
         .needs = phase::filesystem,
-        .cites = {v2("63-display-name-resolution")},
+        .cites = {v2("73-display-name-resolution")},
         .in_rules_table = true,
         .explanation = "A major arcanum keyed above 21 is named in no name file, so it is shown to "
                        "the user as a bare number. Nothing else can name it.",
@@ -1318,7 +1320,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation =
             "A content rating system is outside the registry and is not prefixed with x_.",
@@ -1343,7 +1345,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("415-product-identifiers")},
+        .cites = {v2("414-product-identifiers")},
         .in_rules_table = true,
         .explanation = "A product_ids scheme is outside the registry of isbn, gtin and "
                        "publisher_sku and is not prefixed with x_.",
@@ -1355,7 +1357,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("419-related-decks")},
+        .cites = {v2("412-related-decks")},
         .in_rules_table = true,
         .explanation =
             "A [deck].related rel is outside the registry and is not prefixed. "
@@ -1381,7 +1383,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "deck",
         .needs = phase::filesystem,
-        .cites = {v2("23-file-format-and-encoding"), v2("101-path-traversal")},
+        .cites = {v2("23-file-format-and-encoding"), v2("111-path-traversal")},
         .in_rules_table = true,
         .explanation = "A path in deck.toml begins with a slash, contains a parent-directory "
                        "segment, or resolves outside the deck root. Applications must reject such "
@@ -1394,7 +1396,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("416-content-rating")},
+        .cites = {v2("415-content-rating")},
         .in_rules_table = true,
         .explanation = "An artwork_complete is declared on a system that no artwork has a "
                        "descriptor for.",
@@ -1406,7 +1408,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "cards",
         .needs = phase::filesystem,
-        .cites = {v2("43-cards"), v2("575-variants")},
+        .cites = {v2("43-cards"), v2("675-variants")},
         .in_rules_table = true,
         .explanation = "A card has variant files, no unsuffixed file, and no declared default "
                        "variant, so a reference carrying no variant suffix names nothing.",

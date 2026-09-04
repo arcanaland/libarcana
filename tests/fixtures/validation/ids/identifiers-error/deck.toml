@@ -1,6 +1,6 @@
 # - A bare label is not a realm
 # - `also_bad` has no slash
-# - a `follows` relation names a deck, so it too must be a qualified identifier
+# - a `pattern` relation names a deck, so it too must be a qualified identifier
 # - [app] subtable key is unquoted
 [deck]
 schema_version = "2.0"
@@ -9,7 +9,7 @@ version = "1.0"
 identifier = "notarealm/deck/bad-identifiers"
 related = [
   { rel = "surrogate_for", deck = "also_bad" },
-  { rel = "follows", deck = "rider-waite-smith" },
+  { rel = "pattern", deck = "rider-waite-smith" },
 ]
 
 [app.land.arcana]
