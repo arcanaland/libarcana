@@ -1,10 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// Walking every line the project writes, so a gate can read the whole tree.
-//
-// Test-only. Nothing in src/ reads its own sources.
-
 #pragma once
 
 #include <algorithm>
@@ -25,12 +21,12 @@ struct source_line
     // Path relative to SOURCE_ROOT
     std::string file;
 
-    // 1-based, as an editor counts
+    // 1-based
     std::size_t number;
 
     std::string text;
 
-    // "<file>:<number>", for an INFO
+    // <file>:<number>
     std::string where() const
     {
         return file + ":" + std::to_string(number);
@@ -47,9 +43,6 @@ inline std::string read_file(std::string const& path)
     return contents.str();
 }
 
-// The directories walked, relative to SOURCE_ROOT. The root itself is walked
-// too, but only its own files: everything below it that is ours is named here,
-// and agents/ and build/ are not ours to gate.
 inline std::vector<std::string_view> const& source_roots()
 {
     static std::vector<std::string_view> const roots{
@@ -59,15 +52,12 @@ inline std::vector<std::string_view> const& source_roots()
     return roots;
 }
 
-// Whether the walk descends into a directory of this name.
 inline bool is_source_directory(std::string const& name)
 {
-    // A configure leaves empty CMakeFiles/ trees behind in the source dir.
+    // configure leaves empty CMakeFiles/ dirs behind
     return !name.starts_with('.') && name != "build" && name != "CMakeFiles";
 }
 
-// Whether the walk reads a file of this name. Prose is gated too: a stale
-// specification anchor reads the same in a comment, a README and a workflow.
 inline bool is_source_file(std::filesystem::path const& name)
 {
     static std::vector<std::string_view> const extensions{
@@ -76,15 +66,12 @@ inline bool is_source_file(std::filesystem::path const& name)
 
     static std::vector<std::string_view> const names{"CMakeLists.txt", "justfile", "Containerfile"};
 
-    // `std::ranges::contains` would read better, but it is in the tail of C++23
-    // that gcc-toolset-14 lacks, and a test is no place to learn that twice.
     auto const holds = [](std::vector<std::string_view> const& all, std::string const& one)
     { return std::ranges::find(all, one) != all.end(); };
 
     return holds(names, name.string()) || holds(extensions, name.extension().string());
 }
 
-// Every line of every walked file below dir, appended to out.
 inline void lines_below(
     std::filesystem::path const& dir, bool descend, std::vector<source_line>& out
 )

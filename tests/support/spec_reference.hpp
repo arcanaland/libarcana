@@ -1,13 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// Reading references to the specification out of a line of source. The one
-// shape a reference may take is `<file>.md#<anchor>`: two gates read it, one
-// resolving every anchor against the pinned text and one banning the other
-// shapes, and they must agree on what a reference is.
-//
-// Test-only.
-
 #pragma once
 
 #include <cstddef>
@@ -18,16 +11,16 @@
 namespace arcana_test
 {
 
-// A reference to the specification written in a source file
+// A reference to the spec written in a source file
 struct spec_reference
 {
-    // The document cited, with its extension: DECK.md or README.md
+    // DECK.md or README.md for v1
     std::string file;
 
-    // The GitHub anchor without the leading #
+    // GitHub anchor without leading #
     std::string anchor;
 
-    // "<file>:<line>" of the reference
+    // <file>:<line>
     std::string where;
 };
 
@@ -70,7 +63,7 @@ inline void references_in(
     }
 }
 
-// Whether line carries a well-formed reference.
+// Whether line has a well-formed reference.
 inline bool has_reference(std::string_view line)
 {
     std::vector<spec_reference> found;
