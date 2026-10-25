@@ -47,26 +47,20 @@ struct coined_name
     std::optional<std::filesystem::path> path;
 };
 
-// One entry of the manifest's card table, as the deck wrote it.
-//
-// The loaded model normalizes away which fields an entry actually declared, and
-// several checks are precisely about what the deck wrote, so the entries are
-// indexed straight from the document.
+// One entry of the manifest's card table
 struct card_entry
 {
-    // The table key verbatim, e.g. `major_arcana.06:two_women`.
+    // The table key verbatim (e.g. major_arcana.06:two_women)
     std::string reference;
 
-    // The card the reference names, its variant suffix cut away.
+    // The card the reference names (w/o variant suffix)
     std::string card;
 
-    // The variant suffix, where the reference carries one.
     std::optional<std::string> variant;
 
     // The keys the entry itself declared. Empty where the entry is not a table.
     std::vector<std::string> declared;
 
-    // `image`, where the entry declared one.
     std::optional<std::string> image;
 
     // True where the entry wrote this key.
@@ -109,7 +103,7 @@ struct deck_facts
     // Every path that deck.toml declares
     std::vector<std::string> declared;
 
-    // Every `[cards]` entry, in the order the document holds them
+    // Every [cards] entry
     std::vector<card_entry> card_entries;
 
     // Every name the deck creator coined, declared or discovered

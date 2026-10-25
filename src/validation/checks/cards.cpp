@@ -31,8 +31,7 @@ namespace arcana::validation
 namespace
 {
 
-// The `[cards]` subtable an entry was written as, or null where the entry is
-// not a table. The index carries the keys; the values are read from here.
+// The [cards] subtable an entry was written as
 toml::table const* fields_of(check_context const& ctx, card_entry const& entry)
 {
     auto const* cards = ctx.doc["cards"].as_table();
@@ -44,8 +43,7 @@ toml::table const* fields_of(check_context const& ctx, card_entry const& entry)
     return found == cards->end() ? nullptr : found->second.as_table();
 }
 
-// The string an entry declared at `field`, or null where it declared none, or
-// declared something that is not a string.
+// The string an entry declares for a field
 std::string const* declared_string(
     check_context const& ctx, card_entry const& entry, std::string_view field
 )
@@ -59,8 +57,6 @@ std::string const* declared_string(
     return value == nullptr ? nullptr : &value->get();
 }
 
-// The card an entry references, or nothing where the key is not a card
-// reference at all. A malformed key is `bad-cards-table-key`'s to report.
 std::optional<card_id> card_of(card_entry const& entry)
 {
     auto parsed = card_id::parse(entry.card);
@@ -70,8 +66,7 @@ std::optional<card_id> card_of(card_entry const& entry)
     return *parsed;
 }
 
-// The card table's entry for a card, or null where the deck wrote none. Only a
-// bare reference declares the card; a variant reference declares an artwork.
+// The card table's entry for a card
 card_entry const* entry_for_card(check_context const& ctx, std::string_view canonical)
 {
     for (auto const& entry : ctx.facts.card_entries)
@@ -81,8 +76,7 @@ card_entry const* entry_for_card(check_context const& ctx, std::string_view cano
     return nullptr;
 }
 
-// True for the slots that exist for every deck, which an entry may annotate
-// whether or not the deck ships artwork for them.
+// True for slots that exist for every deck
 bool is_always_present(card_id const& id)
 {
     if (id.cls == card_class::standard_minor)
@@ -92,9 +86,7 @@ bool is_always_present(card_id const& id)
            id.number <= max_canonical_major_arcana_number;
 }
 
-// True where this artwork is a file the deck actually has. A declared `image`
-// path is attached to the model whether or not it leads anywhere, so a card
-// annotated with a broken path is a card with no artwork.
+// True where this artwork is a file the deck actually has
 bool resolves(check_context const& ctx, card_image const& image)
 {
     auto const relative = image.path.lexically_relative(ctx.d.root_path()).generic_string();
@@ -116,7 +108,7 @@ bool has_unsuffixed_artwork(check_context const& ctx, card const& c)
     );
 }
 
-// The card's variant keys that a file backs, sorted and without repeats.
+// The card's variant keys
 std::vector<std::string> variant_keys_with_artwork(check_context const& ctx, card const& c)
 {
     std::vector<std::string> keys;
@@ -131,23 +123,18 @@ std::vector<std::string> variant_keys_with_artwork(check_context const& ctx, car
     return keys;
 }
 
-// One place a deck declared where a major arcanum sits.
 struct declared_position
 {
-    // How the diagnostic names the card.
     std::string label;
 
-    // The canonical ID, where the deck's key gives one. A 1.0 remap names its
-    // card by display name, which is not an ID and is not made into one.
+    // The canonical ID
     std::optional<std::string> canonical;
 
     std::string key;
     int at;
 };
 
-// The positions a 2.x manifest declares. Only a bare reference to a major
-// arcanum declares one: on a minor and on a variant reference a position is
-// ignored, and its own code says so.
+// The positions a 2.x manifest declares.
 void positions_of_v2(check_context const& ctx, std::vector<declared_position>& found)
 {
     for (auto const& entry : ctx.facts.card_entries)
@@ -176,8 +163,7 @@ void positions_of_v2(check_context const& ctx, std::vector<declared_position>& f
     }
 }
 
-// The positions a 1.0 manifest declares. `[remap_major_arcana]` is keyed by the
-// position and holds the card, and a custom major declares its own.
+// The positions a 1.0 manifest declares.
 void positions_of_v1(check_context const& ctx, std::vector<declared_position>& found)
 {
     if (auto const* remapped = ctx.doc["remap_major_arcana"].as_table())
@@ -239,9 +225,6 @@ std::vector<declared_position> declared_positions(check_context const& ctx)
     return found;
 }
 
-// One suit's `ranks` list as the deck declared it. The model fills a canonical
-// suit's list in with the canonical fourteen, so only the document says which
-// suits actually stated an order.
 struct declared_ranks
 {
     std::string suit;
@@ -277,18 +260,13 @@ std::vector<declared_ranks> declared_rank_lists(check_context const& ctx)
     return found;
 }
 
-// The canonical ID a file under an image root creates, or nothing where the
-// file names no card.
+// The canonical ID a file under an image root
 std::optional<std::string> card_of_file(std::filesystem::path const& relative)
 {
     auto const where = locate_asset(relative);
 
-    // A card back names no card, and neither does a surrogate, which stands in
-    // for an image the package does not ship.
     if (!where || where->card_back || where->kind == image_kind::surrogate)
         return std::nullopt;
-
-    // Path shape is not enough: discovery passes over an extension outside the
     // chain, so such a file is not artwork the deck resolves.
     auto const name = relative.filename().string();
     if (!chain_admits(where->kind, extension_of(name)))
@@ -320,25 +298,18 @@ void check_declared_card_without_image(check_context const& ctx)
         if (!id)
             continue;
 
-        // An entry for an excluded card is a contradiction rather than a
-        // dangling annotation, and its own code says so.
+        // An entry for an excluded card is a contradiction, another check should catch this
         if (std::ranges::contains(ctx.d.excluded().cards, entry.card))
             continue;
 
-        // On a variant reference a declared `image` names the artwork whether
-        // or not the path leads anywhere, and the dangling path is
-        // `missing-variant-image`'s to report. On a bare reference nothing else
-        // reports it, so a path leading nowhere leaves the card with no artwork
-        // and the declaration annotating nothing.
         if (entry.variant && entry.image)
             continue;
 
         auto const found = ctx.d.find_card(*id);
 
+        // if this is a variant
         if (entry.variant)
         {
-            // A variant reference is never exempt: the variant is one the deck
-            // has a file for or declares an `image` path to.
             if (found &&
                 std::ranges::contains(variant_keys_with_artwork(ctx, *found), *entry.variant))
                 continue;
@@ -361,8 +332,7 @@ void check_declared_card_without_image(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "the cards table declares '{}', which the deck ships no files for, so the "
-                "declaration annotates nothing",
+                "the cards table declares '{}' but no image exists for it",
                 entry.reference
             ),
             .card = entry.card,
@@ -377,12 +347,10 @@ void check_duplicate_card_position(check_context const& ctx)
 
     for (auto one = declared.begin(); one != declared.end(); ++one)
     {
-        // Only a declared position collides. A declared position that merely
-        // coincides with an implicit one is how most cards get theirs, and
-        // reporting those would fire on ordinary decks.
         auto const first =
             std::ranges::find(declared.begin(), one, one->at, &declared_position::at);
 
+        // Only a declared position collides.
         if (first == one)
             continue;
 
@@ -413,7 +381,7 @@ void check_duplicate_rank_in_ranks(check_context const& ctx)
                 continue;
             }
 
-            // One report per list per repeated key, however often it repeats.
+            // One report per list per repeated key
             if (std::ranges::contains(reported, rank))
                 continue;
 
@@ -421,8 +389,7 @@ void check_duplicate_rank_in_ranks(check_context const& ctx)
 
             ctx.report({
                 .message = std::format(
-                    "'{}' appears twice in the ranks list of suit '{}', which makes the order "
-                    "ambiguous. The list states ordering only, so the repeat adds no card",
+                    "'{}' appears twice in the ranks list of suit '{}'",
                     rank, list.suit
                 ),
                 .key = std::format("suits.{}.ranks", list.suit),
@@ -442,7 +409,7 @@ void check_empty_card_number(check_context const& ctx)
         ctx.report({
             .message = std::format(
                 "'{}' declares an empty number. A card is made unnumbered by the shape of its key "
-                "or by 'unnumbered', never by an empty value",
+                "or by 'unnumbered'.",
                 entry.reference
             ),
             .card = entry.card,
@@ -464,8 +431,7 @@ void check_excluded_card_also_declared(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "'{}' is excluded and declared in the same deck. There is no reading that "
-                "satisfies both",
+                "'{}' is excluded and declared in the same deck.",
                 canonical
             ),
             .card = canonical,
@@ -506,9 +472,7 @@ void check_excluded_card_has_image(check_context const& ctx)
 
 void check_ignored_key_on_variant(check_context const& ctx)
 {
-    // The two facets of the slot. Every other field of a `[cards]` entry is a
-    // facet of the artwork and is legal on a variant reference, a number among
-    // them.
+    // The two facets of the slot.
     constexpr std::array<std::string_view, 2> of_the_slot{"default_variant", "position"};
 
     for (auto const& entry : ctx.facts.card_entries)
@@ -643,8 +607,7 @@ void check_unknown_variant_default(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "'{}' names '{}' as its default variant, which is not a variant it has, so a "
-                "reference carrying no variant suffix is unresolvable",
+                "'{}' names '{}' as its default variant, which is not a variant it has.",
                 canonical, *declared
             ),
             .card = canonical,
@@ -664,16 +627,13 @@ void check_variant_card_without_default(check_context const& ctx)
 
         auto const canonical = c.canonical_id();
 
-        // The model supplies a default where the deck declares none, so the
-        // entry is what says whether the deck actually wrote one.
         auto const* entry = entry_for_card(ctx, canonical);
         if (entry != nullptr && entry->declares("default_variant"))
             continue;
 
         ctx.report({
             .message = std::format(
-                "'{}' has variant artwork and no unsuffixed artwork, and declares no default "
-                "variant, so a reference carrying no variant suffix names nothing",
+                "'{}' has variant artwork but there is no default.",
                 canonical
             ),
             .card = canonical,

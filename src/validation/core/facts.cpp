@@ -255,11 +255,7 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
     }
 }
 
-// Every `[cards]` entry, read as the deck wrote it.
-//
-// Nothing here is judged: a reference the grammar rejects and an entry that is
-// not a table are both indexed as they stand, because reporting them belongs to
-// other codes and this index must not pre-empt them.
+// Every [cards] entry
 std::vector<card_entry> index_card_entries(toml::table const& doc)
 {
     std::vector<card_entry> found;
