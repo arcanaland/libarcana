@@ -1,0 +1,22 @@
+[deck]
+schema_version = "2.0"
+name = "Contradicted Exclusions"
+version = "1.0"
+identifier = "org.example/deck/contradicted-exclusions"
+
+[excluded_cards]
+cards = [
+  # Excluded and declared: the deck contradicts itself.
+  "minor_arcana.pentacles.page",
+  # Excluded and shipped anyway: discovery resolves it regardless.
+  "minor_arcana.pentacles.ten",
+  # Merely excluded, which is what an exclusion is for.
+  "minor_arcana.pentacles.knight",
+  # A leftover the extension chain does not admit where it sits, which discovery
+  # passes over, so the exclusion still matches the package.
+  "minor_arcana.pentacles.nine",
+]
+reason = "This deck excludes these specific court cards."
+
+[cards."minor_arcana.pentacles.page"]
+name = "The Page of Pentacles"

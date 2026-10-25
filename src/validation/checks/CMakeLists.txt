@@ -18,5 +18,6 @@ endforeach()
 
 arcana_link_internal(arcana-check-ansi PRIVATE arcana-vocab)
 arcana_link_internal(arcana-check-backs PRIVATE arcana-identifiers)
+arcana_link_internal(arcana-check-cards PRIVATE arcana-discovery arcana-text)
 arcana_link_internal(arcana-check-ids PRIVATE arcana-identifiers)
 arcana_link_internal(arcana-check-images PRIVATE arcana-vocab)

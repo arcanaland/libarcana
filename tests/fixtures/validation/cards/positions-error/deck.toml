@@ -1,0 +1,17 @@
+[deck]
+schema_version = "2.0"
+name = "Contested Positions"
+version = "1.0"
+identifier = "org.example/deck/contested-positions"
+
+# A declared position that merely coincides with an implicit one. Implicit
+# positions are how most cards get theirs, so this is not reported.
+[cards."major_arcana.05"]
+position = 3
+
+[cards."major_arcana.22"]
+position = 22
+
+[cards."major_arcana.happy_squirrel"]
+name = "The Happy Squirrel"
+position = 22

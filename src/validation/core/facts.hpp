@@ -47,6 +47,26 @@ struct coined_name
     std::optional<std::filesystem::path> path;
 };
 
+// One entry of the manifest's card table
+struct card_entry
+{
+    // The table key verbatim (e.g. major_arcana.06:two_women)
+    std::string reference;
+
+    // The card the reference names (w/o variant suffix)
+    std::string card;
+
+    std::optional<std::string> variant;
+
+    // The keys the entry itself declared. Empty where the entry is not a table.
+    std::vector<std::string> declared;
+
+    std::optional<std::string> image;
+
+    // True where the entry wrote this key.
+    [[nodiscard]] bool declares(std::string_view key) const;
+};
+
 // One file sitting in a card back directory.
 struct back_file
 {
@@ -82,6 +102,9 @@ struct deck_facts
 
     // Every path that deck.toml declares
     std::vector<std::string> declared;
+
+    // Every [cards] entry
+    std::vector<card_entry> card_entries;
 
     // Every name the deck creator coined, declared or discovered
     std::vector<coined_name> coined;

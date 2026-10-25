@@ -1,0 +1,23 @@
+[deck]
+schema_version = "2.0"
+name = "Entry Facets"
+version = "1.0"
+identifier = "org.example/deck/entry-facets"
+
+# A card is made unnumbered by the shape of its key, never by an empty value.
+[cards."major_arcana.23"]
+number = ""
+
+# A minor arcanum takes its place from its suit's ranks sequence.
+[cards."minor_arcana.wands.ace"]
+position = 3
+
+[cards."major_arcana.06"]
+default_variant = "two_women"
+
+# Both facets of the slot, and a number, which is a facet of the artwork and is
+# legal here.
+[cards."major_arcana.06:two_women"]
+number = "VI"
+position = 7
+default_variant = "other"

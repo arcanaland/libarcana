@@ -603,7 +603,7 @@ constexpr std::array catalogue{
         .code = "duplicate-rank-in-ranks",
         .default_level = severity::error,
         .area = "cards",
-        .needs = phase::filesystem,
+        .needs = phase::document,
         .cites = {v2("44-suits")},
         .in_rules_table = true,
         .explanation =
@@ -699,8 +699,8 @@ constexpr std::array catalogue{
         .cites = {v2("43-cards")},
         .in_rules_table = true,
         .explanation =
-            "A number, position or default_variant is declared on a variant, which will be "
-            "ignored.",
+            "A position or default_variant is declared on a variant, which will be ignored. Every "
+            "other field of a card entry is a facet of the artwork and is legal there.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },

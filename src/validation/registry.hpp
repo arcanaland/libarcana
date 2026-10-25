@@ -92,19 +92,19 @@ inline constexpr std::array checks{
     check_entry{.code = "deck-has-no-cards", .run = pending},
     check_entry{.code = "deck-identifier-path-shape", .run = check_deck_identifier_path_shape},
     check_entry{.code = "deck-rating-exceeds-artwork", .run = pending},
-    check_entry{.code = "declared-card-without-image", .run = pending},
+    check_entry{.code = "declared-card-without-image", .run = check_declared_card_without_image},
     check_entry{.code = "deprecated-1-0-key", .run = pending},
-    check_entry{.code = "duplicate-card-position", .run = pending},
+    check_entry{.code = "duplicate-card-position", .run = check_duplicate_card_position},
     check_entry{.code = "duplicate-chain-extension", .run = check_duplicate_chain_extension},
     check_entry{.code = "duplicate-deck-identifier", .run = deferred},
-    check_entry{.code = "duplicate-rank-in-ranks", .run = pending},
-    check_entry{.code = "empty-card-number", .run = pending},
-    check_entry{.code = "excluded-card-also-declared", .run = pending},
-    check_entry{.code = "excluded-card-has-image", .run = pending},
+    check_entry{.code = "duplicate-rank-in-ranks", .run = check_duplicate_rank_in_ranks},
+    check_entry{.code = "empty-card-number", .run = check_empty_card_number},
+    check_entry{.code = "excluded-card-also-declared", .run = check_excluded_card_also_declared},
+    check_entry{.code = "excluded-card-has-image", .run = check_excluded_card_has_image},
     check_entry{.code = "expands-with-excluded-cards", .run = pending},
     check_entry{.code = "ignored-card-back-file", .run = check_ignored_card_back_file},
     check_entry{.code = "ignored-image-root-lookalike", .run = check_ignored_image_root_lookalike},
-    check_entry{.code = "ignored-key-on-variant", .run = pending},
+    check_entry{.code = "ignored-key-on-variant", .run = check_ignored_key_on_variant},
     check_entry{.code = "language-tag-case-collision", .run = pending},
     check_entry{.code = "malformed-deck-toml", .run = pending},
     check_entry{.code = "malformed-name-file", .run = pending},
@@ -120,7 +120,7 @@ inline constexpr std::array checks{
     check_entry{.code = "missing-license-text", .run = pending},
     check_entry{.code = "missing-packager", .run = pending},
     check_entry{.code = "missing-required-field", .run = pending},
-    check_entry{.code = "missing-variant-image", .run = pending},
+    check_entry{.code = "missing-variant-image", .run = check_missing_variant_image},
     check_entry{.code = "no-rights-statement", .run = pending},
     check_entry{.code = "non-canonical-card-reference", .run = check_non_canonical_card_reference},
     check_entry{.code = "non-canonical-language-tag", .run = pending},
@@ -129,8 +129,8 @@ inline constexpr std::array checks{
     check_entry{.code = "packager-equals-artist", .run = pending},
     check_entry{.code = "palette-snapped-length-mismatch", .run = pending},
     check_entry{.code = "partial-alt-text-in-facet", .run = pending},
-    check_entry{.code = "position-on-minor-arcanum", .run = pending},
-    check_entry{.code = "rank-without-image", .run = pending},
+    check_entry{.code = "position-on-minor-arcanum", .run = check_position_on_minor_arcanum},
+    check_entry{.code = "rank-without-image", .run = check_rank_without_image},
     check_entry{.code = "raster-outside-image-root", .run = check_raster_outside_image_root},
     check_entry{.code = "redistribution-contradicts-rights-status", .run = pending},
     check_entry{.code = "redistribution-narrower-than-license", .run = pending},
@@ -151,7 +151,7 @@ inline constexpr std::array checks{
     check_entry{.code = "unknown-name-key", .run = pending},
     check_entry{.code = "unknown-surrogate-key", .run = pending},
     check_entry{.code = "unknown-table", .run = pending},
-    check_entry{.code = "unknown-variant-default", .run = pending},
+    check_entry{.code = "unknown-variant-default", .run = check_unknown_variant_default},
     check_entry{.code = "unlocalized-fallback-string", .run = pending},
     check_entry{.code = "unnamed-extended-major", .run = pending},
     check_entry{.code = "unregistered-content-rating-system", .run = pending},
@@ -161,7 +161,7 @@ inline constexpr std::array checks{
     check_entry{.code = "unsafe-container-entry-name", .run = deferred},
     check_entry{.code = "unsafe-path", .run = pending},
     check_entry{.code = "unused-artwork-complete", .run = pending},
-    check_entry{.code = "variant-card-without-default", .run = pending},
+    check_entry{.code = "variant-card-without-default", .run = check_variant_card_without_default},
     check_entry{.code = "wrong-value-type", .run = pending},
 };
 
@@ -187,7 +187,7 @@ inline constexpr std::array checks{
     return count;
 }
 
-static_assert(pending_checks() == 81, "work landed without the checks it required");
+static_assert(pending_checks() == 69, "work landed without the checks it required");
 
 static_assert(deferred_checks() == 6, "six punted checks");
 
