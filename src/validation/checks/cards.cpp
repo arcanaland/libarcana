@@ -332,8 +332,7 @@ void check_declared_card_without_image(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "the cards table declares '{}' but no image exists for it",
-                entry.reference
+                "the cards table declares '{}' but no image exists for it", entry.reference
             ),
             .card = entry.card,
             .key = std::format(R"(cards."{}")", entry.reference),
@@ -389,8 +388,7 @@ void check_duplicate_rank_in_ranks(check_context const& ctx)
 
             ctx.report({
                 .message = std::format(
-                    "'{}' appears twice in the ranks list of suit '{}'",
-                    rank, list.suit
+                    "'{}' appears twice in the ranks list of suit '{}'", rank, list.suit
                 ),
                 .key = std::format("suits.{}.ranks", list.suit),
             });
@@ -430,10 +428,7 @@ void check_excluded_card_also_declared(check_context const& ctx)
             continue;
 
         ctx.report({
-            .message = std::format(
-                "'{}' is excluded and declared in the same deck.",
-                canonical
-            ),
+            .message = std::format("'{}' is excluded and declared in the same deck.", canonical),
             .card = canonical,
             .key = std::format(R"(cards."{}")", declared->reference),
         });
@@ -607,8 +602,8 @@ void check_unknown_variant_default(check_context const& ctx)
 
         ctx.report({
             .message = std::format(
-                "'{}' names '{}' as its default variant, which is not a variant it has.",
-                canonical, *declared
+                "'{}' names '{}' as its default variant, which is not a variant it has.", canonical,
+                *declared
             ),
             .card = canonical,
             .key = std::format(R"(cards."{}".default_variant)", canonical),
@@ -632,10 +627,7 @@ void check_variant_card_without_default(check_context const& ctx)
             continue;
 
         ctx.report({
-            .message = std::format(
-                "'{}' has variant artwork but there is no default.",
-                canonical
-            ),
+            .message = std::format("'{}' has variant artwork but there is no default.", canonical),
             .card = canonical,
             .key = std::format(R"(cards."{}".default_variant)", canonical),
         });
