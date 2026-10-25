@@ -1,0 +1,42 @@
+[deck]
+schema_version = "2.0"
+name = "Missing Artwork"
+version = "1.0"
+identifier = "org.example/deck/missing-artwork"
+
+# An extended major the deck ships no files for.
+[cards."major_arcana.23"]
+name = "The Happy Squirrel"
+
+# Exempt: the slots that exist for every deck, files or no files.
+[cards."major_arcana.00"]
+number = "0"
+
+[cards."minor_arcana.wands.ace"]
+name = "Ace of Wands"
+
+# A variant reference is never exempt, not even of an exempt card.
+[cards."major_arcana.01:gilded"]
+name = "The Magician, Gilded"
+
+# A declared image path that leads to no file.
+[cards."major_arcana.02:inked"]
+image = "scalable/major_arcana/02.inked.svg"
+
+# Variant files, no unsuffixed file and no declared default variant.
+[cards."major_arcana.07"]
+name = "The Chariot"
+
+# A default variant the card does not have.
+[cards."major_arcana.08"]
+default_variant = "gone"
+
+# A card with no files at all is a resolution failure, not a violation of the
+# default variant rule.
+[cards."major_arcana.09"]
+default_variant = "absent"
+
+# A bare entry whose image path leads nowhere. The variant rule does not cover
+# it, so the card is one the deck ships no files for.
+[cards."major_arcana.24"]
+image = "h1200/major_arcana/24.png"

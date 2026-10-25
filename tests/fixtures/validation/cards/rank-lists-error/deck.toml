@@ -1,0 +1,15 @@
+[deck]
+schema_version = "2.0"
+name = "Rank Lists"
+version = "1.0"
+identifier = "org.example/deck/rank-lists"
+
+# `three` is a card this suit does not have, and `ace` is repeated, which makes
+# the order ambiguous.
+[suits.stars]
+name = "Stars"
+ranks = ["ace", "two", "three", "ace", "ace"]
+
+# A canonical suit re-ranked over the cards the deck actually ships.
+[suits.wands]
+ranks = ["ace", "two"]

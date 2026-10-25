@@ -171,8 +171,6 @@ TEST_CASE("no source file names a specification section by number", "[spec]")
             continue;
 
         if (auto const problem = style_violation(line.text))
-            FAIL_CHECK(
-                line.where() << " seems like it has a spec quote bruh"
-            );
+            FAIL_CHECK(line.where() << " seems like it has a spec quote bruh");
     }
 }

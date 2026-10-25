@@ -291,7 +291,7 @@ constexpr std::array<std::string_view, 6> deferred{
 };
 
 // This should be zero when we're done
-constexpr std::array<std::string_view, 81> not_yet_covered{
+constexpr std::array<std::string_view, 69> not_yet_covered{
     "artwork-rating-exceeds-deck",
     "backslash-in-path",
     "bad-card-size-mm",
@@ -317,15 +317,8 @@ constexpr std::array<std::string_view, 81> not_yet_covered{
     "creator-equals-artist",
     "deck-has-no-cards",
     "deck-rating-exceeds-artwork",
-    "declared-card-without-image",
     "deprecated-1-0-key",
-    "duplicate-card-position",
-    "duplicate-rank-in-ranks",
-    "empty-card-number",
-    "excluded-card-also-declared",
-    "excluded-card-has-image",
     "expands-with-excluded-cards",
-    "ignored-key-on-variant",
     "language-tag-case-collision",
     "malformed-deck-toml",
     "malformed-name-file",
@@ -338,7 +331,6 @@ constexpr std::array<std::string_view, 81> not_yet_covered{
     "missing-license-text",
     "missing-packager",
     "missing-required-field",
-    "missing-variant-image",
     "no-rights-statement",
     "non-canonical-language-tag",
     "non-utf8-name-file",
@@ -346,8 +338,6 @@ constexpr std::array<std::string_view, 81> not_yet_covered{
     "packager-equals-artist",
     "palette-snapped-length-mismatch",
     "partial-alt-text-in-facet",
-    "position-on-minor-arcanum",
-    "rank-without-image",
     "redistribution-contradicts-rights-status",
     "redistribution-narrower-than-license",
     "surrogate-deck-redistribution-full",
@@ -362,7 +352,6 @@ constexpr std::array<std::string_view, 81> not_yet_covered{
     "unknown-name-key",
     "unknown-surrogate-key",
     "unknown-table",
-    "unknown-variant-default",
     "unlocalized-fallback-string",
     "unnamed-extended-major",
     "unregistered-content-rating-system",
@@ -371,7 +360,6 @@ constexpr std::array<std::string_view, 81> not_yet_covered{
     "unregistered-related-rel",
     "unsafe-path",
     "unused-artwork-complete",
-    "variant-card-without-default",
     "wrong-value-type",
 };
 

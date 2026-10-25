@@ -255,6 +255,45 @@ void collect_from_file(deck_file const& file, std::vector<coined_name>& found)
     }
 }
 
+// Every `[cards]` entry, read as the deck wrote it.
+//
+// Nothing here is judged: a reference the grammar rejects and an entry that is
+// not a table are both indexed as they stand, because reporting them belongs to
+// other codes and this index must not pre-empt them.
+std::vector<card_entry> index_card_entries(toml::table const& doc)
+{
+    std::vector<card_entry> found;
+
+    auto const* cards = doc["cards"].as_table();
+    if (cards == nullptr)
+        return found;
+
+    for (auto const& [key, value] : *cards)
+    {
+        auto const reference = std::string_view{key.str()};
+
+        card_entry entry{.reference = std::string{reference}, .card = std::string{reference}};
+
+        if (auto const split = cut(reference, ':'))
+        {
+            entry.card = std::string{split->first};
+            entry.variant = std::string{split->second};
+        }
+
+        if (auto const* fields = value.as_table())
+        {
+            for (auto const& [field, _] : *fields) entry.declared.emplace_back(field.str());
+
+            if (auto const* image = (*fields)["image"].as_string())
+                entry.image = image->get();
+        }
+
+        found.push_back(std::move(entry));
+    }
+
+    return found;
+}
+
 std::vector<coined_name> coined_names(std::span<deck_file const> files, toml::table const& doc)
 {
     std::vector<coined_name> found;
@@ -267,6 +306,11 @@ std::vector<coined_name> coined_names(std::span<deck_file const> files, toml::ta
 }
 
 }  // namespace
+
+bool card_entry::declares(std::string_view key) const
+{
+    return std::ranges::contains(declared, key);
+}
 
 deck_file const* deck_facts::file_at(std::string_view relative) const
 {
@@ -304,6 +348,7 @@ deck_facts::deck_facts(std::span<deck_file const> files, toml::table const& doc,
     this->back_files = classify_back_files(files, this->back_images);
     this->designs = design_keys(this->back_files, this->back_images);
     this->declared = declared_paths(doc);
+    this->card_entries = index_card_entries(doc);
     this->coined = coined_names(files, doc);
 }
 

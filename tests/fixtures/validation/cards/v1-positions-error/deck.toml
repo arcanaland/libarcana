@@ -1,0 +1,15 @@
+[deck]
+id = "v1-positions"
+schema_version = "1.0"
+name = "V1 Contested Positions"
+version = "1.0"
+
+[custom_cards.major_arcana.happy_squirrel]
+name = "The Happy Squirrel"
+image = "scalable/major_arcana/happy_squirrel.svg"
+position = 22
+
+[custom_cards.major_arcana.other_squirrel]
+name = "Another Squirrel"
+image = "scalable/major_arcana/other_squirrel.svg"
+position = 22

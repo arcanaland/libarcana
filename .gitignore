@@ -3,5 +3,11 @@
 __pycache__/
 .pytest_cache/
 CMakeUserPresets.json
+
+
+# slop-containment zone
 agents/
-.claude/settings.local.json
+.claude/*
+*.local.md
+/docs/
+.scratch/
