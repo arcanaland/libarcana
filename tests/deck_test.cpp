@@ -417,9 +417,9 @@ TEST_CASE("rider-waite-smith enumerates all 78 standard cards", "[deck][referenc
     CHECK(result->cards().size() == 78);
 }
 
-TEST_CASE("a 1.0 reference deck reports an artist but no identifier", "[deck][reference-decks]")
+TEST_CASE("a 1.0 deck reports an artist but no identifier", "[deck]")
 {
-    auto const result = load_deck(reference_deck("rider-waite-smith"));
+    auto const result = load_deck(fixture("v1-artist-deck"));
     REQUIRE(result.has_value());
 
     CHECK(result->metadata().artist == "Pamela Colman Smith");
@@ -440,7 +440,7 @@ TEST_CASE("ascii-tarot resolves ansi20 card images", "[deck][reference-decks]")
 
     REQUIRE(fool->best_ansi_for_lines(40).has_value());
     CHECK(fool->best_ansi_for_lines(40)->lines == 20);
-    CHECK_FALSE(fool->best_raster_for_height(1200).has_value());
+    CHECK(fool->best_raster_for_height(1200).has_value());
     CHECK_FALSE(fool->scalable_image().has_value());
 }
 
