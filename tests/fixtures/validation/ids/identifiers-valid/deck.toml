@@ -4,7 +4,7 @@ name = "Good Identifiers"
 version = "1.0"
 identifier = "org.example/deck/good-identifiers"
 related = [
-  { rel = "surrogate_for", deck = "com.example/deck/other" },
+  { rel = "surrogate_for", target = "com.example/deck/other" },
 ]
 
 [app."org.example.viewer"]

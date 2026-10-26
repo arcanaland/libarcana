@@ -1,0 +1,24 @@
+# - `[suits.batons]` and `[ranks.valet]` key the printed names rather than the
+#   canonical `wands` and `page` the files are under, so they describe nothing
+# - `[suits.wands]`, `[suits.cups]` and `[ranks.page]` describe what the files
+#   are, and are not reported
+[deck]
+schema_version = "2.0"
+name = "Suit and Rank Tables"
+version = "1.0"
+identifier = "org.example/deck/suit-rank-tables"
+
+[suits.batons]
+name = "Bâtons"
+
+[suits.wands]
+name = "Bâtons"
+
+[suits.cups]
+name = "Coupes"
+
+[ranks.valet]
+name = "Valet"
+
+[ranks.page]
+name = "Valet"

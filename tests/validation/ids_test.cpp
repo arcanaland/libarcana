@@ -9,6 +9,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -63,8 +64,8 @@ TEST_CASE("malformed identifiers and app realms are reported", "[validation][ids
         keys_of(found) == std::vector<std::string>{
                               "app.land",
                               "deck.identifier",
-                              "deck.related[0].deck",
-                              "deck.related[1].deck",
+                              "deck.related[0].target",
+                              "deck.related[1].target",
                           }
     );
 
@@ -106,7 +107,7 @@ TEST_CASE("an off-convention path and a self-related deck are reported", "[valid
     CHECK(
         keys_of(found) == std::vector<std::string>{
                               "deck.identifier",
-                              "deck.related[0].deck",
+                              "deck.related[0].target",
                           }
     );
 
@@ -131,6 +132,7 @@ TEST_CASE("coined names outside the grammar and reserved ones are reported", "[v
                                "bad-custom-name",
                                "reserved-custom-name",
                                "reserved-custom-name",
+                               "undefined-suit-or-rank-table",
                            }
     );
 
@@ -143,6 +145,7 @@ TEST_CASE("coined names outside the grammar and reserved ones are reported", "[v
                               "<none>",
                               "card_backs.designs.major_arcana",
                               "suits.Stars.ranks",
+                              "suits.Stars",
                           }
     );
 
@@ -159,11 +162,15 @@ TEST_CASE("coined names outside the grammar and reserved ones are reported", "[v
     CHECK(found[5].message.find("'major_arcana'") != std::string::npos);
     CHECK(found[6].message.find("'wands'") != std::string::npos);
 
-    for (auto const& one : found)
+    for (auto const& one : found | std::views::take(7))
     {
         INFO("message: " << one.message);
         CHECK(one.level == severity::error);
     }
+
+    // The deck's files are under `stars/`, so `[suits.Stars]` describes no
+    // suit the deck has.
+    CHECK(found[7].level == severity::warning);
 
     // `ace` in the same ranks list is a canonical rank where one belongs, and
     // `stars` is a well-formed custom suit key discovered from the tree.
@@ -225,8 +232,8 @@ TEST_CASE("a fragment on a field that names a deck is reported", "[validation][i
     CHECK(
         keys_of(found) == std::vector<std::string>{
                               "deck.identifier",
-                              "deck.related[0].deck",
-                              "deck.related[1].deck",
+                              "deck.related[0].target",
+                              "deck.related[1].target",
                           }
     );
 
@@ -251,38 +258,53 @@ TEST_CASE("relations the specification bounds to one are reported", "[validation
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "conflicting-deck-relation",
-                               "conflicting-deck-relation",
                            }
     );
 
-    CHECK(
-        keys_of(found) == std::vector<std::string>{
-                              "deck.related[1].rel",
-                              "deck.related[2].deck",
-                          }
-    );
+    CHECK(keys_of(found) == std::vector<std::string>{"deck.related[1].rel"});
 
     using Catch::Matchers::ContainsSubstring;
 
+    CHECK(found[0].level == severity::error);
+    CHECK_FALSE(found[0].card.has_value());
+    CHECK_FALSE(found[0].path.has_value());
+    REQUIRE_THAT(found[0].message, ContainsSubstring("at most one 'pattern' relation"));
+
+    // DECK.md#412-relations lets one target sit under several rels, so a
+    // surrogate_for beside the patterns is no conflict.
     for (auto const& one : found)
     {
         INFO("message: " << one.message);
-        CHECK(one.level == severity::error);
-        CHECK_FALSE(one.card.has_value());
-        CHECK_FALSE(one.path.has_value());
+        CHECK_FALSE(ContainsSubstring("surrogate_for").match(one.message));
     }
+}
 
-    REQUIRE_THAT(found[0].message, ContainsSubstring("at most one 'pattern' relation"));
-    REQUIRE_THAT(found[1].message, ContainsSubstring("com.example/deck/other"));
-    REQUIRE_THAT(found[1].message, ContainsSubstring("both pattern and surrogate_for"));
+TEST_CASE("a pattern relation outside the pattern segment is reported", "[validation][ids]")
+{
+    auto const found = validate_fixture("validation/ids/pattern-target-error");
+
+    // The companion into deck/ is where a companion belongs and is not reported.
+    REQUIRE(
+        codes_of(found) == std::vector<std::string_view>{
+                               "pattern-target-not-pattern",
+                           }
+    );
+
+    CHECK(keys_of(found) == std::vector<std::string>{"deck.related[0].target"});
+
+    using Catch::Matchers::ContainsSubstring;
+
+    CHECK(found[0].level == severity::warning);
+    CHECK_FALSE(found[0].card.has_value());
+    REQUIRE_THAT(found[0].message, ContainsSubstring("land.arcana/deck/rider-waite-smith"));
+    REQUIRE_THAT(found[0].message, ContainsSubstring("'deck' segment"));
 }
 
 TEST_CASE("a second 'expands' relation is reported", "[validation][ids]")
 {
     auto const found = validate_fixture("validation/ids/expands-bound-error");
 
-    // 'companion' is unbounded, so only the repeated 'expands' is reported, and
-    // 'expands' takes no part in the surrogate_for cross-check.
+    // 'companion' is unbounded, so only the repeated 'expands' is reported.
     REQUIRE(
         codes_of(found) == std::vector<std::string_view>{
                                "conflicting-deck-relation",

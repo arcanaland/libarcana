@@ -580,6 +580,57 @@ void check_rank_without_image(check_context const& ctx)
     }
 }
 
+void check_undefined_suit_or_rank_table(check_context const& ctx)
+{
+    // DECK.md#44-suits: a suit is the deck's where it has artwork, and the
+    // table only describes it.
+    if (auto const* suits = ctx.doc["suits"].as_table())
+        for (auto const& [key, value] : *suits)
+        {
+            if (!value.is_table())
+                continue;
+
+            auto const suit = std::string_view{key.str()};
+            if (std::ranges::any_of(
+                    ctx.d.cards_in_suit(suit), [&](card const& c) { return has_artwork(ctx, c); }
+                ))
+                continue;
+
+            ctx.report({
+                .message = std::format(
+                    "[suits.{}] describes a suit the deck has no artwork for, so no card takes a "
+                    "name from it. A renamed canonical suit keeps its canonical key",
+                    suit
+                ),
+                .key = std::format("suits.{}", suit),
+            });
+        }
+
+    // DECK.md#45-ranks: likewise, in any suit.
+    if (auto const* ranks = ctx.doc["ranks"].as_table())
+        for (auto const& [key, value] : *ranks)
+        {
+            if (!value.is_table())
+                continue;
+
+            auto const rank = std::string_view{key.str()};
+            if (std::ranges::any_of(
+                    ctx.d.cards(), [&](card const& c)
+                    { return !c.id.is_major() && rank_key(c.id) == rank && has_artwork(ctx, c); }
+                ))
+                continue;
+
+            ctx.report({
+                .message = std::format(
+                    "[ranks.{}] describes a rank the deck has no artwork for in any suit, so no "
+                    "card takes a name from it. A renamed canonical rank keeps its canonical key",
+                    rank
+                ),
+                .key = std::format("ranks.{}", rank),
+            });
+        }
+}
+
 void check_unknown_variant_default(check_context const& ctx)
 {
     for (auto const& c : ctx.d.cards())

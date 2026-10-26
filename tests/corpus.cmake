@@ -24,7 +24,7 @@ set(ARCANA_SPECIFICATION_V1_TAG
     "Commit of published v1 spec at arcanaland/specifications")
 
 set(ARCANA_SPECIFICATION_V2_TAG
-    de448c2675bc0e4c560e3a06fc9e6314b43d96c3 CACHE STRING
+    2d203ddde772a74607c2cc3755e2260be04481fa CACHE STRING
     "Commit of published v2 spec at arcanaland/specifications")
 
 set(ARCANA_SPECIFICATION_DIR "" CACHE PATH

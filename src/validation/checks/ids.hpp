@@ -20,6 +20,7 @@ void check_conflicting_deck_relation(check_context const& ctx);
 void check_deck_identifier_path_shape(check_context const& ctx);
 void check_missing_deck_identifier(check_context const& ctx);
 void check_non_canonical_card_reference(check_context const& ctx);
+void check_pattern_target_not_pattern(check_context const& ctx);
 void check_related_self(check_context const& ctx);
 void check_reserved_custom_name(check_context const& ctx);
 

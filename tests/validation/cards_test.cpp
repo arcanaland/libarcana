@@ -290,6 +290,40 @@ TEST_CASE("a rank repeated three times is reported once", "[validation][cards]")
     CHECK(repeats == 1);
 }
 
+TEST_CASE("a suit or rank table naming what the deck lacks is reported", "[validation][cards]")
+{
+    auto const found = validate_fixture("validation/cards/suit-rank-table-error");
+
+    REQUIRE(
+        codes_of(found) == std::vector<std::string_view>{
+                               "undefined-suit-or-rank-table",
+                               "undefined-suit-or-rank-table",
+                           }
+    );
+
+    // [suits.wands], [suits.cups] and [ranks.page] describe the files the deck
+    // has, so only the printed-name keys are reported.
+    CHECK(
+        keys_of(found) == std::vector<std::string>{
+                              "ranks.valet",
+                              "suits.batons",
+                          }
+    );
+
+    using Catch::Matchers::ContainsSubstring;
+
+    for (auto const& one : found)
+    {
+        INFO("message: " << one.message);
+        CHECK(one.level == severity::warning);
+        CHECK_FALSE(one.card.has_value());
+        CHECK_FALSE(one.path.has_value());
+    }
+
+    REQUIRE_THAT(found[0].message, ContainsSubstring("[ranks.valet]"));
+    REQUIRE_THAT(found[1].message, ContainsSubstring("[suits.batons]"));
+}
+
 TEST_CASE("an excluded card's off-chain leftover is not artwork", "[validation][cards]")
 {
     auto const found = validate_fixture("validation/cards/exclusions-error");

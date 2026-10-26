@@ -14,10 +14,10 @@
 #include <array>
 #include <cstddef>
 #include <format>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace arcana::validation
 {
@@ -53,13 +53,6 @@ std::optional<std::string_view> relation_string(toml::node const& entry, std::st
 
     return std::string_view{value->get()};
 }
-
-// One entry of a relation
-struct named_relation
-{
-    std::size_t index;
-    std::string_view target;
-};
 
 // True where a reserved canonical key is legitimate at this site rather than a
 // name the deck creator coined.
@@ -212,7 +205,7 @@ void check_bad_related_entry(check_context const& ctx)
                 .key = std::format("deck.related[{}].rel", index),
             });
 
-        auto const target = relation_string(entry, "deck");
+        auto const target = relation_string(entry, "target");
         if (!target)
             continue;
 
@@ -221,11 +214,11 @@ void check_bad_related_entry(check_context const& ctx)
         {
             ctx.report({
                 .message = std::format(
-                    "related deck '{}' is not a qualified identifier: a realm, a slash and one or "
-                    "more path segments",
+                    "related target '{}' is not a qualified identifier: a realm, a slash and "
+                    "one or more path segments",
                     *target
                 ),
-                .key = std::format("deck.related[{}].deck", index),
+                .key = std::format("deck.related[{}].target", index),
             });
 
             continue;
@@ -234,13 +227,13 @@ void check_bad_related_entry(check_context const& ctx)
         if (parts->fragment.empty())
             continue;
 
-        // A relation names a package, never a card or a variant of one.
+        // A relation names an entity, never a card or a variant of one.
         ctx.report({
             .message = std::format(
-                "related deck '{}' has a fragment '{}' which is prohibited", *target,
+                "related target '{}' has a fragment '{}' which is prohibited", *target,
                 parts->fragment
             ),
-            .key = std::format("deck.related[{}].deck", index),
+            .key = std::format("deck.related[{}].target", index),
         });
     }
 }
@@ -254,17 +247,17 @@ void check_related_self(check_context const& ctx)
 
     for (std::size_t index = 0; index < related->size(); ++index)
     {
-        auto const target = relation_string(*related->get(index), "deck");
+        auto const target = relation_string(*related->get(index), "target");
         if (!target || *target != *identifier)
             continue;
 
         ctx.report({
             .message = std::format(
-                "related deck '{}' is this deck's own identifier, and a deck stands in no relation "
-                "to itself",
+                "related target '{}' is this deck's own identifier, and a deck stands in "
+                "no relation to itself",
                 *target
             ),
-            .key = std::format("deck.related[{}].deck", index),
+            .key = std::format("deck.related[{}].target", index),
         });
     }
 }
@@ -276,48 +269,64 @@ void check_conflicting_deck_relation(check_context const& ctx)
         return;
 
     static constexpr std::array<std::string_view, 3> bounded{"pattern", "surrogate_for", "expands"};
-    std::array<std::vector<named_relation>, bounded.size()> seen;
-
-    auto const slot = [&seen](std::string_view rel) -> std::vector<named_relation>&
-    { return seen[static_cast<std::size_t>(std::ranges::find(bounded, rel) - bounded.begin())]; };
+    std::array<bool, bounded.size()> seen{};
 
     for (std::size_t index = 0; index < related->size(); ++index)
     {
-        auto const& entry = *related->get(index);
-
-        auto const rel = relation_string(entry, "rel");
+        auto const rel = relation_string(*related->get(index), "rel");
         if (!rel)
             continue;
 
-        if (!std::ranges::contains(bounded, *rel))
+        auto const slot = static_cast<std::size_t>(
+            std::ranges::distance(bounded.begin(), std::ranges::find(bounded, *rel))
+        );
+        if (slot == bounded.size())
             continue;
 
-        auto& declared = slot(*rel);
-        if (!declared.empty())
+        auto& declared = seen[slot];
+        if (declared)
             ctx.report({
                 .message = std::format("a deck must declare at most one '{}' relation", *rel),
                 .key = std::format("deck.related[{}].rel", index),
             });
 
-        declared.push_back({
-            .index = index,
-            .target = relation_string(entry, "deck").value_or(std::string_view{}),
-        });
+        declared = true;
     }
+}
 
-    for (auto const& surrogate : slot("surrogate_for"))
+void check_pattern_target_not_pattern(check_context const& ctx)
+{
+    auto const* related = deck_relations(ctx);
+    if (related == nullptr)
+        return;
+
+    for (std::size_t index = 0; index < related->size(); ++index)
     {
-        if (surrogate.target.empty() ||
-            !std::ranges::contains(slot("pattern"), surrogate.target, &named_relation::target))
+        auto const& entry = *related->get(index);
+        if (relation_string(entry, "rel") != "pattern")
+            continue;
+
+        auto const target = relation_string(entry, "target");
+        if (!target)
+            continue;
+
+        auto const parts = data::parse_qualified_identifier(*target);
+        if (!parts)
+            // Ill-formed is bad-related-entry's to report
+            continue;
+
+        // DECK.md#33-qualified-identifiers: the first path segment is the type
+        auto const segment = parts->path.substr(0, parts->path.find('/'));
+        if (segment == "pattern")
             continue;
 
         ctx.report({
             .message = std::format(
-                "'{}' is named under both pattern and surrogate_for. A deck that stands in for "
-                "another is that deck; it does not also resemble it",
-                surrogate.target
+                "pattern target '{}' is in the '{}' segment; a pattern is named in the 'pattern' "
+                "segment",
+                *target, segment
             ),
-            .key = std::format("deck.related[{}].deck", surrogate.index),
+            .key = std::format("deck.related[{}].target", index),
         });
     }
 }

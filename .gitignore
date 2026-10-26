@@ -10,4 +10,4 @@ agents/
 .claude/*
 *.local.md
 /docs/
-.scratch/
+.scratch*/
