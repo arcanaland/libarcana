@@ -2,8 +2,6 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# Fail if code or build files name a knowledge-base doc (RFC-…, ADR-…, TASK-…).
-# With no arguments, scan the working tree; with arguments, scan those staged files.
 set -euo pipefail
 
 pattern='(^|[^[:alnum:]_])(RFC|ADR|TASK)-[0-9]+'
