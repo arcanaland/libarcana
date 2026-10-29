@@ -30,6 +30,8 @@ void check_position_on_minor_arcanum(check_context const& ctx);
 
 void check_rank_without_image(check_context const& ctx);
 
+void check_undefined_suit_or_rank_table(check_context const& ctx);
+
 void check_unknown_variant_default(check_context const& ctx);
 
 void check_variant_card_without_default(check_context const& ctx);

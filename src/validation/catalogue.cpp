@@ -336,11 +336,11 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("412-related-decks")},
+        .cites = {v2("412-relations")},
         .in_rules_table = true,
-        .explanation = "A [deck].related entry names a rel that is not a custom name, or a deck "
-                       "that is not a well-formed qualified identifier or that carries a fragment. "
-                       "A relation names a package, never a card.",
+        .explanation = "A [deck].related entry names a rel that is not a custom name, or a "
+                       "target that is not a well-formed qualified identifier or that carries a "
+                       "fragment. A relation names an entity, never a card.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -474,12 +474,11 @@ constexpr std::array catalogue{
         .area = "ids",
         .needs = phase::document,
         .cites =
-            {v2("412-related-decks"), v2("4122-surrogate_for"), v2("4121-pattern"),
-             v2("4123-expands")},
+            {v2("412-relations"), v2("4122-surrogate_for"), v2("4121-pattern"), v2("4123-expands")},
         .in_rules_table = true,
-        .explanation = "A deck declares more than one pattern, surrogate_for or expands relation, "
-                       "or names the same deck under both pattern and surrogate_for. A deck that "
-                       "stands in for another is that deck; it does not also resemble it.",
+        .explanation =
+            "A deck declares more than one pattern, surrogate_for or expands relation. A package "
+            "stands in for one deck and contributes its cards to one.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -656,7 +655,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::filesystem,
-        .cites = {v2("412-related-decks"), v2("676-when-no-asset-is-found")},
+        .cites = {v2("412-relations"), v2("676-when-no-asset-is-found")},
         .in_rules_table = true,
         .explanation =
             "A package declaring rel = \"expands\" also declares [excluded_cards] covering "
@@ -998,6 +997,17 @@ constexpr std::array catalogue{
         .experimental = false,
     },
     rule{
+        .code = "pattern-target-not-pattern",
+        .default_level = severity::warning,
+        .area = "ids",
+        .needs = phase::document,
+        .cites = {v2("4121-pattern"), v2("33-qualified-identifiers")},
+        .in_rules_table = true,
+        .explanation = "A pattern relation's target is outside the pattern type segment.",
+        .applies_to = {.min = 2, .max = 2},
+        .experimental = false,
+    },
+    rule{
         .code = "position-on-minor-arcanum",
         .default_level = severity::warning,
         .area = "cards",
@@ -1067,7 +1077,7 @@ constexpr std::array catalogue{
         .default_level = severity::error,
         .area = "ids",
         .needs = phase::document,
-        .cites = {v2("412-related-decks")},
+        .cites = {v2("412-relations")},
         .in_rules_table = true,
         .explanation = "A [deck].related entry names this deck's own identifier. A deck stands in "
                        "no relation to itself, so the entry asserts nothing.",
@@ -1118,7 +1128,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "surrogate",
         .needs = phase::filesystem,
-        .cites = {v2("69-surrogate-decks"), v2("412-related-decks")},
+        .cites = {v2("69-surrogate-decks"), v2("412-relations")},
         .in_rules_table = true,
         .explanation =
             "A surrogate deck declares neither a surrogate_for relation nor any [deck.product_ids] "
@@ -1178,6 +1188,17 @@ constexpr std::array catalogue{
             "arrives from outside the system, so this reads a file its packager chose on "
             "a machine they do not own.",
         .applies_to = {.min = 1, .max = 2},
+        .experimental = false,
+    },
+    rule{
+        .code = "undefined-suit-or-rank-table",
+        .default_level = severity::warning,
+        .area = "cards",
+        .needs = phase::filesystem,
+        .cites = {v2("44-suits"), v2("45-ranks")},
+        .in_rules_table = true,
+        .explanation = "A [suits] or [ranks] table defines a suit or rank with no artwork.",
+        .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
     rule{
@@ -1357,7 +1378,7 @@ constexpr std::array catalogue{
         .default_level = severity::warning,
         .area = "deck",
         .needs = phase::document,
-        .cites = {v2("412-related-decks")},
+        .cites = {v2("412-relations")},
         .in_rules_table = true,
         .explanation =
             "A [deck].related rel is outside the registry and is not prefixed. "

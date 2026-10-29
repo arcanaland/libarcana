@@ -6,5 +6,5 @@ name = "Odd Shape"
 version = "1.0"
 identifier = "org.example/tarot/odd-shape"
 related = [
-  { rel = "surrogate_for", deck = "org.example/tarot/odd-shape" },
+  { rel = "surrogate_for", target = "org.example/tarot/odd-shape" },
 ]

@@ -6,8 +6,8 @@ name = "Twice Expanding"
 version = "1.0"
 identifier = "org.example/deck/twice-expanding"
 related = [
-  { rel = "expands", deck = "land.arcana/deck/rider-waite-smith" },
-  { rel = "companion", deck = "com.example/deck/one" },
-  { rel = "expands", deck = "com.example/deck/other" },
-  { rel = "companion", deck = "com.example/deck/two" },
+  { rel = "expands", target = "land.arcana/deck/rider-waite-smith" },
+  { rel = "companion", target = "com.example/deck/one" },
+  { rel = "expands", target = "com.example/deck/other" },
+  { rel = "companion", target = "com.example/deck/two" },
 ]

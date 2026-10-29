@@ -1,6 +1,7 @@
 # - `Stars` and `first-edition` are outside the custom-name grammar,
 # - 2nd starts with a digit
-# - `wands` and `major_arcana` are reserved canonical keys 
+# - `wands` and `major_arcana` are reserved canonical keys
+# - `[suits.Stars]` describes no suit the deck has: its files are under `stars/`
 [deck]
 schema_version = "2.0"
 name = "Bad Custom Names"

@@ -1,12 +1,13 @@
 # - two `pattern` relations where the specification allows one
-# - the `surrogate_for` target is also named under `pattern`
+# - a `surrogate_for` beside them, which is bounded on its own and conflicts
+#   with neither
 [deck]
 schema_version = "2.0"
 name = "Conflicting Relations"
 version = "1.0"
 identifier = "org.example/deck/conflicting-relations"
 related = [
-  { rel = "pattern", deck = "land.arcana/deck/rider-waite-smith" },
-  { rel = "pattern", deck = "com.example/deck/other" },
-  { rel = "surrogate_for", deck = "com.example/deck/other" },
+  { rel = "pattern", target = "land.arcana/pattern/rider-waite-smith" },
+  { rel = "pattern", target = "land.arcana/pattern/thoth" },
+  { rel = "surrogate_for", target = "com.example/deck/other" },
 ]
