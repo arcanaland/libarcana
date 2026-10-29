@@ -102,6 +102,8 @@ deck_state deck_reader::build() &&
     build_custom_majors();
     build_custom_minors();
 
+    deck_.ranks = deck_.ordered_ranks({});
+
     sort_cards(deck_.cards, deck_.suits);
 
     return std::move(deck_);

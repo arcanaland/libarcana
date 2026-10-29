@@ -1,10 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# dispatch_test and reader_test drive the public load_deck over a deck on disk,
+# dispatch_test, reader_test and corpus_test drive the public load_deck over a deck on disk,
 # so arcana::arcana already carries everything they include.
 arcana_add_test(dispatch_test LIBS arcana::arcana)
 arcana_add_test(reader_test LIBS arcana::arcana)
+arcana_add_test(corpus_test LIBS arcana::arcana)
 
 arcana_add_test(loader_test LIBS arcana::loader-v1 arcana::arcana)
 # The one true leaf here: OBJECT libraries do not propagate objects, so the

@@ -72,6 +72,30 @@ std::string detail::deck_state::display_rank_name(std::string_view rank_key) con
     return titlecase_key(rank_key);
 }
 
+std::vector<rank_info> detail::deck_state::ordered_ranks(
+    std::span<std::string const> extra_keys
+) const
+{
+    std::vector<rank_info> result;
+
+    auto const add = [&](std::string const& key)
+    {
+        if (std::ranges::find(result, key, &rank_info::key) != result.end())
+            return;
+
+        result.push_back({.key = key, .name = display_rank_name(key), .declared = {}});
+    };
+
+    for (auto const& info : suits)
+        for (auto const& key : info.ranks) add(key);
+
+    auto remaining = std::vector<std::string>(extra_keys.begin(), extra_keys.end());
+    std::ranges::sort(remaining);
+    for (auto const& key : remaining) add(key);
+
+    return result;
+}
+
 std::optional<std::string> detail::deck_state::exclusion_reason(std::string_view canonical_id) const
 {
     if (std::ranges::find(excluded.cards, canonical_id) == excluded.cards.end())
@@ -167,6 +191,19 @@ excluded_cards const& deck::excluded() const noexcept
 std::span<suit_info const> deck::suits() const noexcept
 {
     return state_->suits;
+}
+
+std::span<rank_info const> deck::ranks() const noexcept
+{
+    return state_->ranks;
+}
+
+std::optional<std::string_view> deck::minor_arcana_name_template() const noexcept
+{
+    if (!state_->minor_arcana_name_template)
+        return std::nullopt;
+
+    return *state_->minor_arcana_name_template;
 }
 
 std::span<card const> deck::cards() const noexcept

@@ -61,6 +61,20 @@ std::vector<origin_term> inherit_origin(
     return declared;
 }
 
+// Where a minor arcana name template was found
+enum class template_layer : std::uint8_t
+{
+    name_file,
+    manifest,
+    built_in,
+};
+
+struct minor_template
+{
+    std::string text;
+    template_layer layer = template_layer::built_in;
+};
+
 // What a [cards."<ref>"] entry supplies.
 struct card_annotation
 {
@@ -128,6 +142,7 @@ class reader
     static void discover_backs(image_root const& root, root_index& index);
 
     void build_suits();
+    void build_ranks();
 
     void read_annotations();
     [[nodiscard]] std::set<std::string> wanted_cards() const;
@@ -151,7 +166,12 @@ class reader
     void resolve_card_names();
     void resolve_back_names();
     void name_major(card& c);
-    void name_minor(card& c, std::string_view name_template);
+    [[nodiscard]] minor_template template_for(std::string const& suit_key) const;
+    [[nodiscard]] std::pair<std::string, std::string> layer_names(
+        card const& c, template_layer layer
+    ) const;
+    [[nodiscard]] std::string composed_name(card const& c) const;
+    void name_minor(card& c);
 
     // The string a name file supplies at a key path, if any
     [[nodiscard]] std::optional<std::string> from_names(
@@ -203,7 +223,7 @@ class reader
     // by carrying an `image`
     std::map<std::string, std::map<std::string, variant_annotation>> variant_annotations_;
 
-    // Rank keys the deck uses, so that [name.rank] is read for each of them
+    // Rank keys the deck uses, so that deck::ranks() lists each of them
     std::set<std::string> rank_keys_;
 };
 
@@ -236,6 +256,8 @@ void reader::read_metadata()
     deck_.excluded.reason = get_string(excluded["reason"]);
 
     deck_.default_card_back = get_string(table()["card_backs"]["default"]);
+
+    deck_.minor_arcana_name_template = get_string(table()["minor_arcana"]["name_template"]);
 }
 
 void reader::discover_majors(image_root const& root, root_index& index)
@@ -310,7 +332,8 @@ void reader::build_suits()
         suit_info info{.key = std::move(key), .standard = standard};
 
         auto const declared = suits_table[info.key];
-        info.name = get_string_or(declared["name"]);
+        info.declared.name = get_string(declared["name"]);
+        info.declared.name_template = get_string(declared["name_template"]);
 
         // `ranks` on a canonical suit replaces its canonical sequence
         info.ranks = get_string_array(declared["ranks"]);
@@ -327,6 +350,16 @@ void reader::build_suits()
     for (auto const& key : discovered_suits_)
         if (!suit_from_string(key))
             add(key, /*standard=*/false);
+}
+
+void reader::build_ranks()
+{
+    auto const ranks_table = table()["ranks"];
+
+    auto const keys = std::vector<std::string>(rank_keys_.begin(), rank_keys_.end());
+    deck_.ranks = deck_.ordered_ranks(keys);
+
+    for (auto& info : deck_.ranks) info.declared.name = get_string(ranks_table[info.key]["name"]);
 }
 
 void reader::read_annotations()
@@ -640,20 +673,32 @@ void reader::build_variants()
         for (auto const& key : c.variant_keys()) c.variants.push_back(make_variant(c, key));
 }
 
+// The last step of the suit and rank chains
+std::string fallback_name(std::string_view key)
+{
+    return titlecase_key(key);
+}
+
+// The name file, then the manifest, then the fallback
 void reader::resolve_suit_names()
 {
     for (auto& info : deck_.suits)
-        if (auto const named = from_names({"name", "suit", info.key}))
-            info.name = *named;
+        info.name = from_names({"name", "suit", info.key})
+                        .or_else([&] { return info.declared.name; })
+                        .value_or(fallback_name(info.key));
 }
 
+// The name file, then the manifest, then the fallback
 void reader::resolve_rank_names()
 {
-    auto& rank_names = deck_.rank_names;
+    for (auto& info : deck_.ranks)
+    {
+        info.name = from_names({"name", "rank", info.key})
+                        .or_else([&] { return info.declared.name; })
+                        .value_or(fallback_name(info.key));
 
-    for (auto const& key : rank_keys_)
-        if (auto const named = from_names({"name", "rank", key}))
-            rank_names.emplace(key, *named);
+        deck_.rank_names.emplace(info.key, info.name);
+    }
 }
 
 void reader::name_major(card& c)
@@ -676,7 +721,82 @@ void reader::name_major(card& c)
         c.alt_text = *alt;
 }
 
-void reader::name_minor(card& c, std::string_view name_template)
+// Resolve the correct name template for minor arcana
+minor_template reader::template_for(std::string const& suit_key) const
+{
+    if (auto found = from_names({"name", "card", "minor_arcana", suit_key, "name_template"}))
+        return {.text = *std::move(found), .layer = template_layer::name_file};
+
+    if (auto found = from_names({"name", "card", "minor_arcana", "name_template"}))
+        return {.text = *std::move(found), .layer = template_layer::name_file};
+
+    if (auto const info = std::ranges::find(deck_.suits, suit_key, &suit_info::key);
+        info != deck_.suits.end())
+        if (auto const& declared = info->declared.name_template)
+            return {.text = *declared, .layer = template_layer::manifest};
+
+    if (auto const& declared = deck_.minor_arcana_name_template)
+        return {.text = *declared, .layer = template_layer::manifest};
+
+    return {.text = std::string{default_minor_name_template}, .layer = template_layer::built_in};
+}
+
+// {rank} or {suit} when it doesn't exist in the same layer as the template
+//
+// Provisional: rc.1 says a template composes with names from its own layer and
+// is silent on a name that layer does not give. This takes the fallback.
+std::string name_outside_layer(std::string_view key)
+{
+    return fallback_name(key);
+}
+
+// The rank/suit names for a template from a specific layer
+std::pair<std::string, std::string> reader::layer_names(card const& c, template_layer layer) const
+{
+    auto const base = rank_key(c.id);
+    auto const card_suit_key = suit_key(c.id);
+
+    switch (layer)
+    {
+        case template_layer::name_file:
+            return {
+                from_names({"name", "rank", base}).value_or(name_outside_layer(base)),
+                from_names({"name", "suit", card_suit_key})
+                    .value_or(name_outside_layer(card_suit_key)),
+            };
+
+        case template_layer::manifest:
+        {
+            auto const rank = std::ranges::find(deck_.ranks, base, &rank_info::key);
+            auto const suit = std::ranges::find(deck_.suits, card_suit_key, &suit_info::key);
+
+            auto rank_name = rank == deck_.ranks.end() ? std::nullopt : rank->declared.name;
+            auto suit_name = suit == deck_.suits.end() ? std::nullopt : suit->declared.name;
+
+            return {
+                std::move(rank_name).value_or(name_outside_layer(base)),
+                std::move(suit_name).value_or(name_outside_layer(card_suit_key)),
+            };
+        }
+
+        case template_layer::built_in:
+            // The default composes with whichever layer supplied the names
+            return {c.display_rank, c.display_suit};
+    }
+
+    std::unreachable();
+}
+
+// Name composed from a single layer
+std::string reader::composed_name(card const& c) const
+{
+    auto const name_template = template_for(suit_key(c.id));
+    auto const [rank_name, suit_name] = layer_names(c, name_template.layer);
+
+    return compose_minor_name(name_template.text, {.rank = rank_name, .suit = suit_name});
+}
+
+void reader::name_minor(card& c)
 {
     auto const base = rank_key(c.id);
     auto const card_suit_key = suit_key(c.id);
@@ -690,8 +810,7 @@ void reader::name_minor(card& c, std::string_view name_template)
         c.display_name = *declared;
     else
         // A minor arcanum's name is composed
-        c.display_name =
-            compose_minor_name(name_template, {.rank = c.display_rank, .suit = c.display_suit});
+        c.display_name = composed_name(c);
 
     if (auto const alt = from_names({"alt_text", "card", "minor_arcana", card_suit_key, base}))
         c.alt_text = *alt;
@@ -699,14 +818,11 @@ void reader::name_minor(card& c, std::string_view name_template)
 
 void reader::resolve_card_names()
 {
-    auto const name_template = from_names({"name", "card", "minor_arcana", "name_template"})
-                                   .value_or(std::string{default_minor_name_template});
-
     for (auto& c : deck_.cards)
         if (c.id.is_major())
             name_major(c);
         else
-            name_minor(c, name_template);
+            name_minor(c);
 }
 
 void reader::resolve_back_names()
@@ -741,6 +857,7 @@ deck_state reader::read()
     discover();
     build_suits();
     build_cards();
+    build_ranks();
     read_card_backs();
     resolve_names();
     build_variants();

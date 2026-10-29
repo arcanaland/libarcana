@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -36,16 +37,25 @@ struct deck_state
     // Every suit this deck has, canonical suits first
     std::vector<suit_info> suits;
 
+    // Every rank key this deck has in order
+    std::vector<rank_info> ranks;
+
+    // [minor_arcana].name_template
+    std::optional<std::string> minor_arcana_name_template;
+
     // The 78 standard cards minus exclusions, plus the deck's own cards
     std::vector<card> cards;
 
-    // `[card_backs].default`
+    // [card_backs].default
     std::optional<std::string> default_card_back;
 
-    // Rank key -> the display name this deck resolved for it. Filled at load
-    // from [aliases.courts] in 1.0 and from a name file's [name.rank] in 2.0;
-    // v2 gives ranks no manifest field, so there is no public map
+    // rank key -> display name
     std::unordered_map<std::string, std::string> rank_names;
+
+    // rank for the keys suits sequences plus extra_keys
+    [[nodiscard]] std::vector<rank_info> ordered_ranks(
+        std::span<std::string const> extra_keys
+    ) const;
 
     // So toml++ stays out of the public header
     std::shared_ptr<deck_document const> document;
