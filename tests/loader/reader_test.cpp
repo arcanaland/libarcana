@@ -819,6 +819,8 @@ classic = "Classic Back"
 
     SECTION("the template composes the minors the file does not name")
     {
+        // provisional: the file names no `wands`, so the fallback fills it.
+        // Reading A' of RFC-048
         CHECK(card_at(deck, "minor_arcana.wands.ace").display_name == "Ace des Wands");
         CHECK(card_at(deck, "minor_arcana.swords.knight").display_name == "Warrior des Swords");
         CHECK(card_at(deck, "minor_arcana.stars.ace").display_name == "Ace des Étoiles");
@@ -856,6 +858,317 @@ name = "Batons"
 
     CHECK(card_at(deck, "major_arcana.00").display_name == "Le Mat");
     CHECK(deck.display_suit_name(arcana::suit::wands) == "Batons");
+}
+
+TEST_CASE("the manifest's naming declarations are kept", "[loader][v2][names]")
+{
+    auto dir = make_deck(R"(
+[minor_arcana]
+name_template = "{rank} de {suit}"
+
+[suits]
+wands = { name = "Baton" }
+swords = { name = "Epee", name_template = "{rank} d'{suit}" }
+
+[suits.stars]
+ranks = ["ace", "valet"]
+
+[ranks]
+page = { name = "Valet" }
+valet = { name = "Varlet" }
+unused = { name = "Nobody" }
+)");
+    dir.write("scalable/minor_arcana/stars/ace.svg", "<svg/>");
+    dir.write("scalable/minor_arcana/stars/valet.svg", "<svg/>");
+    // A custom suit with no `ranks` sequence, so only its file creates the rank
+    dir.write("scalable/minor_arcana/moons/princess.svg", "<svg/>");
+    dir.write("names/en.toml", R"(
+[name.suit]
+wands = "Wands"
+)");
+
+    auto const deck = load(dir);
+
+    auto const suit_named = [&](std::string_view key) -> arcana::suit_info const&
+    {
+        auto const at = std::ranges::find(deck.suits(), key, &arcana::suit_info::key);
+        REQUIRE(at != deck.suits().end());
+        return *at;
+    };
+
+    auto const rank_named = [&](std::string_view key) -> arcana::rank_info const&
+    {
+        auto const at = std::ranges::find(deck.ranks(), key, &arcana::rank_info::key);
+        REQUIRE(at != deck.ranks().end());
+        return *at;
+    };
+
+    SECTION("[minor_arcana].name_template is read")
+    {
+        REQUIRE(deck.minor_arcana_name_template().has_value());
+        CHECK(*deck.minor_arcana_name_template() == "{rank} de {suit}");
+    }
+
+    SECTION("a suit's declaration is read")
+    {
+        auto const& swords = suit_named("swords");
+        CHECK(swords.declared.name == "Epee");
+        CHECK(swords.declared.name_template == "{rank} d'{suit}");
+
+        auto const& cups = suit_named("cups");
+        CHECK_FALSE(cups.declared.name.has_value());
+        CHECK_FALSE(cups.declared.name_template.has_value());
+    }
+
+    SECTION("the declared suit name survives a name file overriding it")
+    {
+        auto const& wands = suit_named("wands");
+        CHECK(wands.name == "Wands");
+        CHECK(wands.declared.name == "Baton");
+    }
+
+    SECTION("a rank's declaration is read")
+    {
+        CHECK(rank_named("page").declared.name == "Valet");
+        CHECK(rank_named("valet").declared.name == "Varlet");
+        CHECK_FALSE(rank_named("ace").declared.name.has_value());
+    }
+
+    SECTION("ranks lists the suits' sequences in order, then keys only a file uses")
+    {
+        std::vector<std::string> keys;
+        for (auto const& info : deck.ranks()) keys.push_back(info.key);
+
+        CHECK(
+            keys == std::vector<std::string>{
+                        "ace", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                        "ten", "page", "knight", "queen", "king", "valet", "princess"
+                    }
+        );
+    }
+
+    SECTION("a [ranks] key no suit or file uses is not a rank of the deck")
+    {
+        CHECK(
+            std::ranges::find(deck.ranks(), std::string_view{"unused"}, &arcana::rank_info::key) ==
+            deck.ranks().end()
+        );
+    }
+}
+
+TEST_CASE(
+    "suit and rank names resolve name file, then manifest, then fallback", "[loader][v2][names]"
+)
+{
+    auto dir = make_deck(R"(
+[suits]
+cups = { name = "Coupe" }
+wands = { name = "Baton" }
+
+[suits.stars]
+ranks = ["ace", "valet"]
+
+[ranks]
+page = { name = "Valet" }
+king = { name = "Roy" }
+)");
+    dir.write("scalable/minor_arcana/stars/ace.svg", "<svg/>");
+    dir.write("scalable/minor_arcana/stars/valet.svg", "<svg/>");
+    dir.write("names/en.toml", R"(
+[name.suit]
+wands = "Wands"
+
+[name.rank]
+king = "King"
+)");
+
+    auto const deck = load(dir);
+
+    auto const rank_named = [&](std::string_view key) -> arcana::rank_info const&
+    {
+        auto const at = std::ranges::find(deck.ranks(), key, &arcana::rank_info::key);
+        REQUIRE(at != deck.ranks().end());
+        return *at;
+    };
+
+    SECTION("[ranks] names a rank")
+    {
+        CHECK(deck.display_rank_name(arcana::rank::page) == "Valet");
+        CHECK(rank_named("page").name == "Valet");
+        CHECK(card_at(deck, "minor_arcana.cups.page").display_rank == "Valet");
+    }
+
+    SECTION("a name file's [name.rank] outranks [ranks]")
+    {
+        CHECK(deck.display_rank_name(arcana::rank::king) == "King");
+        CHECK(rank_named("king").name == "King");
+        CHECK(rank_named("king").declared.name == "Roy");
+    }
+
+    SECTION("a custom rank named nowhere is title-cased")
+    {
+        CHECK(deck.display_rank_name("valet") == "Valet");
+        CHECK(rank_named("valet").name == "Valet");
+    }
+
+    SECTION("a suit takes its manifest name unless a name file gives one")
+    {
+        CHECK(deck.display_suit_name(arcana::suit::cups) == "Coupe");
+        CHECK(deck.display_suit_name(arcana::suit::wands) == "Wands");
+        CHECK(deck.display_suit_name("stars") == "Stars");
+    }
+}
+
+TEST_CASE("minor names compose by the five-step chain", "[loader][v2][names]")
+{
+    // DECK.md#731-minor-arcana-name-composition
+    auto const manifest = R"(
+[minor_arcana]
+name_template = "{rank} de {suit}"
+
+[suits]
+wands = { name = "Baton" }
+cups = { name = "Coupe" }
+swords = { name = "Epee", name_template = "{rank} d'{suit}" }
+
+[ranks]
+ace = { name = "As" }
+page = { name = "Valet" }
+king = { name = "Roy" }
+)";
+
+    SECTION("step 1 beats step 2, and step 2 beats steps 3 and 4")
+    {
+        auto dir = make_deck(manifest);
+        dir.write("names/en.toml", R"(
+[name.card.minor_arcana]
+name_template = "{rank} of the {suit}"
+
+[name.card.minor_arcana.swords]
+name_template = "{suit}: {rank}"
+
+[name.suit]
+wands = "Rods"
+swords = "Blades"
+
+[name.rank]
+ace = "One"
+)");
+
+        auto const deck = load(dir);
+
+        CHECK(card_at(deck, "minor_arcana.swords.ace").display_name == "Blades: One");
+        CHECK(card_at(deck, "minor_arcana.wands.ace").display_name == "One of the Rods");
+    }
+
+    SECTION("step 3 beats step 4 for its suit only")
+    {
+        auto const deck = load(make_deck(manifest));
+
+        CHECK(card_at(deck, "minor_arcana.swords.king").display_name == "Roy d'Epee");
+        CHECK(card_at(deck, "minor_arcana.cups.page").display_name == "Valet de Coupe");
+        CHECK(card_at(deck, "minor_arcana.wands.ace").display_name == "As de Baton");
+    }
+
+    SECTION("step 5 with no template anywhere composes the resolved names")
+    {
+        auto dir = make_deck(R"(
+[suits]
+cups = { name = "Coupe" }
+
+[ranks]
+page = { name = "Valet" }
+)");
+        dir.write("names/en.toml", R"(
+[name.rank]
+king = "Rex"
+)");
+
+        auto const deck = load(dir);
+
+        CHECK(card_at(deck, "minor_arcana.cups.page").display_name == "Valet of Coupe");
+        CHECK(card_at(deck, "minor_arcana.cups.king").display_name == "Rex of Coupe");
+        CHECK(card_at(deck, "minor_arcana.wands.two").display_name == "Two of Wands");
+    }
+
+    SECTION("a template composes with names from its own layer")
+    {
+        auto dir = make_deck(manifest);
+        dir.write("names/en.toml", R"(
+[name.suit]
+cups = "Cups"
+)");
+
+        auto const deck = load(dir);
+        auto const& page = card_at(deck, "minor_arcana.cups.page");
+
+        // rc.1 breaks display_name == template(display_rank, display_suit) on
+        // purpose: the manifest's template joins the manifest's words, while
+        // the suit's own display name comes from the name file
+        CHECK(page.display_name == "Valet de Coupe");
+        CHECK(page.display_suit == "Cups");
+    }
+
+    SECTION("provisional: a manifest template meets a rank the manifest does not name")
+    {
+        // Reading A' of RFC-048: the fallback, not the name file's word
+        auto dir = make_deck(manifest);
+        dir.write("names/en.toml", R"(
+[name.rank]
+two = "Deuce"
+)");
+
+        auto const deck = load(dir);
+
+        CHECK(card_at(deck, "minor_arcana.wands.two").display_name == "Two de Baton");
+    }
+
+    SECTION("a [cards] name beats every template")
+    {
+        auto const deck = load(make_deck(
+            std::format(
+                R"({}
+[cards."minor_arcana.cups.ace"]
+name = "L'As de Coupe"
+)",
+                manifest
+            )
+        ));
+
+        CHECK(card_at(deck, "minor_arcana.cups.ace").display_name == "L'As de Coupe");
+    }
+}
+
+TEST_CASE("a 1.0 deck declares nothing", "[loader][v1][names]")
+{
+    arcana_test::temp_dir dir;
+    dir.write("deck.toml", R"([deck]
+schema_version = "1.0"
+name = "Old"
+version = "1.0"
+
+[aliases.courts]
+page = "Princess"
+)");
+
+    auto const deck = load(dir);
+
+    CHECK_FALSE(deck.minor_arcana_name_template().has_value());
+
+    for (auto const& info : deck.suits())
+    {
+        CHECK_FALSE(info.declared.name.has_value());
+        CHECK_FALSE(info.declared.name_template.has_value());
+    }
+
+    REQUIRE(deck.ranks().size() == 14);
+    CHECK(deck.ranks().front().key == "ace");
+    for (auto const& info : deck.ranks()) CHECK_FALSE(info.declared.name.has_value());
+
+    auto const page =
+        std::ranges::find(deck.ranks(), std::string_view{"page"}, &arcana::rank_info::key);
+    REQUIRE(page != deck.ranks().end());
+    CHECK(page->name == "Princess");
 }
 
 TEST_CASE("artwork origin is resolved at the door", "[loader][v2][origin]")

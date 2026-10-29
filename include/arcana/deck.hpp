@@ -103,20 +103,48 @@ struct excluded_cards
     std::optional<std::string> reason;
 };
 
+
+// A [suits.<key>] entry
+struct suit_declaration
+{
+    std::optional<std::string> name;
+    std::optional<std::string> name_template;
+};
+
 // One suit of a loaded deck, canonical or custom
 struct suit_info
 {
     std::string key;  // "wands" for a canonical suit, or the custom suit's key
+
+    // The resolved display name
     std::string name;
 
-    // The suit's rank keys, in the order the deck ranks them. The canonical
-    // fourteen for a canonical suit the deck does not re-rank
+    // The suit's rank keys in order
     std::vector<std::string> ranks;
 
     bool standard = true;
 
     // True when every card of this suit is excluded
     bool excluded = false;
+
+    suit_declaration declared;
+};
+
+// A [ranks.<key>] entry
+struct rank_declaration
+{
+    std::optional<std::string> name;
+};
+
+// One rank key of a loaded deck, canonical or custom
+struct rank_info
+{
+    std::string key;
+
+    // The resolved display name
+    std::string name;
+
+    rank_declaration declared;
 };
 
 // A loaded deck
@@ -137,6 +165,13 @@ class deck
 
     // Every suit this deck has, canonical suits first
     [[nodiscard]] std::span<suit_info const> suits() const noexcept;
+
+    // Every rank key this deck has in order
+    [[nodiscard]] std::span<rank_info const> ranks() const noexcept;
+
+    // The grammar for composing a minor arcanum's name
+    // nullopt if not declared
+    [[nodiscard]] std::optional<std::string_view> minor_arcana_name_template() const noexcept;
 
     // The 78 standard cards minus exclusions, plus the deck's own cards
     [[nodiscard]] std::span<card const> cards() const noexcept;
