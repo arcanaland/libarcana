@@ -819,8 +819,8 @@ classic = "Classic Back"
 
     SECTION("the template composes the minors the file does not name")
     {
-        // provisional: the file names no `wands`, so the fallback fills it.
-        // Reading A' of RFC-048
+        // provisional: the file names no `wands`, and rc.1 is silent on a name
+        // the template's layer does not give, so the fallback fills it
         CHECK(card_at(deck, "minor_arcana.wands.ace").display_name == "Ace des Wands");
         CHECK(card_at(deck, "minor_arcana.swords.knight").display_name == "Warrior des Swords");
         CHECK(card_at(deck, "minor_arcana.stars.ace").display_name == "Ace des Étoiles");
@@ -1111,7 +1111,8 @@ cups = "Cups"
 
     SECTION("provisional: a manifest template meets a rank the manifest does not name")
     {
-        // Reading A' of RFC-048: the fallback, not the name file's word
+        // rc.1 is silent on a name the template's layer does not give: the
+        // fallback, not the name file's word
         auto dir = make_deck(manifest);
         dir.write("names/en.toml", R"(
 [name.rank]

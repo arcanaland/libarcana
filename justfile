@@ -111,6 +111,11 @@ tidy: configure
 lint-reuse:
     reuse lint
 
+# Check for references to internal docs
+[group('lint')]
+lint-slop:
+    ./tools/slop-guard.sh
+
 # Stage the install tree.
 [group('dist')]
 [script]

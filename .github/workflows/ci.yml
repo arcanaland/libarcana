@@ -122,3 +122,6 @@ jobs:
 
       - name: REUSE compliance
         run: just lint-reuse
+
+      - name: Slop guard
+        run: just lint-slop

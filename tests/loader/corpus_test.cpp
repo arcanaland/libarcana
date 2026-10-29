@@ -43,8 +43,8 @@ TEST_CASE("marseille composes its minors in its own words", "[loader][v2][names]
     CHECK(display_name_of(*loaded, "minor_arcana.swords.king") == "Roy d'Epee");
     CHECK(display_name_of(*loaded, "minor_arcana.pentacles.queen") == "Reyne de Deniers");
 
-    // provisional: [ranks] names no `two`, so the fallback fills it. Reading A'
-    // of RFC-048
+    // provisional: [ranks] names no `two`, and rc.1 is silent on a name the
+    // template's layer does not give, so the fallback fills it
     CHECK(display_name_of(*loaded, "minor_arcana.wands.two") == "Two de Baton");
 
     CHECK(display_name_of(*loaded, "major_arcana.01") == "Le Bateleur");

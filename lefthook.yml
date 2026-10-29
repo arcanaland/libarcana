@@ -4,3 +4,6 @@ pre-commit:
       glob: "*.{cpp,hpp}"
       run: just format {staged_files}
       stage_fixed: true
+    slop-guard:
+      glob: "{*.cpp,*.hpp,*.in,*.cmake,*CMakeLists.txt,*.py,*.sh,*.just,justfile,Containerfile}"
+      run: ./tools/slop-guard.sh {staged_files}
