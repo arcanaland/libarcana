@@ -61,8 +61,7 @@ std::vector<origin_term> inherit_origin(
     return declared;
 }
 
-// Where a minor arcana name template was found, which decides the names it
-// composes with (DECK.md#731-minor-arcana-name-composition)
+// Where a minor arcana name template was found
 enum class template_layer : std::uint8_t
 {
     name_file,
@@ -674,12 +673,7 @@ void reader::build_variants()
         for (auto const& key : c.variant_keys()) c.variants.push_back(make_variant(c, key));
 }
 
-// The last step of the suit and rank chains (DECK.md#73-display-name-resolution)
-//
-// For a canonical key the specification leaves this to "a string the
-// application supplies", and libarcana's string is its English word, which for
-// every canonical key is exactly the title-cased key. For a custom key the
-// title-cased key is what the specification names
+// The last step of the suit and rank chains
 std::string fallback_name(std::string_view key)
 {
     return titlecase_key(key);
