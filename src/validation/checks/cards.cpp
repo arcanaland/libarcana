@@ -582,8 +582,6 @@ void check_rank_without_image(check_context const& ctx)
 
 void check_undefined_suit_or_rank_table(check_context const& ctx)
 {
-    // DECK.md#44-suits: a suit is the deck's where it has artwork, and the
-    // table only describes it.
     if (auto const* suits = ctx.doc["suits"].as_table())
         for (auto const& [key, value] : *suits)
         {
@@ -598,15 +596,14 @@ void check_undefined_suit_or_rank_table(check_context const& ctx)
 
             ctx.report({
                 .message = std::format(
-                    "[suits.{}] describes a suit the deck has no artwork for, so no card takes a "
-                    "name from it. A renamed canonical suit keeps its canonical key",
+                    "[suits.{}] describes a suit the deck has no artwork for.",
                     suit
                 ),
                 .key = std::format("suits.{}", suit),
             });
         }
 
-    // DECK.md#45-ranks: likewise, in any suit.
+    // TODO: refactor this loop since it's basically the same as the above one
     if (auto const* ranks = ctx.doc["ranks"].as_table())
         for (auto const& [key, value] : *ranks)
         {
@@ -622,8 +619,7 @@ void check_undefined_suit_or_rank_table(check_context const& ctx)
 
             ctx.report({
                 .message = std::format(
-                    "[ranks.{}] describes a rank the deck has no artwork for in any suit, so no "
-                    "card takes a name from it. A renamed canonical rank keeps its canonical key",
+                    "[ranks.{}] describes a rank the deck has no artwork for.",
                     rank
                 ),
                 .key = std::format("ranks.{}", rank),

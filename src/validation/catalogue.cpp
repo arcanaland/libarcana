@@ -1003,9 +1003,7 @@ constexpr std::array catalogue{
         .needs = phase::document,
         .cites = {v2("4121-pattern"), v2("33-qualified-identifiers")},
         .in_rules_table = true,
-        .explanation = "A pattern relation's target is outside the pattern type segment. A "
-                       "pattern is not a deck, so a target in deck/ names a package that in all "
-                       "likelihood does not exist.",
+        .explanation = "A pattern relation's target is outside the pattern type segment.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
@@ -1199,9 +1197,7 @@ constexpr std::array catalogue{
         .needs = phase::filesystem,
         .cites = {v2("44-suits"), v2("45-ranks")},
         .in_rules_table = true,
-        .explanation = "A [suits] or [ranks] table names a suit or rank with no card files. The "
-                       "tables describe rather than create, so it describes nothing. A renamed "
-                       "canonical suit or rank keeps its canonical key.",
+        .explanation = "A [suits] or [ranks] table defines a suit or rank with no artwork.",
         .applies_to = {.min = 2, .max = 2},
         .experimental = false,
     },
