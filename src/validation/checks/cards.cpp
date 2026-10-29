@@ -595,10 +595,8 @@ void check_undefined_suit_or_rank_table(check_context const& ctx)
                 continue;
 
             ctx.report({
-                .message = std::format(
-                    "[suits.{}] describes a suit the deck has no artwork for.",
-                    suit
-                ),
+                .message =
+                    std::format("[suits.{}] describes a suit the deck has no artwork for.", suit),
                 .key = std::format("suits.{}", suit),
             });
         }
@@ -618,10 +616,8 @@ void check_undefined_suit_or_rank_table(check_context const& ctx)
                 continue;
 
             ctx.report({
-                .message = std::format(
-                    "[ranks.{}] describes a rank the deck has no artwork for.",
-                    rank
-                ),
+                .message =
+                    std::format("[ranks.{}] describes a rank the deck has no artwork for.", rank),
                 .key = std::format("ranks.{}", rank),
             });
         }
