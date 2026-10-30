@@ -136,6 +136,77 @@ struct origin_term
     friend bool operator==(origin_term const&, origin_term const&) = default;
 };
 
+// Where a supplied name came from, an open registry (DECK.md#433-supplied-names)
+enum class name_source : std::uint8_t
+{
+    unstated,  // the deck names no source
+    booklet,
+    packaging,
+    publisher,
+    packager,
+    other,  // an x_ token, or any token this library does not recognize
+};
+
+// A name the deck gives a card whose face prints none (DECK.md#433-supplied-names)
+struct supplied_name
+{
+    // Verbatim, never case-converted
+    std::string text;
+
+    // As written. Where absent the name is in the artwork's language, which is
+    // a resolution and is not computed here
+    std::optional<std::string> lang;
+
+    name_source source = name_source::unstated;
+
+    // The source token as written, empty only where the deck names no source
+    std::string source_name;
+
+    friend bool operator==(supplied_name const&, supplied_name const&) = default;
+};
+
+// What a [cards] entry declares about one artwork, as written (DECK.md#43-cards)
+struct artwork_declaration
+{
+    // The deck's own strings
+    std::optional<std::string> name;
+    std::optional<std::string> alt_text;
+
+    // The number printed on the face, e.g. "XXIII" (DECK.md#431-card-numbers)
+    std::optional<std::string> number;
+
+    // The face shows no number, whatever the key's shape implies
+    bool unnumbered = false;
+
+    // The face shows no name, which ends name resolution after the manifest
+    bool unnamed = false;
+
+    // Never declared alongside `name` in a valid deck
+    std::optional<supplied_name> supplied;
+
+    // Text printed on the artwork besides its name and number, in reading
+    // order (DECK.md#432-inscriptions). A single string is one element
+    std::vector<std::string> inscription;
+
+    // Empty where the artwork inherits the deck's (DECK.md#71-language-tags)
+    std::vector<std::string> artwork_language;
+
+    std::optional<std::string> image;
+
+    friend bool operator==(artwork_declaration const&, artwork_declaration const&) = default;
+};
+
+// What [cards."<canonical-id>"] declares: the artwork, and the card's slot
+struct card_declaration : artwork_declaration
+{
+    // Major arcana only
+    std::optional<int> position;
+
+    std::optional<std::string> default_variant;
+
+    friend bool operator==(card_declaration const&, card_declaration const&) = default;
+};
+
 enum class image_kind : std::uint8_t
 {
     scalable,
@@ -178,20 +249,30 @@ struct card_variant
 struct card
 {
     card_id id;
+
+    // The resolved display name
+    //
+    // Empty where the artwork has no name: it is unnamed, or it is an extended
+    // major arcanum nothing names (DECK.md#73-display-name-resolution). Present
+    // such a card by its number
     std::string display_name;
+
+    // The card's [cards] entry as written. Empty for a 1.x deck
+    card_declaration declared;
 
     // Minor arcana only
     std::string display_suit;
     std::string display_rank;
 
     // The number printed on the card's face, e.g. "XXIII" or "VIII½"
-    // Opaque and not localized
+    // Opaque and not localized. As declared: see `declared.unnumbered`
     std::optional<std::string> number;
 
     // Major arcana only: where the card sits in the deck's sequence
     // nullopt for minors and for majors the deck gives no position
     std::optional<int> position;
 
+    // Resolved: a name file outranks the manifest's `declared.alt_text`
     std::optional<std::string> alt_text;
 
     // How this card's artwork came to exist, the deck's unless it says otherwise

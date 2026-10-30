@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace
@@ -1140,6 +1141,295 @@ name = "L'As de Coupe"
     }
 }
 
+TEST_CASE("a [cards] entry is kept as declared", "[loader][v2][declared]")
+{
+    SECTION("every field")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.09"]
+name = "L'Hermite"
+alt_text = "An old man with a lantern."
+number = "VIIII"
+inscription = "Lux ex tenebris"
+artwork_language = ["fr", "la"]
+image = "art/hermit.svg"
+position = 9
+default_variant = "lantern"
+
+[cards."major_arcana.13"]
+unnamed = true
+unnumbered = true
+supplied_name = { text = "La Mort", lang = "fr", source = "booklet" }
+)");
+        dir.write("art/hermit.svg", "<svg/>");
+        dir.write("scalable/major_arcana/09.lantern.svg", "<svg/>");
+
+        auto const deck = load(dir);
+
+        auto const& hermit = card_at(deck, "major_arcana.09").declared;
+        CHECK(hermit.name == "L'Hermite");
+        CHECK(hermit.alt_text == "An old man with a lantern.");
+        CHECK(hermit.number == "VIIII");
+        CHECK_FALSE(hermit.unnumbered);
+        CHECK_FALSE(hermit.unnamed);
+        CHECK_FALSE(hermit.supplied.has_value());
+        CHECK(hermit.inscription == std::vector<std::string>{"Lux ex tenebris"});
+        CHECK(hermit.artwork_language == std::vector<std::string>{"fr", "la"});
+        CHECK(hermit.image == "art/hermit.svg");
+        CHECK(hermit.position == 9);
+        CHECK(hermit.default_variant == "lantern");
+
+        auto const& death = card_at(deck, "major_arcana.13").declared;
+        CHECK(death.unnamed);
+        CHECK(death.unnumbered);
+        CHECK_FALSE(death.name.has_value());
+        CHECK_FALSE(death.number.has_value());
+        REQUIRE(death.supplied.has_value());
+        CHECK(death.supplied->text == "La Mort");
+        CHECK(death.supplied->lang == "fr");
+        CHECK(death.supplied->source == arcana::name_source::booklet);
+        CHECK(death.supplied->source_name == "booklet");
+    }
+
+    SECTION("an inscription array keeps its reading order")
+    {
+        auto const deck = load(make_deck(R"(
+[cards."minor_arcana.wands.ace"]
+inscription = ["Sacred Fire", "The Awakening"]
+)"));
+
+        CHECK(
+            card_at(deck, "minor_arcana.wands.ace").declared.inscription ==
+            std::vector<std::string>{"Sacred Fire", "The Awakening"}
+        );
+    }
+
+    SECTION("a supplied name's source is the registry plus the token as written")
+    {
+        auto const deck = load(make_deck(R"(
+[cards."major_arcana.01"]
+supplied_name = { text = "One", source = "packaging" }
+
+[cards."major_arcana.02"]
+supplied_name = { text = "Two", source = "publisher" }
+
+[cards."major_arcana.03"]
+supplied_name = { text = "Three", source = "packager" }
+
+[cards."major_arcana.04"]
+supplied_name = { text = "Four", source = "x_archive" }
+
+[cards."major_arcana.05"]
+supplied_name = { text = "Five" }
+)"));
+
+        auto const source_of = [&](std::string_view canonical)
+        {
+            auto const& supplied = card_at(deck, canonical).declared.supplied;
+            REQUIRE(supplied.has_value());
+            return std::pair{supplied->source, supplied->source_name};
+        };
+
+        using arcana::name_source;
+        CHECK(
+            source_of("major_arcana.01") ==
+            std::pair{name_source::packaging, std::string{"packaging"}}
+        );
+        CHECK(
+            source_of("major_arcana.02") ==
+            std::pair{name_source::publisher, std::string{"publisher"}}
+        );
+        CHECK(
+            source_of("major_arcana.03") ==
+            std::pair{name_source::packager, std::string{"packager"}}
+        );
+        CHECK(
+            source_of("major_arcana.04") == std::pair{name_source::other, std::string{"x_archive"}}
+        );
+        CHECK(source_of("major_arcana.05") == std::pair{name_source::unstated, std::string{}});
+    }
+
+    SECTION("a name file overrides the resolved alt text, not the declared one")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.00"]
+alt_text = "Le Mat walks."
+)");
+        dir.write("names/en.toml", R"(
+[alt_text.card.major_arcana]
+00 = "The Fool walks."
+)");
+
+        auto const& fool = card_at(load(dir), "major_arcana.00");
+        CHECK(fool.alt_text == "The Fool walks.");
+        CHECK(fool.declared.alt_text == "Le Mat walks.");
+    }
+
+    SECTION("a malformed value reads as absent")
+    {
+        auto const deck = load(make_deck(R"(
+[cards."major_arcana.01"]
+unnamed = "yes"
+unnumbered = 1
+supplied_name = "Le Bateleur"
+inscription = 7
+artwork_language = ["fr", 2]
+
+[cards."major_arcana.02"]
+supplied_name = { lang = "fr" }
+inscription = ["Juno", 3, "Pope"]
+)"));
+
+        auto const& one = card_at(deck, "major_arcana.01").declared;
+        CHECK_FALSE(one.unnamed);
+        CHECK_FALSE(one.unnumbered);
+        CHECK_FALSE(one.supplied.has_value());
+        CHECK(one.inscription.empty());
+        CHECK(one.artwork_language == std::vector<std::string>{"fr"});
+
+        auto const& two = card_at(deck, "major_arcana.02").declared;
+        CHECK_FALSE(two.supplied.has_value());
+        CHECK(two.inscription == std::vector<std::string>{"Juno", "Pope"});
+    }
+
+    SECTION("a card with no entry declares nothing")
+    {
+        CHECK(card_at(load(make_deck()), "major_arcana.00").declared == arcana::card_declaration{});
+    }
+}
+
+TEST_CASE("card names resolve by rc.1's chain", "[loader][v2][names]")
+{
+    // DECK.md#73-display-name-resolution
+
+    SECTION("a supplied name names a card nothing else names")
+    {
+        auto const deck = load(make_deck(R"(
+[cards."major_arcana.13"]
+unnamed = true
+supplied_name = { text = "La Mort", source = "booklet" }
+
+[cards."minor_arcana.cups.ace"]
+supplied_name = { text = "As de Coupe" }
+)"));
+
+        CHECK(card_at(deck, "major_arcana.13").display_name == "La Mort");
+        CHECK(card_at(deck, "minor_arcana.cups.ace").display_name == "As de Coupe");
+    }
+
+    SECTION("a name file outranks a supplied name")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.13"]
+supplied_name = { text = "La Mort" }
+)");
+        dir.write("names/en.toml", R"(
+[name.card.major_arcana]
+13 = "Death"
+)");
+
+        CHECK(card_at(load(dir), "major_arcana.13").display_name == "Death");
+    }
+
+    SECTION("name beats supplied_name on the same entry")
+    {
+        auto const deck = load(make_deck(R"(
+[cards."major_arcana.13"]
+name = "L'Arcane sans nom"
+supplied_name = { text = "La Mort" }
+)"));
+
+        CHECK(card_at(deck, "major_arcana.13").display_name == "L'Arcane sans nom");
+    }
+
+    SECTION("an unnamed card has no name")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.13"]
+unnamed = true
+
+[cards."major_arcana.squirrel"]
+unnamed = true
+
+[cards."minor_arcana.cups.ace"]
+unnamed = true
+)");
+        dir.write("scalable/major_arcana/squirrel.svg", "<svg/>");
+
+        auto const deck = load(dir);
+
+        CHECK(card_at(deck, "major_arcana.13").display_name.empty());
+        CHECK(card_at(deck, "major_arcana.squirrel").display_name.empty());
+
+        auto const& ace = card_at(deck, "minor_arcana.cups.ace");
+        CHECK(ace.display_name.empty());
+        CHECK(ace.display_suit == "Cups");
+        CHECK(ace.display_rank == "Ace");
+    }
+
+    SECTION("a name file still names an unnamed card")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.13"]
+unnamed = true
+)");
+        dir.write("names/en.toml", R"(
+[name.card.major_arcana]
+13 = "Death"
+)");
+
+        CHECK(card_at(load(dir), "major_arcana.13").display_name == "Death");
+    }
+
+    SECTION("an extended major nothing names has no name")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.23"]
+number = "XXIII"
+)");
+        dir.write("scalable/major_arcana/23.svg", "<svg/>");
+        dir.write("scalable/major_arcana/24.svg", "<svg/>");
+        dir.write("names/en.toml", R"(
+[name.card.major_arcana]
+24 = "The Twenty-Fourth"
+)");
+
+        auto const deck = load(dir);
+
+        CHECK(card_at(deck, "major_arcana.23").display_name.empty());
+        CHECK(card_at(deck, "major_arcana.24").display_name == "The Twenty-Fourth");
+    }
+
+    SECTION("a custom major nothing names is still its title-cased key")
+    {
+        auto dir = make_deck();
+        dir.write("scalable/major_arcana/happy_squirrel.svg", "<svg/>");
+
+        CHECK(card_at(load(dir), "major_arcana.happy_squirrel").display_name == "Happy Squirrel");
+    }
+
+    SECTION("a variant that declares nothing inherits its card's name, empty or supplied")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.13"]
+unnamed = true
+
+[cards."major_arcana.12"]
+unnamed = true
+supplied_name = { text = "Le Pendu" }
+)");
+        dir.write("scalable/major_arcana/13.svg", "<svg/>");
+        dir.write("scalable/major_arcana/13.time.svg", "<svg/>");
+        dir.write("scalable/major_arcana/12.svg", "<svg/>");
+        dir.write("scalable/major_arcana/12.alt.svg", "<svg/>");
+
+        auto const deck = load(dir);
+
+        CHECK(variant_at(card_at(deck, "major_arcana.13"), "time").display_name.empty());
+        CHECK(variant_at(card_at(deck, "major_arcana.12"), "alt").display_name == "Le Pendu");
+    }
+}
+
 TEST_CASE("a 1.0 deck declares nothing", "[loader][v1][names]")
 {
     arcana_test::temp_dir dir;
@@ -1170,6 +1460,9 @@ page = "Princess"
         std::ranges::find(deck.ranks(), std::string_view{"page"}, &arcana::rank_info::key);
     REQUIRE(page != deck.ranks().end());
     CHECK(page->name == "Princess");
+
+    REQUIRE_FALSE(deck.cards().empty());
+    for (auto const& c : deck.cards()) CHECK(c.declared == arcana::card_declaration{});
 }
 
 TEST_CASE("artwork origin is resolved at the door", "[loader][v2][origin]")
