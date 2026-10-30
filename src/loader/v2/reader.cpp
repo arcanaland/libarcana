@@ -48,6 +48,52 @@ std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& no
     return terms;
 }
 
+// The registry of DECK.md#433-supplied-names. An unrecognized token is kept
+// beside `other`
+name_source to_name_source(std::string_view token)
+{
+    static constexpr std::array<std::pair<std::string_view, name_source>, 4> known{{
+        {"booklet", name_source::booklet},
+        {"packaging", name_source::packaging},
+        {"publisher", name_source::publisher},
+        {"packager", name_source::packager},
+    }};
+
+    auto const* const found =
+        std::ranges::find(known, token, &std::pair<std::string_view, name_source>::first);
+    return found == known.end() ? name_source::other : found->second;
+}
+
+// `text` is required, so an entry without one supplies nothing
+std::optional<supplied_name> read_supplied_name(toml::node_view<toml::node const> const& node)
+{
+    if (!node.is_table())
+        return std::nullopt;
+
+    auto text = get_string(node["text"]);
+    if (!text)
+        return std::nullopt;
+
+    supplied_name supplied{.text = *std::move(text), .lang = get_string(node["lang"])};
+
+    if (auto token = get_string(node["source"]))
+    {
+        supplied.source = to_name_source(*token);
+        supplied.source_name = *std::move(token);
+    }
+
+    return supplied;
+}
+
+// A string or an array of strings, in order (DECK.md#432-inscriptions)
+std::vector<std::string> read_inscription(toml::node_view<toml::node const> const& node)
+{
+    if (auto single = get_string(node))
+        return {*std::move(single)};
+
+    return get_string_array(node);
+}
+
 // an artwork that declares no term for a system takes the term of the artwork it sits under
 std::vector<origin_term> inherit_origin(
     std::vector<origin_term>&& declared, std::vector<origin_term> const& inherited
@@ -78,12 +124,7 @@ struct minor_template
 // What a [cards."<ref>"] entry supplies.
 struct card_annotation
 {
-    std::optional<std::string> name;
-    std::optional<std::string> alt_text;
-    std::optional<std::string> number;
-    std::optional<int> position;
-    std::optional<std::string> image;
-    std::optional<std::string> default_variant;
+    card_declaration declared;
     std::vector<origin_term> origin;
 };
 
@@ -186,13 +227,6 @@ class reader
     ) const
     {
         return names_.lookup(path);
-    }
-
-    // The manifest fallback that sits between the name file and the last resort
-    [[nodiscard]] std::optional<std::string> annotated_name(std::string const& canonical) const
-    {
-        auto const found = annotations_.find(canonical);
-        return found == annotations_.end() ? std::nullopt : found->second.name;
     }
 
     [[nodiscard]] std::vector<origin_term> with_deck_origin(
@@ -389,15 +423,21 @@ void reader::read_annotations()
         }
 
         card_annotation annotation;
-        annotation.name = get_string(entry["name"]);
-        annotation.alt_text = get_string(entry["alt_text"]);
-        annotation.number = get_string(entry["number"]);
-        annotation.image = get_string(entry["image"]);
-        annotation.default_variant = get_string(entry["default_variant"]);
+        auto& declared = annotation.declared;
+        declared.name = get_string(entry["name"]);
+        declared.alt_text = get_string(entry["alt_text"]);
+        declared.number = get_string(entry["number"]);
+        declared.unnumbered = entry["unnumbered"].value_exact<bool>().value_or(false);
+        declared.unnamed = entry["unnamed"].value_exact<bool>().value_or(false);
+        declared.supplied = read_supplied_name(entry["supplied_name"]);
+        declared.inscription = read_inscription(entry["inscription"]);
+        declared.artwork_language = get_string_array(entry["artwork_language"]);
+        declared.image = get_string(entry["image"]);
+        declared.default_variant = get_string(entry["default_variant"]);
         annotation.origin = read_origin(entry["origin"]);
 
         if (auto const position = entry["position"].value<std::int64_t>())
-            annotation.position = static_cast<int>(*position);
+            declared.position = static_cast<int>(*position);
 
         annotations_.emplace(reference, std::move(annotation));
     }
@@ -471,7 +511,7 @@ void reader::attach_images(card& c) const
     };
 
     if (auto const annotation = annotations_.find(canonical); annotation != annotations_.end())
-        if (auto const& declared = annotation->second.image)
+        if (auto const& declared = annotation->second.declared.image)
             declare({}, *declared);
 
     if (auto const declared = variant_annotations_.find(canonical);
@@ -487,9 +527,9 @@ void reader::attach_images(card& c) const
 void reader::resolve_default_variant(card& c) const
 {
     if (auto const annotation = annotations_.find(c.canonical_id());
-        annotation != annotations_.end() && annotation->second.default_variant)
+        annotation != annotations_.end() && annotation->second.declared.default_variant)
     {
-        c.default_variant = annotation->second.default_variant;
+        c.default_variant = annotation->second.declared.default_variant;
         return;
     }
 
@@ -520,12 +560,13 @@ void reader::build_cards()
 
         if (auto const annotation = annotations_.find(canonical); annotation != annotations_.end())
         {
-            c.number = annotation->second.number;
-            c.alt_text = annotation->second.alt_text;
+            c.declared = annotation->second.declared;
+            c.number = c.declared.number;
+            c.alt_text = c.declared.alt_text;
             c.origin = annotation->second.origin;
 
             if (id->is_major())
-                c.position = annotation->second.position;
+                c.position = c.declared.position;
         }
 
         c.origin = with_deck_origin(std::move(c.origin));
@@ -701,21 +742,44 @@ void reader::resolve_rank_names()
     }
 }
 
+// The manifest step of a card's chain: `name`, then the supplied name
+std::optional<std::string> manifest_name(card_declaration const& declared)
+{
+    if (declared.name)
+        return declared.name;
+
+    if (declared.supplied)
+        return declared.supplied->text;
+
+    return std::nullopt;
+}
+
+// The steps after the manifest for a major arcanum
+std::optional<std::string> major_fallback(card_id const& id)
+{
+    if (id.cls == card_class::custom_major)
+        return titlecase_key(major_key(id));
+
+    if (id.number <= max_canonical_major_arcana_number)
+        return std::string{default_major_arcana_names[static_cast<std::size_t>(id.number)]};
+
+    // An extended major has no name here: its title-cased key would be bare
+    // digits, so it is presented by its number (DECK.md#73-display-name-resolution)
+    return std::nullopt;
+}
+
 void reader::name_major(card& c)
 {
     auto const base = major_key(c.id);
 
-    if (auto const named = from_names({"name", "card", "major_arcana", base}))
-        c.display_name = *named;
-    else if (auto const declared = annotated_name(c.canonical_id()))
-        c.display_name = *declared;
-    else if (
-        c.id.cls == card_class::standard_major && c.id.number <= max_canonical_major_arcana_number
-    )
-        c.display_name = default_major_arcana_names[static_cast<std::size_t>(c.id.number)];
-    else
-        // fallback
-        c.display_name = titlecase_key(base);
+    auto named = from_names({"name", "card", "major_arcana", base})
+                     .or_else([&] { return manifest_name(c.declared); });
+
+    // An unnamed face ends the chain at the manifest, so no name is invented
+    if (!named && !c.declared.unnamed)
+        named = major_fallback(c.id);
+
+    c.display_name = std::move(named).value_or(std::string{});
 
     if (auto const alt = from_names({"alt_text", "card", "major_arcana", base}))
         c.alt_text = *alt;
@@ -804,13 +868,14 @@ void reader::name_minor(card& c)
     c.display_suit = deck_.display_suit_name(card_suit_key);
     c.display_rank = deck_.display_rank_name(base);
 
-    if (auto const named = from_names({"name", "card", "minor_arcana", card_suit_key, base}))
-        c.display_name = *named;
-    else if (auto const declared = annotated_name(c.canonical_id()))
-        c.display_name = *declared;
-    else
-        // A minor arcanum's name is composed
-        c.display_name = composed_name(c);
+    auto named = from_names({"name", "card", "minor_arcana", card_suit_key, base})
+                     .or_else([&] { return manifest_name(c.declared); });
+
+    // A minor arcanum's name is composed, unless its face shows none
+    if (!named && !c.declared.unnamed)
+        named = composed_name(c);
+
+    c.display_name = std::move(named).value_or(std::string{});
 
     if (auto const alt = from_names({"alt_text", "card", "minor_arcana", card_suit_key, base}))
         c.alt_text = *alt;
