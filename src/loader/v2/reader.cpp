@@ -48,8 +48,7 @@ std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& no
     return terms;
 }
 
-// The registry of DECK.md#433-supplied-names. An unrecognized token is kept
-// beside `other`
+// The registry for supplied names.
 name_source to_name_source(std::string_view token)
 {
     static constexpr std::array<std::pair<std::string_view, name_source>, 4> known{{
@@ -61,10 +60,10 @@ name_source to_name_source(std::string_view token)
 
     auto const* const found =
         std::ranges::find(known, token, &std::pair<std::string_view, name_source>::first);
+
     return found == known.end() ? name_source::other : found->second;
 }
 
-// `text` is required, so an entry without one supplies nothing
 std::optional<supplied_name> read_supplied_name(toml::node_view<toml::node const> const& node)
 {
     if (!node.is_table())
@@ -85,7 +84,6 @@ std::optional<supplied_name> read_supplied_name(toml::node_view<toml::node const
     return supplied;
 }
 
-// A string or an array of strings, in order (DECK.md#432-inscriptions)
 std::vector<std::string> read_inscription(toml::node_view<toml::node const> const& node)
 {
     if (auto single = get_string(node))
@@ -742,7 +740,7 @@ void reader::resolve_rank_names()
     }
 }
 
-// The manifest step of a card's chain: `name`, then the supplied name
+// The manifest step of a card's chain
 std::optional<std::string> manifest_name(card_declaration const& declared)
 {
     if (declared.name)

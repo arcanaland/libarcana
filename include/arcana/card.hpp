@@ -123,11 +123,9 @@ struct card_id
 // @return empty for major arcanum ids
 [[nodiscard]] std::string rank_key(card_id const& id);
 
-// How one artwork came to exist, in a named vocabulary
+// How one artwork came to exist in a named vocabulary
 //
 // One entry per vocabulary system, e.g. system "iptc-dst", term "print".
-// Sorted by system. Resolved at load: an artwork that declares no term for a
-// system carries the deck's.
 struct origin_term
 {
     std::string system;
@@ -136,59 +134,55 @@ struct origin_term
     friend bool operator==(origin_term const&, origin_term const&) = default;
 };
 
-// Where a supplied name came from, an open registry (DECK.md#433-supplied-names)
+// Where a supplied name came from
 enum class name_source : std::uint8_t
 {
-    unstated,  // the deck names no source
+    unstated,
     booklet,
     packaging,
     publisher,
     packager,
-    other,  // an x_ token, or any token this library does not recognize
+    other,  // an x_ token or any token we don't recognize
 };
 
-// A name the deck gives a card whose face prints none (DECK.md#433-supplied-names)
+// A name the deck gives a card whose face prints none
 struct supplied_name
 {
-    // Verbatim, never case-converted
+    // verbatim
     std::string text;
 
-    // As written. Where absent the name is in the artwork's language, which is
-    // a resolution and is not computed here
+    // Where absent the name is in the artwork's language
     std::optional<std::string> lang;
 
     name_source source = name_source::unstated;
 
-    // The source token as written, empty only where the deck names no source
+    // The source token as written
     std::string source_name;
 
     friend bool operator==(supplied_name const&, supplied_name const&) = default;
 };
 
-// What a [cards] entry declares about one artwork, as written (DECK.md#43-cards)
+// What a [cards] entry declares about one artwork
 struct artwork_declaration
 {
     // The deck's own strings
     std::optional<std::string> name;
     std::optional<std::string> alt_text;
 
-    // The number printed on the face, e.g. "XXIII" (DECK.md#431-card-numbers)
+    // The number printed on the face, e.g. "XXIII"
     std::optional<std::string> number;
 
-    // The face shows no number, whatever the key's shape implies
+    // The card face doesn't have a number on it
     bool unnumbered = false;
 
-    // The face shows no name, which ends name resolution after the manifest
+    // The card face doesn't have a name on it
     bool unnamed = false;
 
-    // Never declared alongside `name` in a valid deck
     std::optional<supplied_name> supplied;
 
-    // Text printed on the artwork besides its name and number, in reading
-    // order (DECK.md#432-inscriptions). A single string is one element
+    // Text printed on the artwork other than number/name
     std::vector<std::string> inscription;
 
-    // Empty where the artwork inherits the deck's (DECK.md#71-language-tags)
     std::vector<std::string> artwork_language;
 
     std::optional<std::string> image;
@@ -196,7 +190,7 @@ struct artwork_declaration
     friend bool operator==(artwork_declaration const&, artwork_declaration const&) = default;
 };
 
-// What [cards."<canonical-id>"] declares: the artwork, and the card's slot
+// What [cards."<canonical-id>"] declares
 struct card_declaration : artwork_declaration
 {
     // Major arcana only
@@ -251,13 +245,9 @@ struct card
     card_id id;
 
     // The resolved display name
-    //
-    // Empty where the artwork has no name: it is unnamed, or it is an extended
-    // major arcanum nothing names (DECK.md#73-display-name-resolution). Present
-    // such a card by its number
     std::string display_name;
 
-    // The card's [cards] entry as written. Empty for a 1.x deck
+    // The card's [cards] entry as written.
     card_declaration declared;
 
     // Minor arcana only
@@ -265,7 +255,6 @@ struct card
     std::string display_rank;
 
     // The number printed on the card's face, e.g. "XXIII" or "VIII½"
-    // Opaque and not localized. As declared: see `declared.unnumbered`
     std::optional<std::string> number;
 
     // Major arcana only: where the card sits in the deck's sequence
