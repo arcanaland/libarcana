@@ -87,7 +87,6 @@ deck_state deck_reader::build() &&
 {
     // parse toml mainly
     parse_metadata();
-    parse_companions();
     parse_excluded_cards();
     parse_card_backs();
     parse_aliases();
@@ -136,28 +135,6 @@ void deck_reader::parse_metadata()
     m.tags = get_string_array(t["tags"]);
 
     deck_.metadata = std::move(m);
-}
-
-void deck_reader::parse_companions()
-{
-    auto const* array = (*deck_table_)["companions"]["esoterica"].as_array();
-    if (array == nullptr)
-        return;
-
-    for (auto const& element : *array)
-    {
-        auto const* t = element.as_table();
-        if (t == nullptr)
-            continue;
-
-        deck_.companions.push_back(
-            esoterica_companion{
-                .id = get_string_or((*t)["id"]),
-                .name = get_string_or((*t)["name"]),
-                .uri = get_string_or((*t)["uri"])
-            }
-        );
-    }
 }
 
 void deck_reader::parse_excluded_cards()

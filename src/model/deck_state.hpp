@@ -28,7 +28,6 @@ struct deck_state
 {
     std::filesystem::path root_path;
     deck_metadata metadata;
-    std::vector<esoterica_companion> companions;
 
     std::vector<card_back_design> card_backs;
 

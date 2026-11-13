@@ -173,11 +173,6 @@ deck_metadata const& deck::metadata() const noexcept
     return state_->metadata;
 }
 
-std::span<esoterica_companion const> deck::companions() const noexcept
-{
-    return state_->companions;
-}
-
 std::span<card_back_design const> deck::card_backs() const noexcept
 {
     return state_->card_backs;

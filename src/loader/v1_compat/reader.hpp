@@ -41,7 +41,6 @@ class deck_reader
     // --- deck.toml sections ---------------------------------------------------
 
     void parse_metadata();
-    void parse_companions();
     void parse_excluded_cards();
     void parse_card_backs();
     void parse_aliases();

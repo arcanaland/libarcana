@@ -67,14 +67,6 @@ struct deck_metadata
 // The major component of [deck].schema_version
 [[nodiscard]] std::optional<std::uint8_t> schema_major(deck_metadata const& metadata) noexcept;
 
-// One entry of [deck.companions].esoterica
-struct esoterica_companion
-{
-    std::string id;
-    std::string name;
-    std::string uri;
-};
-
 // One of the back images a deck ships, named by a design key
 struct card_back_design
 {
@@ -156,8 +148,6 @@ class deck
     [[nodiscard]] std::filesystem::path const& root_path() const noexcept;
 
     [[nodiscard]] deck_metadata const& metadata() const noexcept;
-
-    [[nodiscard]] std::span<esoterica_companion const> companions() const noexcept;
 
     [[nodiscard]] std::span<card_back_design const> card_backs() const noexcept;
 
