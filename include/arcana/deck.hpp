@@ -81,6 +81,39 @@ struct deck_link
     friend bool operator==(deck_link const&, deck_link const&) = default;
 };
 
+// The registry for a [deck].related entry's rel
+enum class deck_rel : std::uint8_t
+{
+    pattern,
+    surrogate_for,
+    expands,
+    companion,
+    other,
+};
+
+// Whether an application must act on a relation.
+enum class relation_recognition : std::uint8_t
+{
+    advisory,
+    recognized,
+};
+
+// One [deck].related entry
+struct deck_relation
+{
+    deck_rel rel = deck_rel::other;
+
+    // The rel as written
+    std::string rel_name;
+
+    // A qualified identifier as written
+    std::string target;
+
+    std::optional<std::string> title;
+
+    friend bool operator==(deck_relation const&, deck_relation const&) = default;
+};
+
 // The registry for a product identifier's scheme
 enum class product_scheme : std::uint8_t
 {
@@ -145,6 +178,9 @@ struct deck_metadata
     // back design inherits where it declares nothing of its own
     std::vector<origin_term> origin;
 
+    // In declared order
+    std::vector<deck_relation> related;
+
     pip_style pips = pip_style::unstated;
     std::optional<std::string> default_language;
 
@@ -178,6 +214,9 @@ struct deck_metadata
 
 // metadata_language, else default_language, else "en"
 [[nodiscard]] std::string_view effective_metadata_language(deck_metadata const& metadata) noexcept;
+
+// recognized for surrogate_for and expands; advisory for anything else
+[[nodiscard]] relation_recognition recognition(deck_rel rel) noexcept;
 
 // What [card_backs.designs.<key>] declares
 struct card_back_declaration

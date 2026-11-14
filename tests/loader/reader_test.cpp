@@ -396,6 +396,110 @@ source = "Transcribed from the faces."
     }
 }
 
+TEST_CASE("relations are kept as declared", "[loader][v2][metadata]")
+{
+    using arcana::deck_rel;
+
+    SECTION("a registered rel maps to its enumerator, and any rel keeps its token")
+    {
+        auto const deck = load(make_deck(R"(related = [
+    { rel = "pattern", target = "land.arcana/pattern/rider-waite-smith" },
+    { rel = "surrogate_for", target = "com.example/deck/original" },
+    { rel = "expands", target = "com.example/deck/base" },
+    { rel = "companion", target = "com.example/deck/oracle" },
+    { rel = "x-sequel", target = "com.example/deck/sequel" },
+])"));
+
+        auto const& related = deck.metadata().related;
+        REQUIRE(related.size() == 5);
+        CHECK(related[0].rel == deck_rel::pattern);
+        CHECK(related[0].rel_name == "pattern");
+        CHECK(related[1].rel == deck_rel::surrogate_for);
+        CHECK(related[1].rel_name == "surrogate_for");
+        CHECK(related[2].rel == deck_rel::expands);
+        CHECK(related[2].rel_name == "expands");
+        CHECK(related[3].rel == deck_rel::companion);
+        CHECK(related[3].rel_name == "companion");
+        CHECK(related[4].rel == deck_rel::other);
+        CHECK(related[4].rel_name == "x-sequel");
+    }
+
+    SECTION("target and title round-trip, and an absent title is nullopt")
+    {
+        auto const deck = load(make_deck(R"(related = [
+    { rel = "companion", target = "com.example/deck/oracle", title = "The Example Oracle" },
+    { rel = "companion", target = "com.example/deck/runes" },
+])"));
+
+        auto const& related = deck.metadata().related;
+        REQUIRE(related.size() == 2);
+        CHECK(related[0].target == "com.example/deck/oracle");
+        CHECK(related[0].title == "The Example Oracle");
+        CHECK(related[1].target == "com.example/deck/runes");
+        CHECK_FALSE(related[1].title.has_value());
+    }
+
+    SECTION("entries keep array order, shared rels and repeated targets included")
+    {
+        auto const deck = load(make_deck(R"(related = [
+    { rel = "companion", target = "com.example/deck/b" },
+    { rel = "companion", target = "com.example/deck/a" },
+    { rel = "expands", target = "com.example/deck/a" },
+])"));
+
+        auto const& related = deck.metadata().related;
+        CHECK(
+            related ==
+            std::vector<arcana::deck_relation>{
+                {.rel = deck_rel::companion,
+                 .rel_name = "companion",
+                 .target = "com.example/deck/b"},
+                {.rel = deck_rel::companion,
+                 .rel_name = "companion",
+                 .target = "com.example/deck/a"},
+                {.rel = deck_rel::expands, .rel_name = "expands", .target = "com.example/deck/a"},
+            }
+        );
+    }
+
+    SECTION("a non-table entry is skipped, and a table is kept whatever it lacks")
+    {
+        auto const deck = load(make_deck(R"(related = [
+    "com.example/deck/bare",
+    { target = "com.example/deck/no-rel" },
+    { rel = "pattern" },
+])"));
+
+        auto const& related = deck.metadata().related;
+        REQUIRE(related.size() == 2);
+        CHECK(related[0].rel == deck_rel::other);
+        CHECK(related[0].rel_name.empty());
+        CHECK(related[0].target == "com.example/deck/no-rel");
+        CHECK(related[1].rel == deck_rel::pattern);
+        CHECK(related[1].target.empty());
+    }
+
+    SECTION("an absent or non-array related is empty")
+    {
+        CHECK(load(make_deck()).metadata().related.empty());
+        CHECK(load(make_deck(R"(related = "com.example/deck/x")")).metadata().related.empty());
+    }
+}
+
+TEST_CASE("only surrogate_for and expands are recognized", "[model][metadata]")
+{
+    using arcana::deck_rel;
+    using arcana::recognition;
+    using arcana::relation_recognition;
+
+    CHECK(recognition(deck_rel::surrogate_for) == relation_recognition::recognized);
+    CHECK(recognition(deck_rel::expands) == relation_recognition::recognized);
+    CHECK(recognition(deck_rel::pattern) == relation_recognition::advisory);
+    CHECK(recognition(deck_rel::companion) == relation_recognition::advisory);
+    CHECK(recognition(deck_rel::other) == relation_recognition::advisory);
+    CHECK(relation_recognition{} == relation_recognition::advisory);
+}
+
 TEST_CASE("files create cards", "[loader][v2][discovery]")
 {
     SECTION("a custom-keyed major")
@@ -1984,6 +2088,7 @@ image = "card_backs/classic.png"
     CHECK_FALSE(metadata.published_date.has_value());
     CHECK(arcana::effective_metadata_language(metadata) == "en");
     CHECK(metadata.product_ids.empty());
+    CHECK(metadata.related.empty());
     CHECK(metadata.links.empty());
     CHECK_FALSE(deck.strings().has_value());
 
