@@ -111,6 +111,42 @@ std::optional<card_size> read_card_size(toml::node_view<toml::node const> const&
 }
 
 // Every table entry in order, whatever it lacks
+std::vector<deck_relation> read_relations(toml::node_view<toml::node const> const& node)
+{
+    static constexpr vocabulary<deck_rel, 4> known{{
+        {"pattern", deck_rel::pattern},
+        {"surrogate_for", deck_rel::surrogate_for},
+        {"expands", deck_rel::expands},
+        {"companion", deck_rel::companion},
+    }};
+
+    std::vector<deck_relation> related;
+
+    auto const* const array = node.as_array();
+    if (array == nullptr)
+        return related;
+
+    for (auto const& element : *array)
+    {
+        auto const* const entry = element.as_table();
+        if (entry == nullptr)
+            continue;
+
+        auto rel_name = get_string_or((*entry)["rel"]);
+        auto const rel = from_token(known, rel_name, deck_rel::other);
+
+        related.push_back({
+            .rel = rel,
+            .rel_name = std::move(rel_name),
+            .target = get_string_or((*entry)["target"]),
+            .title = get_string((*entry)["title"]),
+        });
+    }
+
+    return related;
+}
+
+// Every table entry in order, whatever it lacks
 std::vector<deck_link> read_links(toml::node_view<toml::node const> const& node)
 {
     static constexpr vocabulary<link_rel, 5> known{{
@@ -416,6 +452,7 @@ void reader::read_metadata()
 
     deck_origin_ = read_origin(deck_table["origin"]);
     metadata.origin = deck_origin_;
+    metadata.related = read_relations(deck_table["related"]);
 
     metadata.pips = read_pips(deck_table["pips"]);
     metadata.default_language = get_string(deck_table["default_language"]);

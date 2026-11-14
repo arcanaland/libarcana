@@ -120,6 +120,13 @@ TEST_CASE("marseille's [deck] keys are kept as declared", "[loader][v2][metadata
     CHECK(metadata.links[0].rel == arcana::link_rel::homepage);
     CHECK(metadata.links[1].rel == arcana::link_rel::buy);
     CHECK(metadata.links[2].rel == arcana::link_rel::source);
+
+    REQUIRE(metadata.related.size() == 1);
+    CHECK(metadata.related[0].rel == arcana::deck_rel::pattern);
+    CHECK(metadata.related[0].rel_name == "pattern");
+    CHECK(metadata.related[0].target == "land.arcana/pattern/tarot-de-marseille");
+    CHECK_FALSE(metadata.related[0].title.has_value());
+    CHECK(arcana::recognition(metadata.related[0].rel) == arcana::relation_recognition::advisory);
 }
 
 TEST_CASE(
@@ -136,6 +143,7 @@ TEST_CASE(
 
     CHECK(loaded->metadata().published_date == "1909-12-01");
     CHECK(loaded->metadata().license_files == std::vector<std::string>{"LICENSE"});
+    CHECK(loaded->metadata().related.empty());
 }
 
 TEST_CASE(
@@ -156,4 +164,9 @@ TEST_CASE(
         std::ranges::find(links, std::string_view{"artist"}, &arcana::deck_link::rel_name);
     REQUIRE(artist != links.end());
     CHECK(artist->rel == arcana::link_rel::artist);
+
+    auto const& related = loaded->metadata().related;
+    REQUIRE(related.size() == 1);
+    CHECK(related[0].rel == arcana::deck_rel::pattern);
+    CHECK(related[0].target == "land.arcana/pattern/rider-waite-smith");
 }

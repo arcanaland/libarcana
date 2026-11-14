@@ -56,6 +56,22 @@ std::string_view effective_metadata_language(deck_metadata const& metadata) noex
     return "en";
 }
 
+relation_recognition recognition(deck_rel rel) noexcept
+{
+    switch (rel)
+    {
+        case deck_rel::surrogate_for:
+        case deck_rel::expands:
+            return relation_recognition::recognized;
+        case deck_rel::pattern:
+        case deck_rel::companion:
+        case deck_rel::other:
+            return relation_recognition::advisory;
+    }
+
+    return relation_recognition::advisory;
+}
+
 std::string detail::deck_state::display_suit_name(suit s) const
 {
     return display_suit_name(to_string(s));
