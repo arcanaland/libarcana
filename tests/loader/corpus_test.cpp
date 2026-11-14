@@ -81,3 +81,18 @@ TEST_CASE("marseille's unnamed and unnumbered faces", "[loader][v2][names][refer
 
     CHECK(display_name_of(*loaded, "major_arcana.01") == "Le Bateleur");
 }
+
+TEST_CASE("marseille's back declares itself reversible", "[loader][v2][declared][reference-decks]")
+{
+    std::string const dir = REFERENCE_DECKS_DIR;
+    if (dir.empty())
+        SKIP("configured with ARCANA_FETCH_REFERENCE_DECKS=OFF");
+
+    auto const loaded = arcana::load_deck(std::filesystem::path{dir} / "marseille");
+    REQUIRE(loaded.has_value());
+
+    auto const back = loaded->default_card_back_design();
+    REQUIRE(back.has_value());
+    CHECK(back->id == "default");
+    CHECK(back->declaration.reversible == true);
+}

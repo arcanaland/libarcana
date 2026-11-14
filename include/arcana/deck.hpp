@@ -67,6 +67,22 @@ struct deck_metadata
 // The major component of [deck].schema_version
 [[nodiscard]] std::optional<std::uint8_t> schema_major(deck_metadata const& metadata) noexcept;
 
+// What [card_backs.designs.<key>] declares
+struct card_back_declaration
+{
+    std::optional<std::string> name;
+    std::optional<std::string> alt_text;
+    std::vector<std::string> inscription;
+    std::vector<std::string> artwork_language;
+
+    // nullopt if not declared
+    std::optional<bool> reversible;
+
+    std::optional<std::string> image;
+
+    friend bool operator==(card_back_declaration const&, card_back_declaration const&) = default;
+};
+
 // One of the back images a deck ships, named by a design key
 struct card_back_design
 {
@@ -87,6 +103,9 @@ struct card_back_design
 
     // If this back was declared rather than only discovered
     bool declared = true;
+
+    // The design's entry as written
+    card_back_declaration declaration;
 };
 
 struct excluded_cards

@@ -92,6 +92,20 @@ std::vector<std::string> read_inscription(toml::node_view<toml::node const> cons
     return get_string_array(node);
 }
 
+// The fields an artwork's [cards] entry shares with a variant's
+void read_artwork(toml::node_view<toml::node const> const& entry, artwork_declaration& declared)
+{
+    declared.name = get_string(entry["name"]);
+    declared.alt_text = get_string(entry["alt_text"]);
+    declared.number = get_string(entry["number"]);
+    declared.unnumbered = entry["unnumbered"].value_exact<bool>().value_or(false);
+    declared.unnamed = entry["unnamed"].value_exact<bool>().value_or(false);
+    declared.supplied = read_supplied_name(entry["supplied_name"]);
+    declared.inscription = read_inscription(entry["inscription"]);
+    declared.artwork_language = get_string_array(entry["artwork_language"]);
+    declared.image = get_string(entry["image"]);
+}
+
 // an artwork that declares no term for a system takes the term of the artwork it sits under
 std::vector<origin_term> inherit_origin(
     std::vector<origin_term>&& declared, std::vector<origin_term> const& inherited
@@ -129,9 +143,7 @@ struct card_annotation
 // What a [cards."<ref>:<key>"] entry supplies.
 struct variant_annotation
 {
-    std::optional<std::string> name;
-    std::optional<std::string> alt_text;
-    std::optional<std::string> image;
+    variant_declaration declared;
     std::vector<origin_term> origin;
 };
 
@@ -408,9 +420,7 @@ void reader::read_annotations()
         if (auto const colon = reference.find(':'); colon != std::string::npos)
         {
             variant_annotation annotation;
-            annotation.name = get_string(entry["name"]);
-            annotation.alt_text = get_string(entry["alt_text"]);
-            annotation.image = get_string(entry["image"]);
+            read_artwork(entry, annotation.declared);
             annotation.origin = read_origin(entry["origin"]);
 
             variant_annotations_[reference.substr(0, colon)].insert_or_assign(
@@ -422,15 +432,7 @@ void reader::read_annotations()
 
         card_annotation annotation;
         auto& declared = annotation.declared;
-        declared.name = get_string(entry["name"]);
-        declared.alt_text = get_string(entry["alt_text"]);
-        declared.number = get_string(entry["number"]);
-        declared.unnumbered = entry["unnumbered"].value_exact<bool>().value_or(false);
-        declared.unnamed = entry["unnamed"].value_exact<bool>().value_or(false);
-        declared.supplied = read_supplied_name(entry["supplied_name"]);
-        declared.inscription = read_inscription(entry["inscription"]);
-        declared.artwork_language = get_string_array(entry["artwork_language"]);
-        declared.image = get_string(entry["image"]);
+        read_artwork(entry, declared);
         declared.default_variant = get_string(entry["default_variant"]);
         annotation.origin = read_origin(entry["origin"]);
 
@@ -515,8 +517,8 @@ void reader::attach_images(card& c) const
     if (auto const declared = variant_annotations_.find(canonical);
         declared != variant_annotations_.end())
         for (auto const& [variant_key, annotation] : declared->second)
-            if (annotation.image)
-                declare(variant_key, *annotation.image);
+            if (annotation.declared.image)
+                declare(variant_key, *annotation.declared.image);
 
     // The unsuffixed artwork first, then the variants by key
     for (auto& entry : by_variant) std::ranges::move(entry.second, std::back_inserter(c.images));
@@ -640,19 +642,25 @@ void reader::read_card_backs()
 
     for (auto const& key : keys)
     {
-        auto const declared = designs[key];
+        auto const entry = designs[key];
 
         card_back_design design{.id = key};
-        design.name = get_string_or(declared["name"]);
-        design.description = get_string(declared["description"]);
-        design.alt_text = get_string(declared["alt_text"]);
-        design.declared = declared.as_table() != nullptr;
-        design.origin = with_deck_origin(read_origin(declared["origin"]));
+        design.description = get_string(entry["description"]);
+        design.declared = entry.as_table() != nullptr;
+        design.origin = with_deck_origin(read_origin(entry["origin"]));
 
-        if (auto const explicit_path = get_string(declared["image"]))
+        auto& declaration = design.declaration;
+        declaration.name = get_string(entry["name"]);
+        declaration.alt_text = get_string(entry["alt_text"]);
+        declaration.inscription = read_inscription(entry["inscription"]);
+        declaration.artwork_language = get_string_array(entry["artwork_language"]);
+        declaration.reversible = entry["reversible"].value_exact<bool>();
+        declaration.image = get_string(entry["image"]);
+
+        if (declaration.image)
         {
-            design.image_ref = *explicit_path;
-            design.image = root_ / *explicit_path;
+            design.image_ref = *declaration.image;
+            design.image = root_ / *declaration.image;
         }
         else if (auto const discovered = found.find(key); discovered != found.end())
         {
@@ -662,6 +670,18 @@ void reader::read_card_backs()
 
         deck_.card_backs.push_back(std::move(design));
     }
+}
+
+// The manifest step of an artwork's name chain
+std::optional<std::string> manifest_name(artwork_declaration const& declared)
+{
+    if (declared.name)
+        return declared.name;
+
+    if (declared.supplied)
+        return declared.supplied->text;
+
+    return std::nullopt;
 }
 
 // What a [cards."<ref>:<key>"] entry supplied for one variant, if anything
@@ -683,18 +703,24 @@ card_variant reader::make_variant(card const& c, std::string const& key) const
     auto const reference = std::format("{}:{}", c.canonical_id(), key);
 
     card_variant variant{.key = key};
+    if (annotation != nullptr)
+        variant.declared = annotation->declared;
 
-    if (auto const named = from_names({"name", "variant", reference}))
-        variant.display_name = *named;
-    else if (annotation != nullptr && annotation->name)
-        variant.display_name = *annotation->name;
-    else
-        variant.display_name = c.display_name;
+    auto const& declared = variant.declared;
+
+    auto named =
+        from_names({"name", "variant", reference}).or_else([&] { return manifest_name(declared); });
+
+    // An unnamed variant doesn't inherit its card's name
+    if (!named && !declared.unnamed)
+        named = c.display_name;
+
+    variant.display_name = std::move(named).value_or(std::string{});
 
     if (auto const alt = from_names({"alt_text", "variant", reference}))
         variant.alt_text = *alt;
-    else if (annotation != nullptr && annotation->alt_text)
-        variant.alt_text = annotation->alt_text;
+    else if (declared.alt_text)
+        variant.alt_text = declared.alt_text;
     else
         variant.alt_text = c.alt_text;
 
@@ -738,18 +764,6 @@ void reader::resolve_rank_names()
 
         deck_.rank_names.emplace(info.key, info.name);
     }
-}
-
-// The manifest step of a card's chain
-std::optional<std::string> manifest_name(card_declaration const& declared)
-{
-    if (declared.name)
-        return declared.name;
-
-    if (declared.supplied)
-        return declared.supplied->text;
-
-    return std::nullopt;
 }
 
 // The steps after the manifest for a major arcanum
@@ -892,13 +906,18 @@ void reader::resolve_back_names()
 {
     for (auto& design : deck_.card_backs)
     {
+        auto const& declared = design.declaration;
+
+        // A declared empty name falls through to the key
         if (auto const named = from_names({"name", "card_back", design.id}))
             design.name = *named;
-        else if (design.name.empty())
+        else if (declared.name && !declared.name->empty())
+            design.name = *declared.name;
+        else
             design.name = titlecase_key(design.id);
 
-        if (auto const alt = from_names({"alt_text", "card_back", design.id}))
-            design.alt_text = *alt;
+        design.alt_text = from_names({"alt_text", "card_back", design.id})
+                              .or_else([&] { return declared.alt_text; });
     }
 }
 
