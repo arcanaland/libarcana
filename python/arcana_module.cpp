@@ -135,6 +135,50 @@ NB_MODULE(_core, m)  // NOLINT
         .value("ansi", image_kind::ansi)
         .value("surrogate", image_kind::surrogate);
 
+    nb::enum_<pip_style>(m, "pip_style")
+        .value("unstated", pip_style::unstated)
+        .value("scenic", pip_style::scenic)
+        .value("emblematic", pip_style::emblematic);
+
+    nb::enum_<sharing_terms>(m, "sharing_terms")
+        .value("unstated", sharing_terms::unstated)
+        .value("full", sharing_terms::full)
+        .value("surrogate", sharing_terms::surrogate)
+        .value("none", sharing_terms::none);
+
+    nb::enum_<link_rel>(m, "link_rel")
+        .value("homepage", link_rel::homepage)
+        .value("buy", link_rel::buy)
+        .value("artist", link_rel::artist)
+        .value("publisher", link_rel::publisher)
+        .value("source", link_rel::source)
+        .value("other", link_rel::other);
+
+    nb::enum_<deck_rel>(m, "deck_rel")
+        .value("pattern", deck_rel::pattern)
+        .value("surrogate_for", deck_rel::surrogate_for)
+        .value("expands", deck_rel::expands)
+        .value("companion", deck_rel::companion)
+        .value("other", deck_rel::other);
+
+    nb::enum_<relation_recognition>(m, "relation_recognition")
+        .value("advisory", relation_recognition::advisory)
+        .value("recognized", relation_recognition::recognized);
+
+    nb::enum_<product_scheme>(m, "product_scheme")
+        .value("isbn", product_scheme::isbn)
+        .value("gtin", product_scheme::gtin)
+        .value("publisher_sku", product_scheme::publisher_sku)
+        .value("other", product_scheme::other);
+
+    nb::enum_<name_source>(m, "name_source")
+        .value("unstated", name_source::unstated)
+        .value("booklet", name_source::booklet)
+        .value("packaging", name_source::packaging)
+        .value("publisher", name_source::publisher)
+        .value("packager", name_source::packager)
+        .value("other", name_source::other);
+
     // --- Shape: free functions over string_view -------------------------------
 
     m.def("to_string", [](suit s) { return to_string(s); });
@@ -196,10 +240,39 @@ NB_MODULE(_core, m)  // NOLINT
             { return "<origin_term " + self.system + "=" + self.term + ">"; }
         );
 
+    nb::class_<supplied_name>(m, "supplied_name")
+        .def(nb::init<>())
+        .def_rw("text", &supplied_name::text)
+        .def_rw("lang", &supplied_name::lang)
+        .def_rw("source", &supplied_name::source)
+        .def_rw("source_name", &supplied_name::source_name)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
+
+    nb::class_<artwork_declaration>(m, "artwork_declaration")
+        .def(nb::init<>())
+        .def_rw("name", &artwork_declaration::name)
+        .def_rw("alt_text", &artwork_declaration::alt_text)
+        .def_rw("number", &artwork_declaration::number)
+        .def_rw("unnumbered", &artwork_declaration::unnumbered)
+        .def_rw("unnamed", &artwork_declaration::unnamed)
+        .def_rw("supplied", &artwork_declaration::supplied)
+        .def_rw("inscription", &artwork_declaration::inscription)
+        .def_rw("artwork_language", &artwork_declaration::artwork_language)
+        .def_rw("image", &artwork_declaration::image)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
+
+    // Inherits artwork_declaration's members rather than rebinding them
+    nb::class_<card_declaration, artwork_declaration>(m, "card_declaration")
+        .def(nb::init<>())
+        .def_rw("position", &card_declaration::position)
+        .def_rw("default_variant", &card_declaration::default_variant)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
+
     nb::class_<card_variant>(m, "card_variant")
         .def(nb::init<>())
         .def_rw("key", &card_variant::key)
         .def_rw("display_name", &card_variant::display_name)
+        .def_rw("declared", &card_variant::declared)
         .def_rw("alt_text", &card_variant::alt_text)
         .def_rw("origin", &card_variant::origin)
         .def(nb::self == nb::self)  // NOLINT(misc-redundant-expression)
@@ -211,6 +284,7 @@ NB_MODULE(_core, m)  // NOLINT
         .def(nb::init<>())
         .def_rw("id", &card::id)
         .def_rw("display_name", &card::display_name)
+        .def_rw("declared", &card::declared)
         .def_rw("display_suit", &card::display_suit)
         .def_rw("display_rank", &card::display_rank)
         .def_rw("number", &card::number)
@@ -264,13 +338,39 @@ NB_MODULE(_core, m)  // NOLINT
             nb::arg("variant_key")
         );
 
+    nb::class_<suit_declaration>(m, "suit_declaration")
+        .def(nb::init<>())
+        .def_rw("name", &suit_declaration::name)
+        .def_rw("name_template", &suit_declaration::name_template);
+
     nb::class_<suit_info>(m, "suit_info")
         .def(nb::init<>())
         .def_rw("key", &suit_info::key)
         .def_rw("name", &suit_info::name)
         .def_rw("ranks", &suit_info::ranks)
         .def_rw("standard", &suit_info::standard)
-        .def_rw("excluded", &suit_info::excluded);
+        .def_rw("excluded", &suit_info::excluded)
+        .def_rw("declared", &suit_info::declared);
+
+    nb::class_<rank_declaration>(m, "rank_declaration")
+        .def(nb::init<>())
+        .def_rw("name", &rank_declaration::name);
+
+    nb::class_<rank_info>(m, "rank_info")
+        .def(nb::init<>())
+        .def_rw("key", &rank_info::key)
+        .def_rw("name", &rank_info::name)
+        .def_rw("declared", &rank_info::declared);
+
+    nb::class_<card_back_declaration>(m, "card_back_declaration")
+        .def(nb::init<>())
+        .def_rw("name", &card_back_declaration::name)
+        .def_rw("alt_text", &card_back_declaration::alt_text)
+        .def_rw("inscription", &card_back_declaration::inscription)
+        .def_rw("artwork_language", &card_back_declaration::artwork_language)
+        .def_rw("reversible", &card_back_declaration::reversible)
+        .def_rw("image", &card_back_declaration::image)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
 
     nb::class_<card_back_design>(m, "card_back_design")
         .def(nb::init<>())
@@ -281,7 +381,48 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("description", &card_back_design::description)
         .def_rw("alt_text", &card_back_design::alt_text)
         .def_rw("origin", &card_back_design::origin)
-        .def_rw("declared", &card_back_design::declared);
+        .def_rw("declared", &card_back_design::declared)
+        .def_rw("declaration", &card_back_design::declaration);
+
+    nb::class_<card_size>(m, "card_size")
+        .def(nb::init<>())
+        .def_rw("width", &card_size::width)
+        .def_rw("height", &card_size::height)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
+
+    nb::class_<deck_link>(m, "deck_link")
+        .def(nb::init<>())
+        .def_rw("rel", &deck_link::rel)
+        .def_rw("rel_name", &deck_link::rel_name)
+        .def_rw("url", &deck_link::url)
+        .def_rw("title", &deck_link::title)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
+
+    nb::class_<deck_relation>(m, "deck_relation")
+        .def(nb::init<>())
+        .def_rw("rel", &deck_relation::rel)
+        .def_rw("rel_name", &deck_relation::rel_name)
+        .def_rw("target", &deck_relation::target)
+        .def_rw("title", &deck_relation::title)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
+
+    nb::class_<product_id>(m, "product_id")
+        .def(nb::init<>())
+        .def_rw("scheme", &product_id::scheme)
+        .def_rw("scheme_name", &product_id::scheme_name)
+        .def_rw("value", &product_id::value)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
+
+    nb::class_<string_terms>(m, "string_terms")
+        .def(nb::init<>())
+        .def_rw("source", &string_terms::source)
+        .def_rw("origin", &string_terms::origin)
+        .def_rw("license", &string_terms::license)
+        .def_rw("license_files", &string_terms::license_files)
+        .def_rw("copyright", &string_terms::copyright)
+        .def_rw("rights_status", &string_terms::rights_status)
+        .def_rw("attribution", &string_terms::attribution)
+        .def(nb::self == nb::self);  // NOLINT(misc-redundant-expression)
 
     nb::class_<deck_metadata>(m, "deck_metadata")
         .def(nb::init<>())
@@ -300,11 +441,31 @@ NB_MODULE(_core, m)  // NOLINT
         .def_rw("aspect_ratio", &deck_metadata::aspect_ratio)
         .def_rw("tags", &deck_metadata::tags)
         .def_rw("origin", &deck_metadata::origin)
+        .def_rw("related", &deck_metadata::related)
+        .def_rw("pips", &deck_metadata::pips)
+        .def_rw("default_language", &deck_metadata::default_language)
+        .def_rw("metadata_language", &deck_metadata::metadata_language)
+        .def_rw("artwork_language", &deck_metadata::artwork_language)
+        .def_rw("card_size_mm", &deck_metadata::card_size_mm)
+        .def_rw("packager", &deck_metadata::packager)
+        .def_rw("license_files", &deck_metadata::license_files)
+        .def_rw("copyright", &deck_metadata::copyright)
+        .def_rw("rights_status", &deck_metadata::rights_status)
+        .def_rw("redistribution", &deck_metadata::redistribution)
+        .def_rw("derivation", &deck_metadata::derivation)
+        .def_rw("published_date", &deck_metadata::published_date)
+        .def_rw("product_ids", &deck_metadata::product_ids)
+        .def_rw("links", &deck_metadata::links)
         // Populated only for a 1.0 deck; 2.0 states neither
         .def_rw("created_date", &deck_metadata::created_date)
         .def_rw("updated_date", &deck_metadata::updated_date);
 
     m.def("schema_major", &schema_major, nb::arg("metadata"));
+    m.def(
+        "effective_metadata_language", [](deck_metadata const& metadata)
+        { return std::string{effective_metadata_language(metadata)}; }, nb::arg("metadata")
+    );
+    m.def("recognition", &recognition, nb::arg("rel"));
 
     nb::class_<deck_summary>(m, "deck_summary")
         .def(nb::init<>())
@@ -335,6 +496,23 @@ NB_MODULE(_core, m)  // NOLINT
         .def_prop_ro(
             "suits", [](deck const& self)
             { return std::vector<suit_info>(self.suits().begin(), self.suits().end()); }
+        )
+        .def_prop_ro(
+            "ranks", [](deck const& self)
+            { return std::vector<rank_info>(self.ranks().begin(), self.ranks().end()); }
+        )
+        .def_prop_ro(
+            "strings",
+            [](deck const& self) -> std::optional<string_terms> { return self.strings(); }
+        )
+        .def_prop_ro(
+            "minor_arcana_name_template",
+            [](deck const& self) -> std::optional<std::string>
+            {
+                if (auto const name_template = self.minor_arcana_name_template())
+                    return std::string{*name_template};
+                return std::nullopt;
+            }
         )
         .def_prop_ro("default_card_back", &deck::default_card_back)
         .def_prop_ro(
