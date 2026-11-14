@@ -201,6 +201,9 @@ struct card_declaration : artwork_declaration
     friend bool operator==(card_declaration const&, card_declaration const&) = default;
 };
 
+// What [cards."<canonical-id>:<variant-key>"] declares
+using variant_declaration = artwork_declaration;
+
 enum class image_kind : std::uint8_t
 {
     scalable,
@@ -231,6 +234,10 @@ struct card_variant
 {
     std::string key;
     std::string display_name;
+
+    // The variant's [cards] entry as written
+    variant_declaration declared;
+
     std::optional<std::string> alt_text;
 
     // Effective: the variant's declared terms, the card's for the rest
@@ -245,6 +252,9 @@ struct card
     card_id id;
 
     // The resolved display name
+    //
+    // Empty when the there isn't a name on the artwork.
+    // Apps should display the card by its number when empty
     std::string display_name;
 
     // The card's [cards] entry as written.

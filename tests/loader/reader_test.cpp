@@ -1298,6 +1298,169 @@ inscription = ["Juno", 3, "Pope"]
     }
 }
 
+TEST_CASE("variant and card back entries are kept as declared", "[loader][v2][declared]")
+{
+    SECTION("every artwork field on a variant entry")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06:two_women"]
+name = "Les Amoureuses"
+alt_text = "Two women beneath an angel."
+number = "VI"
+unnumbered = true
+unnamed = true
+supplied_name = { text = "L'Amoureux", lang = "fr", source = "x_archive" }
+inscription = ["Amor", "Vincit"]
+artwork_language = ["fr"]
+image = "extra/two_women.svg"
+)");
+        dir.write("extra/two_women.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        auto const& declared = variant_at(card_at(deck, "major_arcana.06"), "two_women").declared;
+
+        CHECK(declared.name == "Les Amoureuses");
+        CHECK(declared.alt_text == "Two women beneath an angel.");
+        CHECK(declared.number == "VI");
+        CHECK(declared.unnumbered);
+        CHECK(declared.unnamed);
+        REQUIRE(declared.supplied.has_value());
+        CHECK(declared.supplied->text == "L'Amoureux");
+        CHECK(declared.supplied->lang == "fr");
+        CHECK(declared.supplied->source == arcana::name_source::other);
+        CHECK(declared.supplied->source_name == "x_archive");
+        CHECK(declared.inscription == std::vector<std::string>{"Amor", "Vincit"});
+        CHECK(declared.artwork_language == std::vector<std::string>{"fr"});
+        CHECK(declared.image == "extra/two_women.svg");
+    }
+
+    SECTION("a variant key's position and default_variant have nowhere to go")
+    {
+        auto dir = make_deck(R"(
+[cards."major_arcana.06"]
+position = 6
+default_variant = "two_men"
+
+[cards."major_arcana.06:two_women"]
+position = 3
+default_variant = "two_women"
+)");
+        dir.write("scalable/major_arcana/06.two_men.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+
+        auto const deck = load(dir);
+        auto const& lovers = card_at(deck, "major_arcana.06");
+
+        CHECK(variant_at(lovers, "two_women").declared == arcana::variant_declaration{});
+        CHECK(lovers.declared.position == 6);
+        CHECK(lovers.declared.default_variant == "two_men");
+        CHECK(lovers.position == 6);
+        CHECK(lovers.default_variant == "two_men");
+    }
+
+    SECTION("every field on a back")
+    {
+        auto dir = make_deck(R"(
+[card_backs.designs.classic]
+name = "Classic"
+alt_text = "A blue lattice."
+description = "The house back."
+inscription = "Arcana"
+artwork_language = ["la"]
+reversible = true
+image = "backs/classic.png"
+
+[card_backs.designs.ornate]
+inscription = ["Ave", "Vale"]
+image = "backs/ornate.png"
+)");
+        dir.write("backs/classic.png", "png");
+        dir.write("backs/ornate.png", "png");
+
+        auto const deck = load(dir);
+        REQUIRE(deck.card_backs().size() == 2);
+
+        auto const& classic = deck.card_backs()[0];
+        REQUIRE(classic.id == "classic");
+        CHECK(classic.declaration.name == "Classic");
+        CHECK(classic.declaration.alt_text == "A blue lattice.");
+        CHECK(classic.declaration.inscription == std::vector<std::string>{"Arcana"});
+        CHECK(classic.declaration.artwork_language == std::vector<std::string>{"la"});
+        CHECK(classic.declaration.reversible == true);
+        CHECK(classic.declaration.image == "backs/classic.png");
+        CHECK(classic.description == "The house back.");
+        CHECK(classic.image_ref == "backs/classic.png");
+
+        auto const& ornate = deck.card_backs()[1];
+        REQUIRE(ornate.id == "ornate");
+        CHECK(ornate.declaration.inscription == std::vector<std::string>{"Ave", "Vale"});
+    }
+
+    SECTION("reversible has three states, and a non-bool is the third")
+    {
+        auto dir = make_deck(R"(
+[card_backs.designs.a]
+reversible = true
+
+[card_backs.designs.b]
+reversible = false
+
+[card_backs.designs.c]
+
+[card_backs.designs.d]
+reversible = 1
+)");
+        for (auto const* key : {"a", "b", "c", "d"})
+            dir.write(std::format("card_backs/{}.png", key), "png");
+
+        auto const deck = load(dir);
+        REQUIRE(deck.card_backs().size() == 4);
+
+        CHECK(deck.card_backs()[0].declaration.reversible == true);
+        CHECK(deck.card_backs()[1].declaration.reversible == false);
+        CHECK_FALSE(deck.card_backs()[2].declaration.reversible.has_value());
+        CHECK_FALSE(deck.card_backs()[3].declaration.reversible.has_value());
+    }
+
+    SECTION("a name file overrides the resolved back strings, not the declared ones")
+    {
+        auto dir = make_deck(R"(
+[card_backs.designs.classic]
+name = "Dos classique"
+alt_text = "Un treillis bleu."
+)");
+        dir.write("card_backs/classic.png", "png");
+        dir.write("names/en.toml", R"(
+[name.card_back]
+classic = "Classic Back"
+
+[alt_text.card_back]
+classic = "A blue lattice."
+)");
+
+        auto const deck = load(dir);
+        REQUIRE(deck.card_backs().size() == 1);
+
+        auto const& classic = deck.card_backs().front();
+        CHECK(classic.name == "Classic Back");
+        CHECK(classic.alt_text == "A blue lattice.");
+        CHECK(classic.declaration.name == "Dos classique");
+        CHECK(classic.declaration.alt_text == "Un treillis bleu.");
+    }
+
+    SECTION("a back known only from discovery declares nothing")
+    {
+        auto dir = make_deck();
+        dir.write("card_backs/classic.png", "png");
+
+        auto const deck = load(dir);
+        REQUIRE(deck.card_backs().size() == 1);
+
+        CHECK(deck.card_backs().front().declaration == arcana::card_back_declaration{});
+        CHECK_FALSE(deck.card_backs().front().declared);
+    }
+}
+
 TEST_CASE("card names resolve by rc.1's chain", "[loader][v2][names]")
 {
     // DECK.md#73-display-name-resolution
@@ -1430,6 +1593,101 @@ supplied_name = { text = "Le Pendu" }
     }
 }
 
+TEST_CASE("variant names resolve by rc.1's chain", "[loader][v2][names][variants]")
+{
+    auto const lovers_with = [](std::string_view manifest, std::string_view names = "")
+    {
+        auto dir = make_deck(manifest);
+        dir.write("scalable/major_arcana/06.svg", "<svg/>");
+        dir.write("scalable/major_arcana/06.two_women.svg", "<svg/>");
+        if (!names.empty())
+            dir.write("names/en.toml", names);
+
+        auto const deck = load(dir);
+        return variant_at(card_at(deck, "major_arcana.06"), "two_women");
+    };
+
+    SECTION("a supplied name names a variant nothing else names")
+    {
+        auto const manifest = R"(
+[cards."major_arcana.06:two_women"]
+supplied_name = { text = "Les Amoureuses" }
+)";
+
+        CHECK(lovers_with(manifest).display_name == "Les Amoureuses");
+
+        auto const named = lovers_with(manifest, R"(
+[name.variant]
+"major_arcana.06:two_women" = "The Lovers, Two Women"
+)");
+        CHECK(named.display_name == "The Lovers, Two Women");
+    }
+
+    SECTION("a variant's name beats its own supplied name")
+    {
+        auto const variant = lovers_with(R"(
+[cards."major_arcana.06:two_women"]
+name = "Deux Femmes"
+supplied_name = { text = "Les Amoureuses" }
+)");
+
+        CHECK(variant.display_name == "Deux Femmes");
+    }
+
+    SECTION("an unnamed variant of a named card has no name")
+    {
+        auto const manifest = R"(
+[cards."major_arcana.06:two_women"]
+unnamed = true
+)";
+
+        auto const unnamed = lovers_with(manifest);
+        CHECK(unnamed.display_name.empty());
+        CHECK(unnamed.alt_text == std::nullopt);
+
+        auto const named = lovers_with(manifest, R"(
+[name.variant]
+"major_arcana.06:two_women" = "The Lovers, Two Women"
+)");
+        CHECK(named.display_name == "The Lovers, Two Women");
+    }
+
+    SECTION("an unnamed variant with a supplied name takes the supplied text")
+    {
+        auto const variant = lovers_with(R"(
+[cards."major_arcana.06:two_women"]
+unnamed = true
+supplied_name = { text = "Les Amoureuses", source = "booklet" }
+)");
+
+        CHECK(variant.display_name == "Les Amoureuses");
+    }
+
+    SECTION("a card's unnamed does not reach a variant that names itself")
+    {
+        auto const variant = lovers_with(R"(
+[cards."major_arcana.06"]
+unnamed = true
+
+[cards."major_arcana.06:two_women"]
+name = "Deux Femmes"
+)");
+
+        CHECK(variant.display_name == "Deux Femmes");
+    }
+
+    SECTION("a variant that declares nothing still inherits its card's strings")
+    {
+        auto const variant = lovers_with(R"(
+[cards."major_arcana.06"]
+alt_text = "Two figures beneath an angel."
+)");
+
+        CHECK(variant.display_name == "The Lovers");
+        CHECK(variant.alt_text == "Two figures beneath an angel.");
+    }
+}
+
 TEST_CASE("a 1.0 deck declares nothing", "[loader][v1][names]")
 {
     arcana_test::temp_dir dir;
@@ -1440,7 +1698,13 @@ version = "1.0"
 
 [aliases.courts]
 page = "Princess"
+
+[card_backs.variants.classic]
+name = "Classic"
+alt_text = "A blue lattice."
+image = "card_backs/classic.png"
 )");
+    dir.write("card_backs/classic.png", "png");
 
     auto const deck = load(dir);
 
@@ -1462,7 +1726,16 @@ page = "Princess"
     CHECK(page->name == "Princess");
 
     REQUIRE_FALSE(deck.cards().empty());
-    for (auto const& c : deck.cards()) CHECK(c.declared == arcana::card_declaration{});
+    for (auto const& c : deck.cards())
+    {
+        CHECK(c.declared == arcana::card_declaration{});
+        for (auto const& variant : c.variants)
+            CHECK(variant.declared == arcana::variant_declaration{});
+    }
+
+    REQUIRE(deck.card_backs().size() == 1);
+    CHECK(deck.card_backs().front().declared);
+    CHECK(deck.card_backs().front().declaration == arcana::card_back_declaration{});
 }
 
 TEST_CASE("artwork origin is resolved at the door", "[loader][v2][origin]")
