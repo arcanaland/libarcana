@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace
 {
@@ -95,4 +96,64 @@ TEST_CASE("marseille's back declares itself reversible", "[loader][v2][declared]
     REQUIRE(back.has_value());
     CHECK(back->id == "default");
     CHECK(back->declaration.reversible == true);
+}
+
+TEST_CASE("marseille's [deck] keys are kept as declared", "[loader][v2][metadata][reference-decks]")
+{
+    std::string const dir = REFERENCE_DECKS_DIR;
+    if (dir.empty())
+        SKIP("configured with ARCANA_FETCH_REFERENCE_DECKS=OFF");
+
+    auto const loaded = arcana::load_deck(std::filesystem::path{dir} / "marseille");
+    REQUIRE(loaded.has_value());
+
+    auto const& metadata = loaded->metadata();
+    CHECK(metadata.pips == arcana::pip_style::emblematic);
+    CHECK(metadata.redistribution == arcana::sharing_terms::full);
+    CHECK(metadata.derivation == arcana::sharing_terms::full);
+    CHECK(metadata.metadata_language == "en");
+    CHECK(metadata.artwork_language == std::vector<std::string>{"fr-1694acad"});
+    CHECK(metadata.published_date == "2010");
+    CHECK(metadata.rights_status == "https://creativecommons.org/licenses/by-nc-sa/3.0/");
+
+    REQUIRE(metadata.links.size() == 3);
+    CHECK(metadata.links[0].rel == arcana::link_rel::homepage);
+    CHECK(metadata.links[1].rel == arcana::link_rel::buy);
+    CHECK(metadata.links[2].rel == arcana::link_rel::source);
+}
+
+TEST_CASE(
+    "rider-waite-smith's [deck] keys are kept as declared",
+    "[loader][v2][metadata][reference-decks]"
+)
+{
+    std::string const dir = REFERENCE_DECKS_DIR;
+    if (dir.empty())
+        SKIP("configured with ARCANA_FETCH_REFERENCE_DECKS=OFF");
+
+    auto const loaded = arcana::load_deck(std::filesystem::path{dir} / "rider-waite-smith");
+    REQUIRE(loaded.has_value());
+
+    CHECK(loaded->metadata().published_date == "1909-12-01");
+    CHECK(loaded->metadata().license_files == std::vector<std::string>{"LICENSE"});
+}
+
+TEST_CASE(
+    "ascii-tarot's [deck] keys are kept as declared", "[loader][v2][metadata][reference-decks]"
+)
+{
+    std::string const dir = REFERENCE_DECKS_DIR;
+    if (dir.empty())
+        SKIP("configured with ARCANA_FETCH_REFERENCE_DECKS=OFF");
+
+    auto const loaded = arcana::load_deck(std::filesystem::path{dir} / "ascii-tarot");
+    REQUIRE(loaded.has_value());
+
+    CHECK(loaded->metadata().pips == arcana::pip_style::scenic);
+
+    auto const& links = loaded->metadata().links;
+    auto const artist =
+        std::ranges::find(links, std::string_view{"artist"}, &arcana::deck_link::rel_name);
+    REQUIRE(artist != links.end());
+    CHECK(artist->rel == arcana::link_rel::artist);
 }

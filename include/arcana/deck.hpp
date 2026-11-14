@@ -30,6 +30,93 @@ struct deck_builder;
 
 inline constexpr double default_aspect_ratio = 0.5789;
 
+// [deck].pips: whether the numbered minors depict scenes
+enum class pip_style : std::uint8_t
+{
+    unstated,
+    scenic,
+    emblematic,
+};
+
+// [deck].redistribution and [deck].derivation
+enum class sharing_terms : std::uint8_t
+{
+    unstated,
+    full,
+    surrogate,
+    none,
+};
+
+// [deck].card_size_mm, in millimetres
+struct card_size
+{
+    double width = 0;
+    double height = 0;
+
+    friend bool operator==(card_size const&, card_size const&) = default;
+};
+
+// The registry for a link's rel
+enum class link_rel : std::uint8_t
+{
+    homepage,
+    buy,
+    artist,
+    publisher,
+    source,
+    other,
+};
+
+// One [deck].links entry
+struct deck_link
+{
+    link_rel rel = link_rel::other;
+
+    // The rel as written, known or not
+    std::string rel_name;
+
+    std::string url;
+    std::optional<std::string> title;
+
+    friend bool operator==(deck_link const&, deck_link const&) = default;
+};
+
+// The registry for a product identifier's scheme
+enum class product_scheme : std::uint8_t
+{
+    isbn,
+    gtin,
+    publisher_sku,
+    other,
+};
+
+// One [deck].product_ids entry, its value as written
+struct product_id
+{
+    product_scheme scheme = product_scheme::other;
+
+    // The scheme as written, known or not
+    std::string scheme_name;
+
+    std::string value;
+
+    friend bool operator==(product_id const&, product_id const&) = default;
+};
+
+// The terms display strings are offered under
+struct string_terms
+{
+    std::optional<std::string> source;
+    std::vector<origin_term> origin;
+    std::optional<std::string> license;
+    std::vector<std::string> license_files;
+    std::optional<std::string> copyright;
+    std::optional<std::string> rights_status;
+    std::optional<std::string> attribution;
+
+    friend bool operator==(string_terms const&, string_terms const&) = default;
+};
+
 // The [deck] section
 struct deck_metadata
 {
@@ -58,6 +145,28 @@ struct deck_metadata
     // back design inherits where it declares nothing of its own
     std::vector<origin_term> origin;
 
+    pip_style pips = pip_style::unstated;
+    std::optional<std::string> default_language;
+
+    // As declared. effective_metadata_language() applies the default
+    std::optional<std::string> metadata_language;
+
+    std::vector<std::string> artwork_language;
+    std::optional<card_size> card_size_mm;
+    std::optional<std::string> packager;
+    std::vector<std::string> license_files;
+    std::optional<std::string> copyright;
+    std::optional<std::string> rights_status;
+    sharing_terms redistribution = sharing_terms::unstated;
+    sharing_terms derivation = sharing_terms::unstated;
+    std::optional<std::string> published_date;
+
+    // Sorted by scheme_name
+    std::vector<product_id> product_ids;
+
+    // In declared order
+    std::vector<deck_link> links;
+
     // v1.0-source fields, populated only for a 1.0 deck. v2's published_date is
     // a different claim about a different event and is never derived from these
     std::optional<std::string> created_date;
@@ -66,6 +175,9 @@ struct deck_metadata
 
 // The major component of [deck].schema_version
 [[nodiscard]] std::optional<std::uint8_t> schema_major(deck_metadata const& metadata) noexcept;
+
+// metadata_language, else default_language, else "en"
+[[nodiscard]] std::string_view effective_metadata_language(deck_metadata const& metadata) noexcept;
 
 // What [card_backs.designs.<key>] declares
 struct card_back_declaration
@@ -171,6 +283,10 @@ class deck
     [[nodiscard]] std::span<card_back_design const> card_backs() const noexcept;
 
     [[nodiscard]] excluded_cards const& excluded() const noexcept;
+
+    // [strings]
+    // nullopt if not declared
+    [[nodiscard]] std::optional<string_terms> const& strings() const noexcept;
 
     // Every suit this deck has, canonical suits first
     [[nodiscard]] std::span<suit_info const> suits() const noexcept;

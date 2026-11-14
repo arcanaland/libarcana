@@ -45,6 +45,17 @@ std::optional<std::uint8_t> schema_major(deck_metadata const& metadata) noexcept
     return static_cast<std::uint8_t>(major);
 }
 
+std::string_view effective_metadata_language(deck_metadata const& metadata) noexcept
+{
+    if (metadata.metadata_language)
+        return *metadata.metadata_language;
+
+    if (metadata.default_language)
+        return *metadata.default_language;
+
+    return "en";
+}
+
 std::string detail::deck_state::display_suit_name(suit s) const
 {
     return display_suit_name(to_string(s));
@@ -181,6 +192,11 @@ std::span<card_back_design const> deck::card_backs() const noexcept
 excluded_cards const& deck::excluded() const noexcept
 {
     return state_->excluded;
+}
+
+std::optional<string_terms> const& deck::strings() const noexcept
+{
+    return state_->strings;
 }
 
 std::span<suit_info const> deck::suits() const noexcept

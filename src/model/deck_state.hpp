@@ -33,6 +33,9 @@ struct deck_state
 
     excluded_cards excluded;
 
+    // [strings]
+    std::optional<string_terms> strings;
+
     // Every suit this deck has, canonical suits first
     std::vector<suit_info> suits;
 

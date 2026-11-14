@@ -135,6 +135,267 @@ TEST_CASE("a 2.0 deck reports its identifier", "[loader][v2]")
     CHECK(*deck.metadata().identifier == "net.example.jdoe/deck/reader");
 }
 
+TEST_CASE("every [deck] key is kept as declared", "[loader][v2][metadata]")
+{
+    using arcana::pip_style;
+    using arcana::sharing_terms;
+
+    SECTION("scalar and array keys round-trip")
+    {
+        auto const deck = load(make_deck(R"(
+default_language = "fr"
+metadata_language = "en-GB"
+artwork_language = ["fr-1694acad", "la"]
+packager = "A Packager"
+license_files = ["LICENSE", "notices/ART.txt"]
+copyright = "© 1760 Nicolas Conver"
+rights_status = "http://rightsstatements.org/vocab/NoC-US/1.0/"
+published_date = "1760"
+)"));
+
+        auto const& metadata = deck.metadata();
+        CHECK(metadata.default_language == "fr");
+        CHECK(metadata.metadata_language == "en-GB");
+        CHECK(metadata.artwork_language == std::vector<std::string>{"fr-1694acad", "la"});
+        CHECK(metadata.packager == "A Packager");
+        CHECK(metadata.license_files == std::vector<std::string>{"LICENSE", "notices/ART.txt"});
+        CHECK(metadata.copyright == "© 1760 Nicolas Conver");
+        CHECK(metadata.rights_status == "http://rightsstatements.org/vocab/NoC-US/1.0/");
+        CHECK(metadata.published_date == "1760");
+    }
+
+    SECTION("an absent key is unstated or empty")
+    {
+        auto const& metadata = load(make_deck()).metadata();
+        CHECK(metadata.pips == pip_style::unstated);
+        CHECK(metadata.redistribution == sharing_terms::unstated);
+        CHECK(metadata.derivation == sharing_terms::unstated);
+        CHECK_FALSE(metadata.default_language.has_value());
+        CHECK_FALSE(metadata.metadata_language.has_value());
+        CHECK(metadata.artwork_language.empty());
+        CHECK_FALSE(metadata.card_size_mm.has_value());
+        CHECK_FALSE(metadata.packager.has_value());
+        CHECK(metadata.license_files.empty());
+        CHECK_FALSE(metadata.copyright.has_value());
+        CHECK_FALSE(metadata.rights_status.has_value());
+        CHECK_FALSE(metadata.published_date.has_value());
+    }
+
+    SECTION("closed vocabularies")
+    {
+        auto const pips = [](std::string_view value)
+        { return load(make_deck(std::format("pips = {}", value))).metadata().pips; };
+
+        CHECK(pips(R"("scenic")") == pip_style::scenic);
+        CHECK(pips(R"("emblematic")") == pip_style::emblematic);
+        CHECK(pips(R"("unstated")") == pip_style::unstated);
+        CHECK(pips(R"("mixed")") == pip_style::unstated);
+        CHECK(pips("1") == pip_style::unstated);
+
+        auto const terms = [](std::string_view value)
+        {
+            auto const deck =
+                load(make_deck(std::format("redistribution = {0}\nderivation = {0}", value)));
+            CHECK(deck.metadata().redistribution == deck.metadata().derivation);
+            return deck.metadata().redistribution;
+        };
+
+        CHECK(terms(R"("full")") == sharing_terms::full);
+        CHECK(terms(R"("surrogate")") == sharing_terms::surrogate);
+        CHECK(terms(R"("none")") == sharing_terms::none);
+        CHECK(terms(R"("unstated")") == sharing_terms::unstated);
+        CHECK(terms(R"("mixed")") == sharing_terms::unstated);
+        CHECK(terms("1") == sharing_terms::unstated);
+    }
+
+    SECTION("card_size_mm is exactly two numbers")
+    {
+        auto const size = [](std::string_view value)
+        {
+            return load(make_deck(std::format("card_size_mm = {}", value))).metadata().card_size_mm;
+        };
+
+        CHECK(size("[70.5, 120.25]") == arcana::card_size{.width = 70.5, .height = 120.25});
+        CHECK(size("[70, 120]") == arcana::card_size{.width = 70, .height = 120});
+        CHECK_FALSE(size("[70]").has_value());
+        CHECK_FALSE(size("[70, 120, 3]").has_value());
+        CHECK_FALSE(size(R"("70x120")").has_value());
+    }
+
+    SECTION("published_date is a string or nothing")
+    {
+        auto const date = [](std::string_view value)
+        {
+            return load(make_deck(std::format("published_date = {}", value)))
+                .metadata()
+                .published_date;
+        };
+
+        CHECK(date(R"("1909-12-01")") == "1909-12-01");
+        CHECK_FALSE(date("1909-12-01").has_value());
+        CHECK_FALSE(date("1909").has_value());
+    }
+
+    SECTION("metadata_language falls back to default_language, then en")
+    {
+        auto const effective = [](std::string_view manifest)
+        {
+            return std::string{
+                arcana::effective_metadata_language(load(make_deck(manifest)).metadata())
+            };
+        };
+
+        CHECK(effective("metadata_language = \"de\"\ndefault_language = \"fr\"") == "de");
+        CHECK(effective(R"(default_language = "fr")") == "fr");
+        CHECK(effective("") == "en");
+    }
+}
+
+TEST_CASE("links, product ids and [strings] are kept as declared", "[loader][v2][metadata]")
+{
+    using arcana::deck_link;
+    using arcana::link_rel;
+    using arcana::product_id;
+    using arcana::product_scheme;
+
+    SECTION("a registered rel maps to its enumerator, and any rel keeps its token")
+    {
+        auto const deck = load(make_deck(R"(links = [
+    { rel = "homepage", url = "https://example.com/" },
+    { rel = "buy", url = "https://example.com/shop" },
+    { rel = "artist", url = "https://example.com/artist" },
+    { rel = "publisher", url = "https://example.com/press" },
+    { rel = "source", url = "https://example.com/scans" },
+    { rel = "mastodon", url = "https://example.social/@deck" },
+])"));
+
+        auto const& links = deck.metadata().links;
+        REQUIRE(links.size() == 6);
+        CHECK(links[0].rel == link_rel::homepage);
+        CHECK(links[0].rel_name == "homepage");
+        CHECK(links[1].rel == link_rel::buy);
+        CHECK(links[1].rel_name == "buy");
+        CHECK(links[2].rel == link_rel::artist);
+        CHECK(links[2].rel_name == "artist");
+        CHECK(links[3].rel == link_rel::publisher);
+        CHECK(links[3].rel_name == "publisher");
+        CHECK(links[4].rel == link_rel::source);
+        CHECK(links[4].rel_name == "source");
+        CHECK(links[5].rel == link_rel::other);
+        CHECK(links[5].rel_name == "mastodon");
+    }
+
+    SECTION("links keep their order and every table entry")
+    {
+        auto const deck = load(make_deck(R"(links = [
+    { rel = "source", url = "https://example.com/scans", title = "The scans" },
+    "https://example.com/not-a-table",
+    { rel = "buy" },
+    { url = "https://example.com/no-rel" },
+])"));
+
+        auto const& links = deck.metadata().links;
+        REQUIRE(links.size() == 3);
+        CHECK(
+            links[0] == deck_link{
+                            .rel = link_rel::source,
+                            .rel_name = "source",
+                            .url = "https://example.com/scans",
+                            .title = "The scans",
+                        }
+        );
+        CHECK(links[1] == deck_link{.rel = link_rel::buy, .rel_name = "buy", .url = ""});
+        CHECK(
+            links[2] == deck_link{
+                            .rel = link_rel::other,
+                            .rel_name = "",
+                            .url = "https://example.com/no-rel",
+                        }
+        );
+    }
+
+    SECTION("product ids are verbatim and sorted by scheme")
+    {
+        auto const deck = load(make_deck(R"(
+[deck.product_ids]
+publisher_sku = "CBD-78"
+isbn = "978-0-13-468599-1"
+gtin = "00012345678905"
+"com.example.catalog" = "X-1"
+upc = ""
+)"));
+
+        CHECK(
+            deck.metadata().product_ids ==
+            std::vector<product_id>{
+                {.scheme = product_scheme::other,
+                 .scheme_name = "com.example.catalog",
+                 .value = "X-1"},
+                {.scheme = product_scheme::gtin, .scheme_name = "gtin", .value = "00012345678905"},
+                {.scheme = product_scheme::isbn,
+                 .scheme_name = "isbn",
+                 .value = "978-0-13-468599-1"},
+                {.scheme = product_scheme::publisher_sku,
+                 .scheme_name = "publisher_sku",
+                 .value = "CBD-78"},
+            }
+        );
+    }
+
+    SECTION("[strings]")
+    {
+        CHECK_FALSE(load(make_deck()).strings().has_value());
+
+        auto const empty = load(make_deck("[strings]")).strings();
+        REQUIRE(empty.has_value());
+        CHECK(*empty == arcana::string_terms{});
+
+        auto const full = load(make_deck(R"(
+[deck.origin]
+"iptc-dst" = "print"
+
+[strings]
+source = "Transcribed from the faces."
+license = "LicenseRef-Booklet"
+license_files = ["BOOKLET-LICENSE"]
+copyright = "© 2025 Example Press"
+rights_status = "http://rightsstatements.org/vocab/InC/1.0/"
+attribution = "Names from the Example Press booklet."
+
+[strings.origin]
+"iptc-dst" = "humanEdits"
+)"))
+                              .strings();
+
+        REQUIRE(full.has_value());
+        CHECK(full->source == "Transcribed from the faces.");
+        CHECK(
+            full->origin ==
+            std::vector<arcana::origin_term>{{.system = "iptc-dst", .term = "humanEdits"}}
+        );
+        CHECK(full->license == "LicenseRef-Booklet");
+        CHECK(full->license_files == std::vector<std::string>{"BOOKLET-LICENSE"});
+        CHECK(full->copyright == "© 2025 Example Press");
+        CHECK(full->rights_status == "http://rightsstatements.org/vocab/InC/1.0/");
+        CHECK(full->attribution == "Names from the Example Press booklet.");
+    }
+
+    SECTION("[strings].origin does not inherit [deck].origin")
+    {
+        auto const strings = load(make_deck(R"(
+[deck.origin]
+"iptc-dst" = "print"
+
+[strings]
+source = "Transcribed from the faces."
+)"))
+                                 .strings();
+
+        REQUIRE(strings.has_value());
+        CHECK(strings->origin.empty());
+    }
+}
+
 TEST_CASE("files create cards", "[loader][v2][discovery]")
 {
     SECTION("a custom-keyed major")
@@ -1707,6 +1968,24 @@ image = "card_backs/classic.png"
     dir.write("card_backs/classic.png", "png");
 
     auto const deck = load(dir);
+
+    auto const& metadata = deck.metadata();
+    CHECK(metadata.pips == arcana::pip_style::unstated);
+    CHECK_FALSE(metadata.default_language.has_value());
+    CHECK_FALSE(metadata.metadata_language.has_value());
+    CHECK(metadata.artwork_language.empty());
+    CHECK_FALSE(metadata.card_size_mm.has_value());
+    CHECK_FALSE(metadata.packager.has_value());
+    CHECK(metadata.license_files.empty());
+    CHECK_FALSE(metadata.copyright.has_value());
+    CHECK_FALSE(metadata.rights_status.has_value());
+    CHECK(metadata.redistribution == arcana::sharing_terms::unstated);
+    CHECK(metadata.derivation == arcana::sharing_terms::unstated);
+    CHECK_FALSE(metadata.published_date.has_value());
+    CHECK(arcana::effective_metadata_language(metadata) == "en");
+    CHECK(metadata.product_ids.empty());
+    CHECK(metadata.links.empty());
+    CHECK_FALSE(deck.strings().has_value());
 
     CHECK_FALSE(deck.minor_arcana_name_template().has_value());
 

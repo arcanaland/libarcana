@@ -48,20 +48,142 @@ std::vector<origin_term> read_origin(toml::node_view<toml::node const> const& no
     return terms;
 }
 
+template <typename E, std::size_t N>
+using vocabulary = std::array<std::pair<std::string_view, E>, N>;
+
+// The enumerator a token names, or fallback for a token it does not know
+template <typename E, std::size_t N>
+E from_token(vocabulary<E, N> const& known, std::string_view token, E fallback)
+{
+    auto const* const found =
+        std::ranges::find(known, token, &std::pair<std::string_view, E>::first);
+
+    return found == known.end() ? fallback : found->second;
+}
+
 // The registry for supplied names.
 name_source to_name_source(std::string_view token)
 {
-    static constexpr std::array<std::pair<std::string_view, name_source>, 4> known{{
+    static constexpr vocabulary<name_source, 4> known{{
         {"booklet", name_source::booklet},
         {"packaging", name_source::packaging},
         {"publisher", name_source::publisher},
         {"packager", name_source::packager},
     }};
 
-    auto const* const found =
-        std::ranges::find(known, token, &std::pair<std::string_view, name_source>::first);
+    return from_token(known, token, name_source::other);
+}
 
-    return found == known.end() ? name_source::other : found->second;
+pip_style read_pips(toml::node_view<toml::node const> const& node)
+{
+    static constexpr vocabulary<pip_style, 2> known{{
+        {"scenic", pip_style::scenic},
+        {"emblematic", pip_style::emblematic},
+    }};
+
+    return from_token(known, get_string_or(node), pip_style::unstated);
+}
+
+sharing_terms read_sharing_terms(toml::node_view<toml::node const> const& node)
+{
+    static constexpr vocabulary<sharing_terms, 3> known{{
+        {"full", sharing_terms::full},
+        {"surrogate", sharing_terms::surrogate},
+        {"none", sharing_terms::none},
+    }};
+
+    return from_token(known, get_string_or(node), sharing_terms::unstated);
+}
+
+// Two numbers, or nothing
+std::optional<card_size> read_card_size(toml::node_view<toml::node const> const& node)
+{
+    auto const* const array = node.as_array();
+    if (array == nullptr || array->size() != 2)
+        return std::nullopt;
+
+    auto const width = (*array)[0].value<double>();
+    auto const height = (*array)[1].value<double>();
+    if (!width || !height)
+        return std::nullopt;
+
+    return card_size{.width = *width, .height = *height};
+}
+
+// Every table entry in order, whatever it lacks
+std::vector<deck_link> read_links(toml::node_view<toml::node const> const& node)
+{
+    static constexpr vocabulary<link_rel, 5> known{{
+        {"homepage", link_rel::homepage},
+        {"buy", link_rel::buy},
+        {"artist", link_rel::artist},
+        {"publisher", link_rel::publisher},
+        {"source", link_rel::source},
+    }};
+
+    std::vector<deck_link> links;
+
+    auto const* const array = node.as_array();
+    if (array == nullptr)
+        return links;
+
+    for (auto const& element : *array)
+    {
+        auto const* const entry = element.as_table();
+        if (entry == nullptr)
+            continue;
+
+        auto rel_name = get_string_or((*entry)["rel"]);
+        auto const rel = from_token(known, rel_name, link_rel::other);
+
+        links.push_back({
+            .rel = rel,
+            .rel_name = std::move(rel_name),
+            .url = get_string_or((*entry)["url"]),
+            .title = get_string((*entry)["title"]),
+        });
+    }
+
+    return links;
+}
+
+// Values as written, sorted by scheme
+std::vector<product_id> read_product_ids(toml::node_view<toml::node const> const& node)
+{
+    static constexpr vocabulary<product_scheme, 3> known{{
+        {"isbn", product_scheme::isbn},
+        {"gtin", product_scheme::gtin},
+        {"publisher_sku", product_scheme::publisher_sku},
+    }};
+
+    std::vector<product_id> ids;
+
+    for (auto const& [scheme, value] : get_string_map(node))
+        if (!value.empty())
+            ids.push_back({
+                .scheme = from_token(known, scheme, product_scheme::other),
+                .scheme_name = scheme,
+                .value = value,
+            });
+
+    std::ranges::sort(ids, {}, &product_id::scheme_name);
+    return ids;
+}
+
+std::optional<string_terms> read_string_terms(toml::node_view<toml::node const> const& node)
+{
+    if (!node.is_table())
+        return std::nullopt;
+
+    return string_terms{
+        .source = get_string(node["source"]),
+        .origin = read_origin(node["origin"]),
+        .license = get_string(node["license"]),
+        .license_files = get_string_array(node["license_files"]),
+        .copyright = get_string(node["copyright"]),
+        .rights_status = get_string(node["rights_status"]),
+        .attribution = get_string(node["attribution"]),
+    };
 }
 
 std::optional<supplied_name> read_supplied_name(toml::node_view<toml::node const> const& node)
@@ -294,6 +416,23 @@ void reader::read_metadata()
 
     deck_origin_ = read_origin(deck_table["origin"]);
     metadata.origin = deck_origin_;
+
+    metadata.pips = read_pips(deck_table["pips"]);
+    metadata.default_language = get_string(deck_table["default_language"]);
+    metadata.metadata_language = get_string(deck_table["metadata_language"]);
+    metadata.artwork_language = get_string_array(deck_table["artwork_language"]);
+    metadata.card_size_mm = read_card_size(deck_table["card_size_mm"]);
+    metadata.packager = get_string(deck_table["packager"]);
+    metadata.license_files = get_string_array(deck_table["license_files"]);
+    metadata.copyright = get_string(deck_table["copyright"]);
+    metadata.rights_status = get_string(deck_table["rights_status"]);
+    metadata.redistribution = read_sharing_terms(deck_table["redistribution"]);
+    metadata.derivation = read_sharing_terms(deck_table["derivation"]);
+    metadata.published_date = get_string(deck_table["published_date"]);
+    metadata.product_ids = read_product_ids(deck_table["product_ids"]);
+    metadata.links = read_links(deck_table["links"]);
+
+    deck_.strings = read_string_terms(table()["strings"]);
 
     auto const excluded = table()["excluded_cards"];
     deck_.excluded.cards = get_string_array(excluded["cards"]);
