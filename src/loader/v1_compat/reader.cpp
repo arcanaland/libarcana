@@ -132,6 +132,15 @@ void deck_reader::parse_metadata()
     m.updated_date = get_string(t["updated_date"]);
     m.publisher = get_string(t["publisher"]);
     m.website = get_string(t["website"]);
+
+    // 1.0's website is v2's homepage link
+    if (m.website)
+    {
+        m.links.push_back(
+            deck_link{.rel = link_rel::homepage, .rel_name = "homepage", .url = *m.website}
+        );
+    }
+
     m.tags = get_string_array(t["tags"]);
 
     deck_.metadata = std::move(m);
