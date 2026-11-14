@@ -2090,6 +2090,8 @@ image = "card_backs/classic.png"
     CHECK(metadata.product_ids.empty());
     CHECK(metadata.related.empty());
     CHECK(metadata.links.empty());
+    CHECK(metadata.origin.empty());
+    CHECK_FALSE(metadata.identifier.has_value());
     CHECK_FALSE(deck.strings().has_value());
 
     CHECK_FALSE(deck.minor_arcana_name_template().has_value());
@@ -2113,6 +2115,7 @@ image = "card_backs/classic.png"
     for (auto const& c : deck.cards())
     {
         CHECK(c.declared == arcana::card_declaration{});
+        CHECK(c.origin.empty());
         for (auto const& variant : c.variants)
             CHECK(variant.declared == arcana::variant_declaration{});
     }
@@ -2120,6 +2123,7 @@ image = "card_backs/classic.png"
     REQUIRE(deck.card_backs().size() == 1);
     CHECK(deck.card_backs().front().declared);
     CHECK(deck.card_backs().front().declaration == arcana::card_back_declaration{});
+    CHECK(deck.card_backs().front().origin.empty());
 }
 
 TEST_CASE("artwork origin is resolved at the door", "[loader][v2][origin]")

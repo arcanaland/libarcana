@@ -143,6 +143,88 @@ artist = "Somebody Else"
     }
 }
 
+TEST_CASE("a 1.0 website is the homepage link", "[loader][v1][metadata]")
+{
+    SECTION("a website")
+    {
+        auto const d = build_from(R"([deck]
+name = "n"
+website = "https://example.com/"
+)");
+        arcana::deck_link const homepage{
+            .rel = arcana::link_rel::homepage,
+            .rel_name = "homepage",
+            .url = "https://example.com/",
+        };
+        CHECK(d.metadata().website == "https://example.com/");
+        CHECK(d.metadata().links == std::vector<arcana::deck_link>{homepage});
+    }
+
+    SECTION("no website")
+    {
+        auto const d = build_from(R"([deck]
+name = "n"
+)");
+        CHECK(d.metadata().links.empty());
+    }
+
+    SECTION("a website of the wrong type")
+    {
+        auto const d = build_from(R"([deck]
+name = "n"
+website = 7
+)");
+        CHECK_FALSE(d.metadata().website.has_value());
+        CHECK(d.metadata().links.empty());
+    }
+}
+
+TEST_CASE("every 1.0 [deck] key lands in its v2 home", "[loader][v1][metadata]")
+{
+    auto const d = build_from(R"([deck]
+id = "old-deck"
+schema_version = "1.0"
+name = "Old Deck"
+version = "1.2.3"
+icon = "icon.png"
+author = "Pamela"
+license = "Public Domain"
+aspect_ratio = 1.5
+description = "A deck."
+created_date = "1909-12-01"
+updated_date = "2026-11-14"
+publisher = "Rider"
+website = "https://example.com/"
+tags = ["classic"]
+attribution = "Scanned by someone."
+)");
+
+    auto const& m = d.metadata();
+    CHECK(m.schema_version == "1.0");
+    CHECK(m.name == "Old Deck");
+    CHECK(m.version == "1.2.3");
+    CHECK(m.icon == "icon.png");
+    CHECK(m.artist == "Pamela");
+    CHECK(m.aspect_ratio == 1.5);
+    CHECK(m.description == "A deck.");
+    CHECK(m.created_date == "1909-12-01");
+    CHECK(m.updated_date == "2026-11-14");
+    CHECK(m.publisher == "Rider");
+    CHECK(m.tags == std::vector<std::string>{"classic"});
+    CHECK(m.attribution == "Scanned by someone.");
+
+    CHECK(m.website == "https://example.com/");
+    REQUIRE(m.links.size() == 1);
+    CHECK(m.links.front().rel == arcana::link_rel::homepage);
+    CHECK(m.links.front().url == "https://example.com/");
+
+    // Not normalized: a library handle, a creation date and free-text licence
+    CHECK_FALSE(m.identifier.has_value());
+    CHECK_FALSE(m.published_date.has_value());
+    CHECK_FALSE(m.rights_status.has_value());
+    CHECK(m.license == "Public Domain");
+}
+
 TEST_CASE("excluded cards are dropped and carry the deck's reason", "[loader]")
 {
     auto const d = build_from(R"([deck]
