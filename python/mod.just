@@ -8,6 +8,7 @@ set working-directory := '..'
 
 python_build_dir := build_root / "python"
 wheel_venv := build_root / "wheel-venv"
+pypi_venv := build_root / "pypi-venv"
 
 default:
     @just --list python
@@ -39,3 +40,18 @@ wheel:
     python3 -m venv {{wheel_venv}}
     {{wheel_venv}}/bin/pip install -v --disable-pip-version-check .
     cd /tmp && /src/{{wheel_venv}}/bin/python /src/tools/check_wheel_import.py
+
+# e.g. `just python shell-pypi`        latest release
+#      `just python shell-pypi 0.1.0`  a pinned one
+[doc('Python REPL on the host with `arcana-tarot` installed from PyPI.')]
+shell-pypi version="":
+    rm -rf {{pypi_venv}}
+    python3 -m venv {{pypi_venv}}
+    {{pypi_venv}}/bin/pip install -q --disable-pip-version-check \
+        'arcana-tarot{{ if version != "" { "==" + version } else { "" } }}'
+    venv="$PWD/{{pypi_venv}}"; cd /tmp && "$venv/bin/python" -q
+
+[doc('Python REPL with `arcana-tarot` built from this checkout.')]
+[script]
+shell-local: wheel
+    cd /tmp && /src/{{wheel_venv}}/bin/python -q
