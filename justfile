@@ -5,6 +5,7 @@ import 'just/common.just'
 
 mod bench 'bench/mod.just'
 mod python 'python/mod.just'
+mod release 'release/mod.just'
 
 stage := build_dir / "stage"
 graph_dir := build_dir / "graph"
