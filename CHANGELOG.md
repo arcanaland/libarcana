@@ -16,7 +16,7 @@ Release description
 
 ## [0.3.0] - 2026-11-16
 
-Support deck spec 2.0 release candidate 1.
+Support deck spec v2.0-rc.1.
 
 
 ## [0.2.0] - 2026-08-20

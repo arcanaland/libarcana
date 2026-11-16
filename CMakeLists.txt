@@ -4,9 +4,9 @@
 cmake_minimum_required(VERSION 4.3)
 project(
     arcana
-    VERSION 0.2.0 # expect ABI breaking changes before 1.0
+    VERSION 0.3.0 # expect ABI breaking changes before 1.0
     LANGUAGES CXX
-    COMPAT_VERSION 0.2.0
+    COMPAT_VERSION 0.3.0
     SPDX_LICENSE "MIT"
   )
 
