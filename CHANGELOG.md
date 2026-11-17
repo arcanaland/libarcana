@@ -14,6 +14,12 @@ Release description
 ### Fixed
 -->
 
+## [Unreleased]
+
+### Added
+
+- Add bindings for `validate()`
+
 ## [0.3.0] - 2026-11-16
 
 Support deck spec v2.0-rc.1.
