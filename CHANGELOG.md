@@ -14,9 +14,7 @@ Release description
 ### Fixed
 -->
 
-## [Unreleased]
-
-### Added
+## [0.4.0] - 2026-11-17
 
 - Add bindings for `validate()`
 - Wheels for Linux aarch64.
