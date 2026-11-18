@@ -19,8 +19,12 @@ concurrency:
 
 jobs:
   wheels:
-    name: Build manylinux wheel
-    runs-on: ubuntu-latest
+    name: Build manylinux wheel (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +33,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dist-wheels
+          name: dist-wheels-${{ matrix.runner }}
           path: wheelhouse/*.whl
 
   sdist:
