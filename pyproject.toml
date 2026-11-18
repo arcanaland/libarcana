@@ -36,11 +36,15 @@ ARCANA_INSTALL = "OFF"
 ARCANA_INSTALL_PYTHON_MODULE = "ON"
 
 [tool.cibuildwheel]
-build = ["cp312-manylinux_x86_64", "cp312-manylinux_aarch64"]
+build = ["cp312-manylinux_x86_64", "cp312-manylinux_aarch64", "cp312-macosx_arm64"]
 build-frontend = "build"
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
 test-command = "python {project}/tools/check_wheel_import.py"
+
+[tool.cibuildwheel.macos]
+archs = ["arm64"]
+environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
 
 # Grab the real version from CMakeLists.txt
 [[tool.dynamic-metadata]]
