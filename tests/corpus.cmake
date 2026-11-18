@@ -20,7 +20,7 @@ set(ARCANA_REFERENCE_DECKS_DIR "" CACHE PATH
 option(ARCANA_FETCH_SPECIFICATION "Download the specification text" ON)
 
 set(ARCANA_SPECIFICATION_V1_TAG
-    29f2184b8fc29e1db016c1f4a3d0c96bac8a4217 CACHE STRING
+    5396d0acb378a7d4b7fe139b4918c1f0f5627198 CACHE STRING
     "Commit of published v1 spec at arcanaland/specifications")
 
 set(ARCANA_SPECIFICATION_V2_TAG
@@ -89,13 +89,36 @@ arcana_declare_corpus(specification_v2
 
 set(arcana_specification_v1_file "")
 if(arcana_specification_v1_dir)
-    set(arcana_specification_v1_file ${arcana_specification_v1_dir}/README.md)
+    set(arcana_specification_v1_file ${arcana_specification_v1_dir}/DECK.md)
 endif()
 
 set(arcana_specification_v2_file "")
 if(arcana_specification_v2_dir)
     set(arcana_specification_v2_file ${arcana_specification_v2_dir}/DECK.md)
 endif()
+
+# arcana_specification_label(<dir> <var>)
+#
+# Sets <var> to the `deck/*` tag naming <dir>'s HEAD, minus the prefix, or empty
+# where none does.
+function(arcana_specification_label dir out)
+    set(label "")
+    if(dir)
+        execute_process(
+            COMMAND git -C ${dir} describe --tags --exact-match --match "deck/*" HEAD
+            OUTPUT_VARIABLE tag
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            RESULT_VARIABLE failed)
+        if(NOT failed)
+            string(REGEX REPLACE "^deck/" "" label "${tag}")
+        endif()
+    endif()
+    set(${out} "${label}" PARENT_SCOPE)
+endfunction()
+
+arcana_specification_label("${arcana_specification_v1_dir}" arcana_specification_v1_label)
+arcana_specification_label("${arcana_specification_v2_dir}" arcana_specification_v2_label)
 
 add_library(arcana-test-corpus INTERFACE)
 add_library(arcana::test-corpus ALIAS arcana-test-corpus)
@@ -109,4 +132,6 @@ target_compile_definitions(arcana-test-corpus INTERFACE
     SPECIFICATION_V1_FILE="${arcana_specification_v1_file}"
     SPECIFICATION_V2_FILE="${arcana_specification_v2_file}"
     SPECIFICATION_V1_TAG="${ARCANA_SPECIFICATION_V1_TAG}"
-    SPECIFICATION_V2_TAG="${ARCANA_SPECIFICATION_V2_TAG}")
+    SPECIFICATION_V2_TAG="${ARCANA_SPECIFICATION_V2_TAG}"
+    SPECIFICATION_V1_LABEL="${arcana_specification_v1_label}"
+    SPECIFICATION_V2_LABEL="${arcana_specification_v2_label}")

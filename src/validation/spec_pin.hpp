@@ -6,8 +6,11 @@
 
 #pragma once
 
+#include <arcana/validation.hpp>
+
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 #include <utility>
@@ -15,7 +18,7 @@
 namespace arcana::validation
 {
 
-struct spec_pin
+struct pinned_text
 {
     std::uint8_t schema_major;
 
@@ -23,35 +26,59 @@ struct spec_pin
     std::string_view repository;
 
     std::string_view revision;
+    std::string_view label;
     std::string_view file;
 };
 
-inline constexpr std::array spec_pins{
-    spec_pin{
+inline constexpr std::array pinned_texts{
+    pinned_text{
         .schema_major = 1,
         .repository = "https://github.com/arcanaland/specifications",
-        .revision = "29f2184b8fc29e1db016c1f4a3d0c96bac8a4217",
-        .file = "README.md",
+        .revision = "5396d0acb378a7d4b7fe139b4918c1f0f5627198",
+        .label = "v1.0",
+        .file = "DECK.md",
     },
-    spec_pin{
+    pinned_text{
         .schema_major = 2,
         .repository = "https://github.com/arcanaland/specifications",
         .revision = "2d203ddde772a74607c2cc3755e2260be04481fa",
+        .label = "v2.0-rc.1",
         .file = "DECK.md",
     },
 };
 
+static_assert(
+    std::ranges::is_sorted(pinned_texts, {}, &pinned_text::schema_major) &&
+        std::ranges::adjacent_find(pinned_texts, {}, &pinned_text::schema_major) ==
+            pinned_texts.end(),
+    "pins must be strictly ascending by schema_major"
+);
+
+// The same pins, as the public record.
+inline constexpr auto public_pins = []
+{
+    std::array<spec_pin, pinned_texts.size()> out{};
+    for (std::size_t i = 0; i < pinned_texts.size(); ++i)
+        out[i] = spec_pin{
+            .schema_major = pinned_texts[i].schema_major,
+            .revision = pinned_texts[i].revision,
+            .label = pinned_texts[i].label,
+        };
+    return out;
+}();
+
 // Whether this file pins any text for this major.
 [[nodiscard]] constexpr bool has_pin(std::uint8_t schema_major) noexcept
 {
-    return std::ranges::find(spec_pins, schema_major, &spec_pin::schema_major) != spec_pins.end();
+    return std::ranges::find(pinned_texts, schema_major, &pinned_text::schema_major) !=
+           pinned_texts.end();
 }
 
 // The pin for this major.
-[[nodiscard]] constexpr spec_pin const& pin_for(std::uint8_t schema_major) noexcept
+[[nodiscard]] constexpr pinned_text const& pin_for(std::uint8_t schema_major) noexcept
 {
-    auto const found = std::ranges::find(spec_pins, schema_major, &spec_pin::schema_major);
-    if (found == spec_pins.end())
+    auto const found = std::ranges::find(pinned_texts, schema_major, &pinned_text::schema_major);
+    if (found == pinned_texts.end())
         std::unreachable();
 
     return *found;

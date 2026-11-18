@@ -177,6 +177,21 @@ enum class rule_state : std::uint8_t
 // where the major has no pin.
 [[nodiscard]] std::string spec_url(spec_section section);
 
+// The specification text one schema major's citations were read against.
+struct spec_pin
+{
+    std::uint8_t schema_major;
+
+    // A commit of arcanaland/specifications.
+    std::string_view revision;
+
+    // Its tag without the `deck/` prefix, such as `v1.0`; empty when untagged.
+    std::string_view label;
+};
+
+// Every pinned major, sorted ascending by schema_major.
+[[nodiscard]] std::span<spec_pin const> spec_pins() noexcept;
+
 // One finding about one deck.
 struct diagnostic
 {
