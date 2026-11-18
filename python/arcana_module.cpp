@@ -7,6 +7,7 @@
 #include <arcana/library.hpp>
 #include <arcana/loader.hpp>
 #include <arcana/paths.hpp>
+#include <arcana/validation.hpp>
 #include <arcana/version.hpp>
 
 #include <nanobind/nanobind.h>
@@ -22,9 +23,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <format>
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -56,6 +59,22 @@ T unwrap(std::expected<T, error> result)
         raise_deck_error(result.error());
 
     return std::move(*result);
+}
+
+std::string_view severity_name(severity level)
+{
+    switch (level)
+    {
+        case severity::pedantic:
+            return "pedantic";
+        case severity::info:
+            return "info";
+        case severity::warning:
+            return "warning";
+        case severity::error:
+            return "error";
+    }
+    return "unknown";
 }
 
 template <typename T>
@@ -178,6 +197,22 @@ NB_MODULE(_core, m)  // NOLINT
         .value("publisher", name_source::publisher)
         .value("packager", name_source::packager)
         .value("other", name_source::other);
+
+    nb::enum_<severity>(m, "severity", nb::is_arithmetic())
+        .value("pedantic", severity::pedantic)
+        .value("info", severity::info)
+        .value("warning", severity::warning)
+        .value("error", severity::error);
+
+    nb::enum_<phase>(m, "phase")
+        .value("document", phase::document)
+        .value("filesystem", phase::filesystem)
+        .value("library", phase::library);
+
+    nb::enum_<rule_state>(m, "rule_state")
+        .value("checked", rule_state::checked)
+        .value("pending", rule_state::pending)
+        .value("deferred", rule_state::deferred);
 
     // --- Shape: free functions over string_view -------------------------------
 
@@ -617,6 +652,71 @@ NB_MODULE(_core, m)  // NOLINT
         )
 
         .def("refresh", &deck_library::refresh);
+
+    // --- Validation: read-only views over the static catalogue ---------------
+
+    nb::class_<spec_section>(m, "spec_section")
+        .def_ro("schema_major", &spec_section::schema_major)
+        .def_ro("anchor", &spec_section::anchor);
+
+    nb::class_<rule>(m, "rule")
+        .def_ro("code", &rule::code)
+        .def_ro("default_level", &rule::default_level)
+        .def_ro("area", &rule::area)
+        .def_ro("needs", &rule::needs)
+        .def_ro("explanation", &rule::explanation)
+        .def_ro("experimental", &rule::experimental)
+        .def(
+            "citations",
+            [](rule const& self)
+            {
+                auto const all = self.citations();
+                return std::vector<spec_section>(all.begin(), all.end());
+            }
+        )
+        .def(
+            "__repr__", [](rule const& self)
+            { return std::format("<rule {} {}>", self.code, severity_name(self.default_level)); }
+        );
+
+    nb::class_<diagnostic>(m, "diagnostic")
+        .def_ro("level", &diagnostic::level)
+        .def_ro("code", &diagnostic::code)
+        .def_ro("message", &diagnostic::message)
+        .def_ro("card", &diagnostic::card)
+        .def_ro("path", &diagnostic::path)
+        .def_ro("key", &diagnostic::key)
+        .def(
+            "__repr__",
+            [](diagnostic const& self)
+            {
+                auto repr = std::format("<diagnostic {} {}", self.code, severity_name(self.level));
+                if (self.card)
+                    repr += std::format(" card={}", *self.card);
+                if (self.key)
+                    repr += std::format(" key={}", *self.key);
+                return repr + ">";
+            }
+        );
+
+    m.def(
+        "rules",
+        []
+        {
+            std::vector<rule const*> all;
+            for (auto const& one : rules()) all.push_back(&one);
+            return all;
+        },
+        nb::rv_policy::reference
+    );
+    m.def("find_rule", &find_rule, nb::arg("code"), nb::rv_policy::reference);
+    m.def("state_of", &state_of, nb::arg("code"));
+    m.def(
+        "spec_revision", [](std::uint8_t schema_major)
+        { return std::string{spec_revision(schema_major)}; }, nb::arg("schema_major")
+    );
+    m.def("spec_url", &spec_url, nb::arg("section"));
+    m.def("validate", &validate, nb::arg("deck"), nb::call_guard<nb::gil_scoped_release>());
 
     // --- Paths ----------------------------------------------------------------
 

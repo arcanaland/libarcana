@@ -47,4 +47,10 @@ expected = ["deck-broken", "deck-three", "deck-two"]
 if names != expected:
     sys.exit(f"expected {expected}, got {names}")
 
+valid = repo_root / "tests" / "fixtures" / "validation" / "backs" / "backs-valid"
+findings = arcana_tarot.validate(arcana_tarot.load_deck(valid))
+print(f"findings for {valid.name} = {findings}")
+if findings != []:
+    sys.exit(f"expected no findings for {valid.name}, got {findings}")
+
 print("ok")
