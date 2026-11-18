@@ -1,0 +1,116 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+name: macOS wheel release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, branch or tag to build
+        type: string
+        default: main
+      repository:
+        description: Where to publish
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
+
+concurrency:
+  group: macos-wheel-${{ github.event.release.tag_name || inputs.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Skip if the version already has a macOS wheel
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.target.outputs.ref }}
+      repository: ${{ steps.target.outputs.repository }}
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: target
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_REF: ${{ inputs.ref }}
+          INPUT_REPOSITORY: ${{ inputs.repository }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = release ]; then
+            echo "ref=$RELEASE_TAG" >>"$GITHUB_OUTPUT"
+            echo "repository=pypi" >>"$GITHUB_OUTPUT"
+          else
+            echo "ref=$INPUT_REF" >>"$GITHUB_OUTPUT"
+            echo "repository=$INPUT_REPOSITORY" >>"$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.ref }}
+
+      - id: check
+        env:
+          REPOSITORY: ${{ steps.target.outputs.repository }}
+        run: |
+          set -euo pipefail
+          version=$(python3 -c '
+          import re, sys
+          text = open("CMakeLists.txt").read()
+          m = re.search(r"project\(\s+arcana\s+VERSION\s+(?P<value>[0-9][0-9.]*)", text)
+          if m is None:
+              sys.exit("no project version in CMakeLists.txt")
+          print(m["value"])
+          ')
+          case "$REPOSITORY" in
+          pypi) host=pypi.org ;;
+          testpypi) host=test.pypi.org ;;
+          *) echo "::error::unknown repository $REPOSITORY"; exit 1 ;;
+          esac
+          url="https://$host/pypi/arcana-tarot/$version/json"
+          echo "checking $url"
+          status=$(curl -sS -o release.json -w '%{http_code}' "$url")
+          case "$status" in
+          200)
+            if python3 -c '
+          import json, sys
+          files = json.load(open("release.json"))["urls"]
+          sys.exit(0 if any("macosx_" in f["filename"] and "arm64" in f["filename"] for f in files) else 1)
+          '; then
+              echo "arcana-tarot $version already has a macOS arm64 wheel on $host"
+              echo "skip=true" >>"$GITHUB_OUTPUT"
+            else
+              echo "skip=false" >>"$GITHUB_OUTPUT"
+            fi
+            ;;
+          404) echo "skip=false" >>"$GITHUB_OUTPUT" ;;
+          *) echo "::error::$url returned HTTP $status"; exit 1 ;;
+          esac
+
+  build:
+    needs: [gate]
+    if: needs.gate.outputs.skip != 'true'
+    uses: ./.github/workflows/macos-build.yml
+    with:
+      ref: ${{ needs.gate.outputs.ref }}
+
+  publish:
+    name: Publish to ${{ needs.gate.outputs.repository }}
+    needs: [gate, build]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.gate.outputs.repository }}
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-wheel
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: ${{ needs.gate.outputs.repository == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}

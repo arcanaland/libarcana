@@ -54,6 +54,9 @@ optional, at any point:
        release.sh ci              watch CI on HEAD (run after push, before publish)
        release.sh dry-run         build every artifact and upload to TestPyPI
 
+macOS wheel dry run, uploaded to TestPyPI:
+       gh workflow run macos-wheel.yml -f ref=main -f repository=testpypi
+
 Between prepare and tag, write the notes under the new heading in CHANGELOG.md.
 The template is the HTML comment at the top of that file.
 EOF
@@ -160,10 +163,46 @@ refuse_existing_tag() {
        git push origin :refs/tags/$tag     # only if it reached origin"
 }
 
-# The newest ci.yml run on a commit, printed with the given jq template.
+# The newest run of a workflow on a commit, printed with the given jq template.
+workflow_run_for() {
+  gh run list --commit "$2" --workflow "$1" --limit 1 \
+    --json databaseId,status,conclusion,url --jq ".[0] | select(.) | $3" 2>/dev/null
+}
+
 ci_run_for() {
-  gh run list --commit "$1" --workflow ci.yml --limit 1 \
-    --json databaseId,status,conclusion,url --jq ".[0] | select(.) | $2" 2>/dev/null
+  workflow_run_for ci.yml "$@"
+}
+
+report_macos_floor() {
+  if ! command -v gh >/dev/null; then
+    note "gh is not installed; macOS floor check not reported"
+    return
+  fi
+
+  local sha short run
+  sha=$(git rev-parse HEAD)
+  short=$(git rev-parse --short HEAD)
+  run=$(workflow_run_for macos-floor.yml "$sha" '"\(.conclusion) \(.url)"' || true)
+  if [ "${run%% *}" = "success" ]; then
+    ok "macOS floor check passed on $short: ${run#* }"
+    return
+  fi
+
+  if [ -n "$run" ]; then
+    note "macOS floor check on $short has not passed: $run"
+  else
+    note "no macOS floor check has run on $short"
+  fi
+
+  local green
+  green=$(gh run list --workflow macos-floor.yml --branch "$BRANCH" --status success --limit 1 \
+    --json headSha --jq '.[0].headSha // empty' 2>/dev/null || true)
+  if [ -n "$green" ] && git cat-file -e "$green^{commit}" 2>/dev/null; then
+    note "newest green: $(git rev-parse --short "$green"), $(git rev-list --count "$green..HEAD") commit(s) behind HEAD"
+  else
+    note "no green macOS floor check found on $BRANCH"
+  fi
+  note "start one with: gh workflow run macos-floor.yml"
 }
 
 # ---------------------------------------------------------------- prepare ----
@@ -321,6 +360,9 @@ phase_tag() {
     printf '%s\n' "$others"
   fi
 
+  report_macos_floor
+  echo ""
+
   confirm "Commit the release and create $tag?"
 
   if [ -n "$(git status --porcelain -- "$CMAKELISTS" "$VERSION_TEST" "$CHANGELOG")" ]; then
@@ -425,9 +467,10 @@ phase_publish() {
     --title "$DIST $version" \
     --notes-file "$notes"
 
-  ok "released $tag. The Release workflow now builds and uploads to PyPI:"
+  ok "released $tag:"
   echo ""
   echo "   gh run list --workflow release.yml --limit 1"
+  echo "   gh run list --workflow macos-wheel.yml --limit 1"
 }
 
 # --------------------------------------------------------------------- ci ----
