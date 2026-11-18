@@ -268,7 +268,7 @@ struct card
     std::optional<std::string> number;
 
     // Major arcana only: where the card sits in the deck's sequence
-    // nullopt for minors and for majors the deck gives no position
+    // nullopt for minors and for custom majors the deck gives no position
     std::optional<int> position;
 
     // Resolved: a name file outranks the manifest's `declared.alt_text`

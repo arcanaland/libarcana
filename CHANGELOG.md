@@ -14,6 +14,13 @@ Release description
 ### Fixed
 -->
 
+## [Unreleased]
+
+### Changed
+
+- Major arcana cards now have a number in `card.position` rather than `None`.
+- Fixed alt text bug for old 1.0 decks.
+
 ## [0.4.0] - 2026-11-17
 
 - Add bindings for `validate()`

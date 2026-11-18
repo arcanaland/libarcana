@@ -840,7 +840,7 @@ default_variant = "two_men"
 
         auto const& lovers = card_at(deck, "major_arcana.06");
         CHECK_FALSE(lovers.number.has_value());
-        CHECK_FALSE(lovers.position.has_value());
+        CHECK(lovers.position == 6);
         CHECK_FALSE(lovers.default_variant.has_value());
 
         // The card kept its place, so `position` did not reach it
@@ -1069,6 +1069,22 @@ ranks = ["king", "ace"]
 
         CHECK(canonical_ids(deck).back() == "minor_arcana.stars.ace");
     }
+}
+
+TEST_CASE("a standard major's position defaults to its number", "[loader][v2]")
+{
+    auto const deck = load(make_deck(R"(
+[cards."major_arcana.05"]
+position = 30
+)"));
+
+    for (int i = 0; i <= arcana::max_canonical_major_arcana_number; ++i)
+    {
+        auto const& c = card_at(deck, std::format("major_arcana.{:02d}", i));
+        CHECK(c.position == (i == 5 ? 30 : i));
+    }
+
+    CHECK_FALSE(card_at(deck, "minor_arcana.cups.ace").position.has_value());
 }
 
 TEST_CASE("excluded cards are not loaded", "[loader][v2]")
