@@ -46,8 +46,8 @@ wheel:
 [doc('Python REPL on the host with `arcana-tarot` installed from PyPI.')]
 shell-pypi version="":
     rm -rf {{pypi_venv}}
-    python3 -m venv {{pypi_venv}}
-    {{pypi_venv}}/bin/pip install -q --disable-pip-version-check \
+    uv venv -q --python 3.12 {{pypi_venv}}
+    uv pip install -q --python {{pypi_venv}}/bin/python \
         'arcana-tarot{{ if version != "" { "==" + version } else { "" } }}'
     venv="$PWD/{{pypi_venv}}"; cd /tmp && "$venv/bin/python" -q
 
