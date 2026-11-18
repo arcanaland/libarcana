@@ -1,0 +1,13 @@
+[alt_text.major_arcana]
+00 = "Names fool text."
+happy_squirrel = "Names squirrel text."
+
+[alt_text.minor_arcana.wands]
+ace = "Names ace of wands text."
+
+[alt_text.minor_arcana.stars]
+ace = "Names ace of stars text."
+
+[alt_text.card_backs]
+classic = "Names classic back text."
+plain = "Names plain back text."

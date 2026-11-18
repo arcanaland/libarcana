@@ -188,3 +188,15 @@ def test_malformed_decks_are_reported(tmp_path: Path) -> None:
     (bad,) = lib.malformed_decks()
     assert bad.directory_name == "deck-bad"
     assert bad.problem.code == arcana.error_code.parse_error
+
+
+def test_a_1_0_deck_carries_alt_text_from_its_names_file(fixtures_dir: Path) -> None:
+    deck = arcana.load_deck(fixtures_dir / "loader" / "v1-alt-text-deck")
+
+    fool = deck.find_card(arcana.card_id.standard_major(0))
+    assert fool is not None
+    assert fool.alt_text == "Names fool text."
+
+    backs = {back.id: back.alt_text for back in deck.card_backs}
+    assert backs["classic"] == "Names classic back text."
+    assert backs["plain"] == "Names plain back text."

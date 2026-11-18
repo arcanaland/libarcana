@@ -100,7 +100,7 @@ def test_position_is_an_optional_int(tmp_path: Path) -> None:
     # A standard major's place is its number
     fool = deck.find_card(arcana.card_id.standard_major(0))
     assert fool is not None
-    assert fool.position is None
+    assert fool.position == 0
 
     ace = deck.find_card(arcana.card_id.standard_minor(arcana.suit.cups, arcana.rank.ace))
     assert ace is not None

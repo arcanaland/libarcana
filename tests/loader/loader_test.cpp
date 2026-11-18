@@ -541,7 +541,7 @@ TEST_CASE("a names file overrides display names and alt text", "[loader]")
 [minor_arcana.cups]
 ace = "As de Coupe"
 
-[alt_text]
+[alt_text.major_arcana]
 00 = "a wanderer"
 )");
 
@@ -566,7 +566,7 @@ name = "n"
 TEST_CASE("a custom card's declared alt_text is used only when names has none", "[loader]")
 {
     arcana_test::temp_dir deck;
-    deck.write("names/en.toml", R"([alt_text]
+    deck.write("names/en.toml", R"([alt_text.major_arcana]
 the_void = "from the catalog"
 )");
 

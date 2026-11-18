@@ -426,6 +426,39 @@ TEST_CASE("a 1.0 deck reports an artist but no identifier", "[deck]")
     CHECK_FALSE(result->metadata().identifier.has_value());
 }
 
+TEST_CASE("a 1.0 deck reads alt text from its group tables", "[deck]")
+{
+    auto const result = load_deck(fixture("v1-alt-text-deck"));
+    REQUIRE(result.has_value());
+    auto const& d = *result;
+
+    auto const alt_text_of = [&d](std::string_view id)
+    {
+        auto const c = find(d, id);
+        REQUIRE(c.has_value());
+        return c->alt_text;
+    };
+
+    CHECK(alt_text_of("major_arcana.00") == "Names fool text.");
+    CHECK(alt_text_of("minor_arcana.wands.ace") == "Names ace of wands text.");
+    CHECK(alt_text_of("minor_arcana.stars.ace") == "Names ace of stars text.");
+    CHECK_FALSE(alt_text_of("major_arcana.01").has_value());
+
+    // The names file wins over deck.toml, which remains the fallback
+    CHECK(alt_text_of("major_arcana.happy_squirrel") == "Names squirrel text.");
+    CHECK(alt_text_of("major_arcana.sad_owl") == "Manifest owl text.");
+
+    auto const back_alt_text = [&d](std::string const& id)
+    {
+        auto const back = std::ranges::find(d.card_backs(), id, &card_back_design::id);
+        REQUIRE(back != d.card_backs().end());
+        return back->alt_text;
+    };
+
+    CHECK(back_alt_text("classic") == "Names classic back text.");
+    CHECK(back_alt_text("plain") == "Names plain back text.");
+}
+
 TEST_CASE("ascii-tarot resolves ansi20 card images", "[deck][reference-decks]")
 {
     auto const result = load_deck(reference_deck("ascii-tarot"));

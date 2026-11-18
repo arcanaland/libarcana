@@ -1122,6 +1122,11 @@ deck_state reader::read()
 
     sort_cards(deck_.cards, deck_.suits);
 
+    // reposition after sorting
+    for (auto& c : deck_.cards)
+        if (c.id.cls == card_class::standard_major)
+            c.position = c.position.value_or(c.id.number);
+
     deck_.document = document_;
     return std::move(deck_);
 }

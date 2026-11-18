@@ -1,0 +1,31 @@
+[deck]
+id = "v1-alt-text-deck"
+schema_version = "1.0"
+name = "V1 Alt Text Deck"
+version = "1.0"
+
+[card_backs]
+default = "classic"
+
+[card_backs.variants.classic]
+name = "Classic"
+image = "card_backs/classic.png"
+alt_text = "Manifest back text."
+
+[custom_cards.major_arcana.happy_squirrel]
+id = "happy_squirrel"
+name = "The Happy Squirrel"
+alt_text = "Manifest squirrel text."
+position = 22
+
+[custom_cards.major_arcana.sad_owl]
+id = "sad_owl"
+name = "The Sad Owl"
+alt_text = "Manifest owl text."
+position = 23
+
+[custom_cards.minor_arcana.stars]
+name = "Stars"
+cards = [
+  { id = "ace", name = "Ace of Stars" },
+]
