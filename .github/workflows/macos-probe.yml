@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+name: macOS probe
+
+on:
+  push:
+    branches: [slop/macos-probe]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    name: macOS probe (${{ matrix.deployment-target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        deployment-target: ["11.0", "13.3", "14.0", "15.0"]
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Report the toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          clang++ --version
+
+      - name: Install CMake and Ninja
+        run: |
+          set -euxo pipefail
+          pipx install 'cmake>=4.3'
+          pipx install ninja
+          cmake --version
+          ninja --version
+
+      - name: "Step A: build the library"
+        continue-on-error: true
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment-target }}
+        run: |
+          set -euxo pipefail
+          cmake -S . -B build -G Ninja \
+            -DARCANA_BUILD_TESTS=OFF \
+            -DARCANA_BUILD_BENCH=OFF \
+            -DARCANA_INSTALL=OFF \
+            -DARCANA_BUILD_PYTHON=OFF
+          cmake --build build -- -k 0
+
+      - name: "Step B: build the wheel"
+        uses: pypa/cibuildwheel@v4.2.0
+        env:
+          CIBW_BUILD: cp312-macosx_arm64
+          CIBW_ARCHS_MACOS: arm64
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment-target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-wheel-${{ matrix.deployment-target }}
+          path: wheelhouse/*.whl
+          if-no-files-found: ignore
