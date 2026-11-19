@@ -659,6 +659,15 @@ NB_MODULE(_core, m)  // NOLINT
         .def_ro("schema_major", &spec_section::schema_major)
         .def_ro("anchor", &spec_section::anchor);
 
+    nb::class_<spec_pin>(m, "spec_pin")
+        .def_ro("schema_major", &spec_pin::schema_major)
+        .def_ro("revision", &spec_pin::revision)
+        .def_ro("label", &spec_pin::label)
+        .def(
+            "__repr__", [](spec_pin const& self)
+            { return std::format("<spec_pin {} {}>", self.schema_major, self.label); }
+        );
+
     nb::class_<rule>(m, "rule")
         .def_ro("code", &rule::code)
         .def_ro("default_level", &rule::default_level)
@@ -716,6 +725,14 @@ NB_MODULE(_core, m)  // NOLINT
         { return std::string{spec_revision(schema_major)}; }, nb::arg("schema_major")
     );
     m.def("spec_url", &spec_url, nb::arg("section"));
+    m.def(
+        "spec_pins",
+        []
+        {
+            auto const all = spec_pins();
+            return std::vector<spec_pin>(all.begin(), all.end());
+        }
+    );
     m.def("validate", &validate, nb::arg("deck"), nb::call_guard<nb::gil_scoped_release>());
 
     // --- Paths ----------------------------------------------------------------

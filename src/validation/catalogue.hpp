@@ -29,4 +29,7 @@ namespace arcana::validation
 // A resolvable URL for one citation
 [[nodiscard]] std::string url_of(spec_section section);
 
+// Every pin, as the public record
+[[nodiscard]] std::span<spec_pin const> all_pins() noexcept;
+
 }  // namespace arcana::validation

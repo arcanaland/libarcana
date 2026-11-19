@@ -124,8 +124,17 @@ def test_spec_revision_is_empty_for_an_unpinned_major() -> None:
     assert at.spec_revision(9) == ""
 
 
+def test_spec_pins_lists_each_pinned_major_with_its_label() -> None:
+    pins = at.spec_pins()
+
+    assert [(p.schema_major, p.label) for p in pins] == [(1, "v1.0"), (2, "v2.0-rc.1")]
+    for pin in pins:
+        assert pin.revision == at.spec_revision(pin.schema_major)
+        assert len(pin.revision) == 40
+
+
 def test_catalogue_types_are_read_only(fixtures_dir: Path) -> None:
-    for cls in (at.diagnostic, at.rule, at.spec_section):
+    for cls in (at.diagnostic, at.rule, at.spec_pin, at.spec_section):
         with pytest.raises(TypeError):
             cls()
 

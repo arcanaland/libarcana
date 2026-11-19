@@ -50,6 +50,11 @@ std::string spec_url(spec_section section)
     return validation::url_of(section);
 }
 
+std::span<spec_pin const> spec_pins() noexcept
+{
+    return validation::all_pins();
+}
+
 std::vector<diagnostic> validate(deck const& d)
 {
     auto const major = validation::major_of(d);

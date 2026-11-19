@@ -1549,7 +1549,7 @@ std::string url_of(spec_section section)
     if (!has_pin(section.schema_major))
         return {};
 
-    spec_pin const& pin = pin_for(section.schema_major);
+    pinned_text const& pin = pin_for(section.schema_major);
 
     constexpr std::string_view blob = "/blob/";
 
@@ -1568,6 +1568,11 @@ std::string url_of(spec_section section)
     url.append(section.anchor);
 
     return url;
+}
+
+std::span<spec_pin const> all_pins() noexcept
+{
+    return public_pins;
 }
 
 std::span<rule const> all_rules() noexcept

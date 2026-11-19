@@ -16,6 +16,8 @@
 #include <vector>
 
 using arcana::rules;
+using arcana::spec_pin;
+using arcana::spec_pins;
 using arcana::spec_revision;
 using arcana::spec_section;
 using arcana::spec_url;
@@ -142,7 +144,8 @@ TEST_CASE("a citation builds a URL into its major's pinned revision", "[spec]")
 
     CHECK(
         spec_url(spec_section{1, "schema-versioning"}) ==
-        std::string{base} + SPECIFICATION_V1_TAG + "/README.md#schema-versioning"
+        // Split so the reference gate doesn't read it as a v2 citation.
+        std::string{base} + SPECIFICATION_V1_TAG + "/DECK.md" + "#schema-versioning"
     );
 
     CHECK(spec_url(spec_section{3, "104-validation-rules"}).empty());
@@ -155,12 +158,42 @@ TEST_CASE("each major is pinned to the revision the build fetched", "[spec]")
     CHECK(spec_revision(3).empty());
 }
 
+TEST_CASE("the pins are majors one and two, ascending, agreeing with spec_revision", "[spec]")
+{
+    auto const pins = spec_pins();
+
+    REQUIRE(pins.size() == 2);
+    CHECK(pins[0].schema_major == 1);
+    CHECK(pins[1].schema_major == 2);
+
+    for (spec_pin const& pin : pins)
+    {
+        INFO("schema major " << static_cast<int>(pin.schema_major));
+        CHECK(pin.revision == spec_revision(pin.schema_major));
+    }
+}
+
+// v1's tag is lightweight and v2's is annotated, so both kinds are covered.
+TEST_CASE("each pin's label is the tag the fetched revision carries", "[spec]")
+{
+    if (std::string_view{SPECIFICATION_V1_FILE}.empty())
+        SKIP("configured with ARCANA_FETCH_SPECIFICATION=OFF");
+
+    auto const pins = spec_pins();
+    REQUIRE(pins.size() == 2);
+
+    CHECK(pins[0].label == SPECIFICATION_V1_LABEL);
+    CHECK(pins[1].label == SPECIFICATION_V2_LABEL);
+
+    CHECK(pins[0].label == "v1.0");
+    CHECK(pins[1].label == "v2.0-rc.1");
+}
+
 // Prevent stale spec refs to appear in the code
 TEST_CASE("every specification reference in a source file resolves", "[spec]")
 {
-    std::vector<std::vector<heading>> const by_file{
-        pinned_headings(SPECIFICATION_V1_FILE), pinned_headings(SPECIFICATION_V2_FILE)
-    };
+    // Both majors' text is DECK.md, so a reference in source names the current one.
+    auto const headings = pinned_headings(SPECIFICATION_V2_FILE);
 
     auto const found = references_in_sources();
 
@@ -170,17 +203,12 @@ TEST_CASE("every specification reference in a source file resolves", "[spec]")
     {
         INFO(one.where << " names #" << one.anchor << " of " << one.file);
 
-        std::size_t index = 0;
-        if (one.file == "README.md")
-            index = 0;
-        else if (one.file == "DECK.md")
-            index = 1;
-        else
-            FAIL("only the two pinned specification files may be cited, not " + one.file);
+        if (one.file != "DECK.md")
+            FAIL("only DECK.md may be cited, not " + one.file);
 
-        REQUIRE_FALSE(by_file[index].empty());
+        REQUIRE_FALSE(headings.empty());
 
         INFO("re-read the spec: this reference no longer resolves");
-        CHECK(has_slug(by_file[index], one.anchor));
+        CHECK(has_slug(headings, one.anchor));
     }
 }

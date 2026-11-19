@@ -14,7 +14,7 @@ namespace arcana_test
 // A reference to the spec written in a source file
 struct spec_reference
 {
-    // DECK.md or README.md for v1
+    // The cited file, which only DECK.md may be
     std::string file;
 
     // GitHub anchor without leading #
