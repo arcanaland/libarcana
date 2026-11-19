@@ -2,6 +2,8 @@
 
 `libarcana` is C++ library implementing Arcana Land's [Tarot Deck spec](https://github.com/arcanaland/specifications).
 
+For the Python library, see [README-python.md](./README-python.md).
+
 ## Building
 
 Builds use a Fedora container via podman invoked by `just` (>= 1.32).

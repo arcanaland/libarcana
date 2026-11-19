@@ -9,6 +9,7 @@ set working-directory := '..'
 python_build_dir := build_root / "python"
 wheel_venv := build_root / "wheel-venv"
 pypi_venv := build_root / "pypi-venv"
+examples_venv := build_root / "examples-venv"
 
 default:
     @just --list python
@@ -50,6 +51,18 @@ shell-pypi version="":
     uv pip install -q --python {{pypi_venv}}/bin/python \
         'arcana-tarot{{ if version != "" { "==" + version } else { "" } }}'
     venv="$PWD/{{pypi_venv}}"; cd /tmp && "$venv/bin/python" -q
+
+# e.g. `just python example list-decks`
+#      `just python example examples/simple.py --some-arg`
+[doc('Run a script from examples/ on the host against `arcana-tarot` from PyPI.')]
+example name *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -x {{examples_venv}}/bin/python ] || uv venv -q --python 3.12 {{examples_venv}}
+    uv pip install -q --python {{examples_venv}}/bin/python arcana-tarot
+    script='{{name}}'
+    [ -f "$script" ] || script="examples/${script%.py}.py"
+    {{examples_venv}}/bin/python "$script" {{args}}
 
 [doc('Python REPL with `arcana-tarot` built from this checkout.')]
 [script]
