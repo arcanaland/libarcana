@@ -1,6 +1,6 @@
 # arcana-tarot
 
-`arcana-tarot` is Python library implementing Arcana Land's [Tarot Deck spec](https://github.com/arcanaland/specifications).
+`arcana-tarot` is a Python library implementing Arcana Land's [Tarot Deck spec](https://github.com/arcanaland/specifications).
 
 ## Examples
 
@@ -38,7 +38,7 @@ matches = library.find_all_by_identifier("cards.wands/deck/thoth")
 deck = arcana.load_deck(matches[0].path)
 
 for card in deck.cards:
-    print(f"{card.display_name} ({card.id.to_canonical()})")
+    print(f"{card.id.to_canonical()} ({card.display_name})")
 ```
 
 Output:

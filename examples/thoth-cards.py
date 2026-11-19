@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
 import arcana_tarot as arcana
 
 library = arcana.deck_library()
