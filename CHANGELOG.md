@@ -14,6 +14,12 @@ Release description
 ### Fixed
 -->
 
+## [0.5.1] - 2026-11-19
+
+### Added
+
+- Added `arcana.spec_pins()` to expose which specifications we support
+
 ## [0.5.0] - 2026-11-18
 
 ### Added
